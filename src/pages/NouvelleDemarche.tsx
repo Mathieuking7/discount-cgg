@@ -77,6 +77,27 @@ export default function NouvelleDemarche() {
     }
   }, [formData.type, garage]);
 
+  useEffect(() => {
+    // Load existing documents when demarcheId changes
+    if (demarcheId) {
+      loadExistingDocuments();
+    }
+  }, [demarcheId]);
+
+  const loadExistingDocuments = async () => {
+    if (!demarcheId) return;
+
+    const { data: documents } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('demarche_id', demarcheId);
+
+    if (documents && documents.length > 0) {
+      const docTypes = new Set(documents.map(doc => doc.type_document));
+      setUploadedDocuments(docTypes);
+    }
+  };
+
   const loadGarage = async () => {
     if (!user) return;
 
@@ -257,6 +278,8 @@ export default function NouvelleDemarche() {
 
   const handleDocumentUploadComplete = (documentType: string) => {
     setUploadedDocuments(prev => new Set(prev).add(documentType));
+    // Reload documents to ensure count is accurate
+    loadExistingDocuments();
   };
 
   if (authLoading) {
