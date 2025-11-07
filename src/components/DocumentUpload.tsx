@@ -86,7 +86,8 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
         <Input
           type="file"
           onChange={handleFileChange}
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept=".pdf,.jpg,.jpeg,.png,image/*"
+          capture="environment"
           disabled={uploading || uploaded}
           className={uploaded ? "border-success" : ""}
         />

@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, Send, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, Download, Send, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentUpload } from "@/components/DocumentUpload";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -39,6 +40,12 @@ export default function DemarcheDetail() {
     docId: string | null;
     comment: string;
   }>({ open: false, docId: null, comment: "" });
+  const [viewerState, setViewerState] = useState<{
+    isOpen: boolean;
+    url: string;
+    name: string;
+    type: string;
+  }>({ isOpen: false, url: "", name: "", type: "" });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -144,7 +151,7 @@ export default function DemarcheDetail() {
     const { error } = await supabase
       .from('documents')
       .update({
-        validation_status: status,
+        validation_status: status === 'valid' ? 'validated' : 'rejected',
         validation_comment: comment || null,
         validated_at: new Date().toISOString(),
         validated_by: user?.id
@@ -178,7 +185,8 @@ export default function DemarcheDetail() {
           });
       }
 
-      loadDemarcheData();
+      // Reload data to reflect changes
+      await loadDemarcheData();
     }
   };
 
@@ -231,8 +239,10 @@ export default function DemarcheDetail() {
   const getValidationBadge = (status: string) => {
     switch (status) {
       case 'valid':
+      case 'validated':
         return <Badge className="bg-success text-success-foreground"><CheckCircle className="h-3 w-3 mr-1" /> Validé</Badge>;
       case 'invalid':
+      case 'rejected':
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" /> Refusé</Badge>;
       default:
         return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> En attente</Badge>;
@@ -351,14 +361,22 @@ export default function DemarcheDetail() {
                               </p>
                             )}
                           </div>
-                          <Button size="sm" variant="outline" asChild>
-                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                              <Download className="h-4 w-4" />
-                            </a>
+                          <Button 
+                            size="sm" 
+                            variant="default"
+                            onClick={() => setViewerState({
+                              isOpen: true,
+                              url: doc.url,
+                              name: doc.nom_fichier,
+                              type: doc.type_document
+                            })}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Voir
                           </Button>
                         </div>
                         
-                        {doc.validation_status !== 'valid' && doc.validation_status !== 'invalid' && (
+                        {doc.validation_status !== 'valid' && doc.validation_status !== 'validated' && doc.validation_status !== 'invalid' && doc.validation_status !== 'rejected' && (
                           <div className="flex gap-2">
                             <Button 
                               size="sm" 
@@ -506,40 +524,16 @@ export default function DemarcheDetail() {
 
       {/* Invalid Document Dialog */}
       <Dialog open={invalidDocDialog.open} onOpenChange={(open) => setInvalidDocDialog({ ...invalidDocDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Refuser le document</DialogTitle>
-            <DialogDescription>
-              Indiquez la raison du refus. Le garage sera notifié et devra soumettre un nouveau document.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label>Motif du refus *</Label>
-            <Textarea
-              value={invalidDocDialog.comment}
-              onChange={(e) => setInvalidDocDialog({ ...invalidDocDialog, comment: e.target.value })}
-              placeholder="Ex: Document illisible, signature manquante, date périmée..."
-              rows={4}
-              className="mt-2"
-            />
-          </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setInvalidDocDialog({ open: false, docId: null, comment: "" })}
-            >
-              Annuler
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmInvalidateDocument}
-              disabled={!invalidDocDialog.comment}
-            >
-              Confirmer le refus
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+...
       </Dialog>
+
+      <DocumentViewer
+        isOpen={viewerState.isOpen}
+        onClose={() => setViewerState({ isOpen: false, url: "", name: "", type: "" })}
+        documentUrl={viewerState.url}
+        documentName={viewerState.name}
+        documentType={viewerState.type}
+      />
     </div>
   );
 }

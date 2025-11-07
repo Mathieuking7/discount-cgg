@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DocumentUpload } from "@/components/DocumentUpload";
-import { ArrowLeft, FileText, AlertCircle, CheckCircle, XCircle, Upload } from "lucide-react";
+import { DocumentViewer } from "@/components/DocumentViewer";
+import { ArrowLeft, FileText, AlertCircle, CheckCircle, XCircle, Upload, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const statusLabels: Record<string, string> = {
@@ -35,6 +36,12 @@ export default function DemarcheDetail() {
   const [demarche, setDemarche] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewerState, setViewerState] = useState<{
+    isOpen: boolean;
+    url: string;
+    name: string;
+    type: string;
+  }>({ isOpen: false, url: "", name: "", type: "" });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -222,11 +229,17 @@ export default function DemarcheDetail() {
 
                       <div className="mt-3 flex gap-2">
                         <Button 
-                          variant="outline" 
+                          variant="default" 
                           size="sm"
-                          onClick={() => window.open(doc.url, '_blank')}
+                          onClick={() => setViewerState({
+                            isOpen: true,
+                            url: doc.url,
+                            name: doc.nom_fichier,
+                            type: doc.type_document
+                          })}
                         >
-                          Télécharger
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir le document
                         </Button>
                       </div>
                     </div>
@@ -300,6 +313,14 @@ export default function DemarcheDetail() {
           </div>
         </div>
       </div>
+
+      <DocumentViewer
+        isOpen={viewerState.isOpen}
+        onClose={() => setViewerState({ isOpen: false, url: "", name: "", type: "" })}
+        documentUrl={viewerState.url}
+        documentName={viewerState.name}
+        documentType={viewerState.type}
+      />
     </div>
   );
 }
