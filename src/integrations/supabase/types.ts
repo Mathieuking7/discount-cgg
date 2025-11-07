@@ -14,16 +14,286 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      demarches: {
+        Row: {
+          commentaire: string | null
+          created_at: string
+          frais_dossier: number | null
+          garage_id: string
+          id: string
+          immatriculation: string
+          montant_ht: number | null
+          montant_ttc: number | null
+          status: Database["public"]["Enums"]["demarche_status"]
+          type: Database["public"]["Enums"]["demarche_type"]
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          vehicule_id: string | null
+        }
+        Insert: {
+          commentaire?: string | null
+          created_at?: string
+          frais_dossier?: number | null
+          garage_id: string
+          id?: string
+          immatriculation: string
+          montant_ht?: number | null
+          montant_ttc?: number | null
+          status?: Database["public"]["Enums"]["demarche_status"]
+          type: Database["public"]["Enums"]["demarche_type"]
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          vehicule_id?: string | null
+        }
+        Update: {
+          commentaire?: string | null
+          created_at?: string
+          frais_dossier?: number | null
+          garage_id?: string
+          id?: string
+          immatriculation?: string
+          montant_ht?: number | null
+          montant_ttc?: number | null
+          status?: Database["public"]["Enums"]["demarche_status"]
+          type?: Database["public"]["Enums"]["demarche_type"]
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          vehicule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demarches_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demarches_vehicule_id_fkey"
+            columns: ["vehicule_id"]
+            isOneToOne: false
+            referencedRelation: "vehicules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          demarche_id: string
+          id: string
+          nom_fichier: string
+          taille_octets: number | null
+          type_document: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          demarche_id: string
+          id?: string
+          nom_fichier: string
+          taille_octets?: number | null
+          type_document: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          demarche_id?: string
+          id?: string
+          nom_fichier?: string
+          taille_octets?: number | null
+          type_document?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_demarche_id_fkey"
+            columns: ["demarche_id"]
+            isOneToOne: false
+            referencedRelation: "demarches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      garages: {
+        Row: {
+          adresse: string
+          code_postal: string
+          created_at: string
+          email: string
+          id: string
+          is_gold: boolean | null
+          raison_sociale: string
+          siret: string
+          telephone: string
+          updated_at: string
+          user_id: string
+          ville: string
+        }
+        Insert: {
+          adresse: string
+          code_postal: string
+          created_at?: string
+          email: string
+          id?: string
+          is_gold?: boolean | null
+          raison_sociale: string
+          siret: string
+          telephone: string
+          updated_at?: string
+          user_id: string
+          ville: string
+        }
+        Update: {
+          adresse?: string
+          code_postal?: string
+          created_at?: string
+          email?: string
+          id?: string
+          is_gold?: boolean | null
+          raison_sociale?: string
+          siret?: string
+          telephone?: string
+          updated_at?: string
+          user_id?: string
+          ville?: string
+        }
+        Relationships: []
+      }
+      paiements: {
+        Row: {
+          created_at: string
+          demarche_id: string
+          garage_id: string
+          id: string
+          montant: number
+          status: Database["public"]["Enums"]["paiement_status"]
+          stripe_payment_id: string | null
+          validated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          demarche_id: string
+          garage_id: string
+          id?: string
+          montant: number
+          status?: Database["public"]["Enums"]["paiement_status"]
+          stripe_payment_id?: string | null
+          validated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          demarche_id?: string
+          garage_id?: string
+          id?: string
+          montant?: number
+          status?: Database["public"]["Enums"]["paiement_status"]
+          stripe_payment_id?: string | null
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paiements_demarche_id_fkey"
+            columns: ["demarche_id"]
+            isOneToOne: false
+            referencedRelation: "demarches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paiements_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicules: {
+        Row: {
+          created_at: string
+          garage_id: string
+          id: string
+          immatriculation: string
+          marque: string | null
+          modele: string | null
+          vin: string | null
+        }
+        Insert: {
+          created_at?: string
+          garage_id: string
+          id?: string
+          immatriculation: string
+          marque?: string | null
+          modele?: string | null
+          vin?: string | null
+        }
+        Update: {
+          created_at?: string
+          garage_id?: string
+          id?: string
+          immatriculation?: string
+          marque?: string | null
+          modele?: string | null
+          vin?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicules_garage_id_fkey"
+            columns: ["garage_id"]
+            isOneToOne: false
+            referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "staff" | "garage"
+      demarche_status:
+        | "en_saisie"
+        | "en_attente"
+        | "paye"
+        | "valide"
+        | "finalise"
+        | "refuse"
+      demarche_type: "DA" | "DC" | "CG" | "CG_DA" | "DA_DC" | "CG_IMPORT"
+      paiement_status: "en_attente" | "valide" | "refuse" | "rembourse"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +420,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "staff", "garage"],
+      demarche_status: [
+        "en_saisie",
+        "en_attente",
+        "paye",
+        "valide",
+        "finalise",
+        "refuse",
+      ],
+      demarche_type: ["DA", "DC", "CG", "CG_DA", "DA_DC", "CG_IMPORT"],
+      paiement_status: ["en_attente", "valide", "refuse", "rembourse"],
+    },
   },
 } as const
