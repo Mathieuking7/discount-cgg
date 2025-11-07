@@ -30,11 +30,7 @@ export function DocumentViewer({ isOpen, onClose, documentUrl, documentName, doc
           <DialogTitle className="flex items-center justify-between">
             <span>{documentName}</span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                Télécharger
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} aria-label="Fermer la prévisualisation">
                 <X className="h-4 w-4" />
               </Button>
             </div>
