@@ -1,20 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { signIn, user } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement authentication with Lovable Cloud
-    console.log("Login attempt:", { email, password });
+    setLoading(true);
+
+    const { error } = await signIn(email, password);
+
+    if (error) {
+      toast({
+        title: "Erreur de connexion",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Connexion réussie",
+        description: "Redirection vers votre espace..."
+      });
+      navigate("/dashboard");
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -64,8 +92,8 @@ export default function Login() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Se connecter
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Connexion..." : "Se connecter"}
               </Button>
 
               <div className="text-center text-sm text-muted-foreground">

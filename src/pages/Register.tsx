@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { signUp, user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     raisonSociale: "",
     siret: "",
@@ -20,10 +25,51 @@ export default function Register() {
     confirmPassword: "",
   });
 
-  const handleRegister = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement registration with Lovable Cloud
-    console.log("Registration attempt:", formData);
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await signUp(formData.email, formData.password, {
+      raison_sociale: formData.raisonSociale,
+      siret: formData.siret,
+      adresse: formData.adresse,
+      code_postal: formData.codePostal,
+      ville: formData.ville,
+      email: formData.email,
+      telephone: formData.telephone
+    });
+
+    if (error) {
+      toast({
+        title: "Erreur d'inscription",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Compte créé avec succès",
+        description: "Redirection vers votre espace..."
+      });
+      navigate("/dashboard");
+    }
+
+    setLoading(false);
   };
 
   const handleChange = (field: string, value: string) => {
@@ -176,8 +222,8 @@ export default function Register() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Créer mon compte professionnel
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Création du compte..." : "Créer mon compte professionnel"}
               </Button>
 
               <div className="text-center text-sm text-muted-foreground">
