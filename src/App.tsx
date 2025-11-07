@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import NouvelleDemarche from "./pages/NouvelleDemarche";
 import MesDemarches from "./pages/MesDemarches";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import AllDemarches from "./pages/admin/AllDemarches";
 import DemarcheDetail from "./pages/admin/DemarcheDetail";
 import NotFound from "./pages/NotFound";
