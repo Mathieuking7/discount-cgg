@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, Send, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Download, Send, CheckCircle, XCircle, Clock, Eye, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -46,6 +46,7 @@ export default function DemarcheDetail() {
     name: string;
     type: string;
   }>({ isOpen: false, url: "", name: "", type: "" });
+  const [adminUploadRows, setAdminUploadRows] = useState<number>(1);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -182,14 +183,15 @@ export default function DemarcheDetail() {
       .eq('id', docId);
 
     if (error) {
+      console.error('Document validation error', error);
       toast({
         title: "Erreur",
-        description: "Impossible de valider le document",
+        description: error.message || "Impossible de valider le document",
         variant: "destructive"
       });
     } else {
       toast({
-        title: status === 'valid' ? "Document validé" : "Document invalidé",
+        title: status === 'valid' ? "Document validé" : "Document refusé",
         description: status === 'valid' 
           ? "Le document a été marqué comme valide" 
           : "Le garage sera notifié du problème"
@@ -426,19 +428,29 @@ export default function DemarcheDetail() {
                 )}
 
                 <div className="mt-6 pt-6 border-t">
-                  <h4 className="font-semibold mb-4">Envoyer un document au client</h4>
-                  <DocumentUpload
-                    demarcheId={demarche.id}
-                    documentType="admin_document"
-                    label="Document final (carte grise, etc.)"
-                    onUploadComplete={() => {
-                      loadDemarcheData();
-                      toast({
-                        title: "Document envoyé",
-                        description: "Le document a été mis à disposition du client"
-                      });
-                    }}
-                  />
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold">Envoyer un document au client</h4>
+                    <Button variant="secondary" size="sm" onClick={() => setAdminUploadRows((n) => n + 1)}>
+                      <Plus className="h-4 w-4 mr-1" /> Ajouter une pièce jointe
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {Array.from({ length: adminUploadRows }).map((_, idx) => (
+                      <DocumentUpload
+                        key={`admin-upload-${idx}`}
+                        demarcheId={demarche.id}
+                        documentType="admin_document"
+                        label={`Pièce jointe ${idx + 1}`}
+                        onUploadComplete={() => {
+                          loadDemarcheData();
+                          toast({
+                            title: "Document envoyé",
+                            description: "Le document a été mis à disposition du client"
+                          });
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>

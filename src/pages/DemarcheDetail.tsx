@@ -219,6 +219,49 @@ export default function DemarcheDetail() {
               </CardContent>
             </Card>
 
+            {/* Documents de l'administration */}
+            {documents.filter(d => d.type_document === 'admin_document').length > 0 && (
+              <Card className="border-accent bg-accent/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Documents de l'administration
+                  </CardTitle>
+                  <CardDescription>Documents officiels mis à disposition par l'administration</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {documents.filter(d => d.type_document === 'admin_document').map((doc) => (
+                    <div key={doc.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-medium">{doc.nom_fichier}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Type: {doc.type_document} • {new Date(doc.created_at).toLocaleDateString('fr-FR')}
+                          </p>
+                        </div>
+                        {getValidationBadge(doc.validation_status)}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => setViewerState({
+                            isOpen: true,
+                            url: doc.url,
+                            name: doc.nom_fichier,
+                            type: doc.type_document
+                          })}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir le document
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Documents */}
             <Card>
               <CardHeader>
@@ -228,10 +271,10 @@ export default function DemarcheDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {documents.length === 0 ? (
+                {documents.filter(d => d.type_document !== 'admin_document').length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">Aucun document</p>
                 ) : (
-                  documents.map((doc) => (
+                  documents.filter(d => d.type_document !== 'admin_document').map((doc) => (
                     <div key={doc.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div>
