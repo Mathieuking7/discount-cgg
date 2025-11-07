@@ -1,9 +1,11 @@
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -42,6 +44,15 @@ const Navbar = () => {
             <Button variant="hero" size="lg" onClick={() => scrollToSection("contact")}>
               Commencer
             </Button>
+            <Button 
+              onClick={() => navigate("/login")} 
+              variant="default"
+              size="lg"
+              className="flex items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Connexion
+            </Button>
           </div>
 
           {/* Mobile menu button */}
@@ -70,6 +81,18 @@ const Navbar = () => {
             </button>
             <Button variant="hero" size="lg" className="w-full" onClick={() => scrollToSection("contact")}>
               Commencer
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsOpen(false);
+                navigate("/login");
+              }} 
+              variant="default"
+              size="lg"
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Connexion
             </Button>
           </div>
         )}
