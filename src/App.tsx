@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AllDemarches from "./pages/admin/AllDemarches";
 import AdminDemarcheDetail from "./pages/admin/DemarcheDetail";
 import ManageUsers from "./pages/admin/ManageUsers";
+import ManageActions from "./pages/admin/ManageActions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/admin/demarches" element={<AllDemarches />} />
           <Route path="/admin/demarche/:id" element={<AdminDemarcheDetail />} />
           <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/admin/actions" element={<ManageActions />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

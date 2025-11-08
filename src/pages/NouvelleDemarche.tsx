@@ -23,40 +23,13 @@ export default function NouvelleDemarche() {
   const [demarcheId, setDemarcheId] = useState<string | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [uploadedDocuments, setUploadedDocuments] = useState<Set<string>>(new Set());
+  const [actionDetails, setActionDetails] = useState<any>(null);
+  const [documentsRequis, setDocumentsRequis] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     type: searchParams.get('type') || "",
     immatriculation: "",
     commentaire: ""
   });
-
-  const documentsRequis: Record<string, string[]> = {
-    DA: [
-      "Certificat de cession (cerfa 15776*01)",
-      "Certificat déclaration d'achat (cerfa 13751*02)",
-      "Carte grise barrée tamponnée recto/verso",
-      "Dernière DA enregistrée (si achat à un pro)",
-      "Accusé d'enregistrement déclaration de cession"
-    ],
-    DC: [
-      "Certificat de cession (cerfa 15776*01)",
-      "Certificat déclaration d'achat (si achat à un pro)",
-      "Carte grise barrée tamponnée recto/verso",
-      "Carte d'identité du nouveau propriétaire",
-      "Dernière DA enregistrée (si achat à un pro)"
-    ],
-    CG: [
-      "Carte d'identité",
-      "Permis de conduire",
-      "Carte grise barrée et tamponnée recto/verso",
-      "Certificat de cession (cerfa 15776*01)",
-      "Contrôle technique -6 mois",
-      "Justificatif de domicile -3 mois",
-      "Attestation d'assurance",
-      "Mandat (cerfa 13757*03)",
-      "Demande de certificat d'immatriculation (cerfa 13750*05)",
-      "Dernière DA (si ancien propriétaire est un pro)"
-    ]
-  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -69,6 +42,12 @@ export default function NouvelleDemarche() {
       loadGarage();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (formData.type) {
+      loadActionDetails();
+    }
+  }, [formData.type]);
 
   useEffect(() => {
     // Auto-create draft when type is selected
@@ -112,10 +91,29 @@ export default function NouvelleDemarche() {
     }
   };
 
-  const handleAutoCreateDraft = async () => {
-    if (!garage || demarcheId) return;
+  const loadActionDetails = async () => {
+    const { data: action } = await supabase
+      .from('actions_rapides')
+      .select('*')
+      .eq('code', formData.type)
+      .eq('actif', true)
+      .single();
 
-    const frais_dossier = getFraisDossier(formData.type);
+    if (action) {
+      setActionDetails(action);
+
+      const { data: docs } = await supabase
+        .from('action_documents')
+        .select('*')
+        .eq('action_id', action.id)
+        .order('ordre');
+
+      setDocumentsRequis(docs || []);
+    }
+  };
+
+  const handleAutoCreateDraft = async () => {
+    if (!garage || demarcheId || !actionDetails) return;
 
     const { data, error } = await supabase
       .from('demarches')
@@ -124,8 +122,8 @@ export default function NouvelleDemarche() {
         type: formData.type,
         immatriculation: formData.immatriculation || 'TEMP',
         commentaire: formData.commentaire,
-        frais_dossier: frais_dossier,
-        montant_ttc: frais_dossier,
+        frais_dossier: actionDetails.prix,
+        montant_ttc: actionDetails.prix,
         status: 'en_saisie',
         is_draft: true,
         paye: false
@@ -167,13 +165,8 @@ export default function NouvelleDemarche() {
     }
   };
 
-  const getFraisDossier = (type: string) => {
-    switch (type) {
-      case 'DA': return 10;
-      case 'DC': return 10;
-      case 'CG': return 30;
-      default: return 0;
-    }
+  const getFraisDossier = () => {
+    return actionDetails?.prix || 0;
   };
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
@@ -189,11 +182,10 @@ export default function NouvelleDemarche() {
     }
 
     // Check if all documents are uploaded
-    const requiredDocs = documentsRequis[formData.type] || [];
-    if (uploadedDocuments.size < requiredDocs.length) {
+    if (uploadedDocuments.size < documentsRequis.length) {
       toast({
         title: "Documents manquants",
-        description: `Veuillez télécharger tous les documents requis (${uploadedDocuments.size}/${requiredDocs.length})`,
+        description: `Veuillez télécharger tous les documents requis (${uploadedDocuments.size}/${documentsRequis.length})`,
         variant: "destructive"
       });
       return;
@@ -240,7 +232,7 @@ export default function NouvelleDemarche() {
     }
 
     // Create payment record
-    const frais_dossier = getFraisDossier(formData.type);
+    const frais_dossier = getFraisDossier();
     
     const { error: paymentError } = await supabase
       .from('paiements')
@@ -293,8 +285,7 @@ export default function NouvelleDemarche() {
     );
   }
 
-  const requiredDocs = documentsRequis[formData.type] || [];
-  const allDocsUploaded = uploadedDocuments.size >= requiredDocs.length;
+  const allDocsUploaded = uploadedDocuments.size >= documentsRequis.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-background">
@@ -328,9 +319,7 @@ export default function NouvelleDemarche() {
                     <SelectValue placeholder="Sélectionnez le type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DA">Déclaration d'achat (10€)</SelectItem>
-                    <SelectItem value="DC">Déclaration de cession (10€)</SelectItem>
-                    <SelectItem value="CG">Carte grise (30€ + coût CG)</SelectItem>
+                    {/* Options will be loaded dynamically */}
                   </SelectContent>
                 </Select>
               </div>
@@ -357,22 +346,22 @@ export default function NouvelleDemarche() {
                 />
               </div>
 
-              {formData.type && demarcheId && (
+              {formData.type && demarcheId && documentsRequis.length > 0 && (
                 <div className="bg-muted/50 p-6 rounded-lg space-y-4 border-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-lg">Documents requis ({uploadedDocuments.size}/{requiredDocs.length})</h3>
+                    <h3 className="font-semibold text-lg">Documents requis ({uploadedDocuments.size}/{documentsRequis.length})</h3>
                     {allDocsUploaded && (
                       <FileCheck className="h-5 w-5 text-success" />
                     )}
                   </div>
                   
                   <div className="space-y-4">
-                    {requiredDocs.map((doc, idx) => (
+                    {documentsRequis.map((doc, idx) => (
                       <DocumentUpload
-                        key={idx}
+                        key={doc.id}
                         demarcheId={demarcheId}
                         documentType={`doc_${idx + 1}`}
-                        label={doc}
+                        label={doc.nom_document}
                         onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}`)}
                       />
                     ))}
@@ -398,7 +387,7 @@ export default function NouvelleDemarche() {
                   disabled={loading || !allDocsUploaded || !formData.immatriculation.trim()}
                   className="flex-1 bg-success hover:bg-success/90"
                 >
-                  Payer {getFraisDossier(formData.type)}€
+                  Payer {getFraisDossier()}€
                 </Button>
               </div>
             </form>
@@ -408,7 +397,7 @@ export default function NouvelleDemarche() {
                 <DialogHeader>
                   <DialogTitle>Confirmer le paiement</DialogTitle>
                   <DialogDescription>
-                    Montant à payer : {getFraisDossier(formData.type)}€
+                    Montant à payer : {getFraisDossier()}€
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">

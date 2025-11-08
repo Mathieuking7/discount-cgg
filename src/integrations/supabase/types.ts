@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_documents: {
+        Row: {
+          action_id: string
+          created_at: string
+          id: string
+          nom_document: string
+          ordre: number
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          id?: string
+          nom_document: string
+          ordre?: number
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          id?: string
+          nom_document?: string
+          ordre?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_documents_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions_rapides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      actions_rapides: {
+        Row: {
+          actif: boolean
+          code: string
+          couleur: string
+          created_at: string
+          description: string | null
+          id: string
+          ordre: number
+          prix: number
+          require_immatriculation: boolean
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          code: string
+          couleur?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          ordre?: number
+          prix?: number
+          require_immatriculation?: boolean
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          code?: string
+          couleur?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          ordre?: number
+          prix?: number
+          require_immatriculation?: boolean
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       demarches: {
         Row: {
           commentaire: string | null

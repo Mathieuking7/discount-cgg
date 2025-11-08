@@ -175,6 +175,9 @@ export default function AdminDashboard() {
             <Button onClick={() => navigate("/admin/demarches")} className="w-full">
               Voir toutes les démarches
             </Button>
+            <Button onClick={() => navigate("/admin/actions")} variant="outline" className="w-full">
+              Gérer les actions rapides
+            </Button>
             <Button onClick={() => navigate("/admin/users")} variant="outline" className="w-full">
               Gérer les administrateurs
             </Button>

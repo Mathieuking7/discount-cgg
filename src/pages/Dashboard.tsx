@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [recentDemarches, setRecentDemarches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [actionsRapides, setActionsRapides] = useState<any[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -45,6 +46,17 @@ export default function Dashboard() {
       .maybeSingle();
     
     setIsAdmin(!!roleData);
+
+    // Load actions rapides
+    const { data: actionsData } = await supabase
+      .from('actions_rapides')
+      .select('*')
+      .eq('actif', true)
+      .order('ordre');
+    
+    if (actionsData) {
+      setActionsRapides(actionsData);
+    }
 
     const { data: garageData } = await supabase
       .from('garages')
@@ -139,71 +151,32 @@ export default function Dashboard() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Actions rapides</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card 
-              className="cursor-pointer hover:shadow-xl transition-all border-2 hover:border-primary hover:scale-105 bg-gradient-to-br from-primary/10 to-primary/5" 
-              onClick={() => navigate("/nouvelle-demarche?type=DA")}
-            >
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  Déclaration d'achat
-                </CardTitle>
-                <CardDescription className="text-3xl font-bold text-primary mt-2">10€</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Certificat de cession, déclaration d'achat</p>
-                <Button className="w-full mt-4" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card 
-              className="cursor-pointer hover:shadow-xl transition-all border-2 hover:border-accent hover:scale-105 bg-gradient-to-br from-accent/10 to-accent/5" 
-              onClick={() => navigate("/nouvelle-demarche?type=DC")}
-            >
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-accent" />
-                  </div>
-                  Déclaration de cession
-                </CardTitle>
-                <CardDescription className="text-3xl font-bold text-accent mt-2">10€</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Certificat de cession, carte grise</p>
-                <Button className="w-full mt-4 bg-accent hover:bg-accent/90" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card 
-              className="cursor-pointer hover:shadow-xl transition-all border-2 hover:border-success hover:scale-105 bg-gradient-to-br from-success/10 to-success/5" 
-              onClick={() => navigate("/nouvelle-demarche?type=CG")}
-            >
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-success" />
-                  </div>
-                  Carte Grise
-                </CardTitle>
-                <CardDescription className="text-3xl font-bold text-success mt-2">30€ + CG</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Documents complets requis</p>
-                <Button className="w-full mt-4 bg-success hover:bg-success/90" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Créer
-                </Button>
-              </CardContent>
-            </Card>
+            {actionsRapides.map((action) => (
+              <Card 
+                key={action.id}
+                className={`cursor-pointer hover:shadow-xl transition-all border-2 hover:border-${action.couleur} hover:scale-105 bg-gradient-to-br from-${action.couleur}/10 to-${action.couleur}/5`}
+                onClick={() => navigate(`/nouvelle-demarche?type=${action.code}`)}
+              >
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <div className={`w-10 h-10 rounded-full bg-${action.couleur}/20 flex items-center justify-center`}>
+                      <FileText className={`h-5 w-5 text-${action.couleur}`} />
+                    </div>
+                    {action.titre}
+                  </CardTitle>
+                  <CardDescription className={`text-3xl font-bold text-${action.couleur} mt-2`}>
+                    {action.prix}€{action.code === 'CG' && ' + CG'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{action.description}</p>
+                  <Button className={`w-full mt-4 bg-${action.couleur} hover:bg-${action.couleur}/90`} size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Créer
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
 
