@@ -25,6 +25,7 @@ export default function NouvelleDemarche() {
   const [uploadedDocuments, setUploadedDocuments] = useState<Set<string>>(new Set());
   const [actionDetails, setActionDetails] = useState<any>(null);
   const [documentsRequis, setDocumentsRequis] = useState<any[]>([]);
+  const [actionsRapides, setActionsRapides] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     type: searchParams.get('type') || "",
     immatriculation: "",
@@ -40,6 +41,7 @@ export default function NouvelleDemarche() {
   useEffect(() => {
     if (user) {
       loadGarage();
+      loadActionsRapides();
     }
   }, [user]);
 
@@ -88,6 +90,18 @@ export default function NouvelleDemarche() {
 
     if (data) {
       setGarage(data);
+    }
+  };
+
+  const loadActionsRapides = async () => {
+    const { data } = await supabase
+      .from('actions_rapides')
+      .select('*')
+      .eq('actif', true)
+      .order('ordre');
+
+    if (data) {
+      setActionsRapides(data);
     }
   };
 
@@ -319,7 +333,11 @@ export default function NouvelleDemarche() {
                     <SelectValue placeholder="Sélectionnez le type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Options will be loaded dynamically */}
+                    {actionsRapides.map((action) => (
+                      <SelectItem key={action.id} value={action.code}>
+                        {action.titre} - {action.prix}€
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
