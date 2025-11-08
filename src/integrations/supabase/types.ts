@@ -380,30 +380,72 @@ export type Database = {
       }
       vehicules: {
         Row: {
+          carrosserie: string | null
+          co2: number | null
+          couleur: string | null
           created_at: string
+          cylindree: number | null
+          date_cg: string | null
+          date_mec: string | null
+          energie: string | null
           garage_id: string
+          genre: string | null
           id: string
           immatriculation: string
           marque: string | null
           modele: string | null
+          numero_formule: string | null
+          ptr: number | null
+          puiss_ch: number | null
+          puiss_fisc: number | null
+          type: string | null
+          version: string | null
           vin: string | null
         }
         Insert: {
+          carrosserie?: string | null
+          co2?: number | null
+          couleur?: string | null
           created_at?: string
+          cylindree?: number | null
+          date_cg?: string | null
+          date_mec?: string | null
+          energie?: string | null
           garage_id: string
+          genre?: string | null
           id?: string
           immatriculation: string
           marque?: string | null
           modele?: string | null
+          numero_formule?: string | null
+          ptr?: number | null
+          puiss_ch?: number | null
+          puiss_fisc?: number | null
+          type?: string | null
+          version?: string | null
           vin?: string | null
         }
         Update: {
+          carrosserie?: string | null
+          co2?: number | null
+          couleur?: string | null
           created_at?: string
+          cylindree?: number | null
+          date_cg?: string | null
+          date_mec?: string | null
+          energie?: string | null
           garage_id?: string
+          genre?: string | null
           id?: string
           immatriculation?: string
           marque?: string | null
           modele?: string | null
+          numero_formule?: string | null
+          ptr?: number | null
+          puiss_ch?: number | null
+          puiss_fisc?: number | null
+          type?: string | null
+          version?: string | null
           vin?: string | null
         }
         Relationships: [

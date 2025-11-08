@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +11,7 @@ import { ArrowLeft, FileCheck, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VehicleForm } from "@/components/VehicleForm";
 
 export default function NouvelleDemarche() {
   const { user, loading: authLoading } = useAuth();
@@ -26,9 +26,10 @@ export default function NouvelleDemarche() {
   const [actionDetails, setActionDetails] = useState<any>(null);
   const [documentsRequis, setDocumentsRequis] = useState<any[]>([]);
   const [actionsRapides, setActionsRapides] = useState<any[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [selectedImmatriculation, setSelectedImmatriculation] = useState<string>("");
   const [formData, setFormData] = useState({
     type: searchParams.get('type') || "",
-    immatriculation: "",
     commentaire: ""
   });
 
@@ -134,13 +135,14 @@ export default function NouvelleDemarche() {
       .insert({
         garage_id: garage.id,
         type: formData.type,
-        immatriculation: formData.immatriculation || 'TEMP',
+        immatriculation: selectedImmatriculation || 'TEMP',
         commentaire: formData.commentaire,
         frais_dossier: actionDetails.prix,
         montant_ttc: actionDetails.prix,
         status: 'en_saisie',
         is_draft: true,
-        paye: false
+        paye: false,
+        vehicule_id: selectedVehicleId
       } as any)
       .select()
       .single();
@@ -148,6 +150,11 @@ export default function NouvelleDemarche() {
     if (!error && data) {
       setDemarcheId(data.id);
     }
+  };
+
+  const handleVehicleSelect = (vehicleId: string, immatriculation: string) => {
+    setSelectedVehicleId(vehicleId);
+    setSelectedImmatriculation(immatriculation);
   };
 
   const handleSaveDraft = async () => {
@@ -158,8 +165,9 @@ export default function NouvelleDemarche() {
     const { error } = await supabase
       .from('demarches')
       .update({
-        immatriculation: formData.immatriculation,
-        commentaire: formData.commentaire
+        immatriculation: selectedImmatriculation,
+        commentaire: formData.commentaire,
+        vehicule_id: selectedVehicleId
       })
       .eq('id', demarcheId);
 
@@ -186,10 +194,10 @@ export default function NouvelleDemarche() {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.immatriculation.trim()) {
+    if (!selectedImmatriculation.trim()) {
       toast({
         title: "Erreur",
-        description: "Veuillez renseigner l'immatriculation",
+        description: "Veuillez sélectionner ou créer un véhicule",
         variant: "destructive"
       });
       return;
@@ -205,13 +213,14 @@ export default function NouvelleDemarche() {
       return;
     }
 
-    // Update immatriculation before payment
+    // Update before payment
     if (demarcheId) {
       await supabase
         .from('demarches')
         .update({
-          immatriculation: formData.immatriculation,
-          commentaire: formData.commentaire
+          immatriculation: selectedImmatriculation,
+          commentaire: formData.commentaire,
+          vehicule_id: selectedVehicleId
         })
         .eq('id', demarcheId);
     }
@@ -342,16 +351,13 @@ export default function NouvelleDemarche() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="immatriculation">Immatriculation *</Label>
-                <Input
-                  id="immatriculation"
-                  placeholder="AA-123-BB"
-                  value={formData.immatriculation}
-                  onChange={(e) => setFormData({ ...formData, immatriculation: e.target.value.toUpperCase() })}
-                  required
+              {garage && (
+                <VehicleForm
+                  garageId={garage.id}
+                  onVehicleSelect={handleVehicleSelect}
+                  selectedVehicleId={selectedVehicleId}
                 />
-              </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
@@ -402,7 +408,7 @@ export default function NouvelleDemarche() {
                 <Button 
                   type="submit"
                   size="lg" 
-                  disabled={loading || !allDocsUploaded || !formData.immatriculation.trim()}
+                  disabled={loading || !allDocsUploaded || !selectedImmatriculation.trim()}
                   className="flex-1 bg-success hover:bg-success/90"
                 >
                   Payer {getFraisDossier()}€
