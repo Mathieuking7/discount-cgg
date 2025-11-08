@@ -11,9 +11,9 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center font-bold text-white text-xl">
-                J2
+                DCG
               </div>
-              <span className="text-xl font-bold">Jimmy 2x</span>
+              <span className="text-xl font-bold">DiscountCG</span>
             </div>
             <p className="text-sm">
               Vos démarches d'immatriculation simplifiées. Service rapide, professionnel et 100% sécurisé.
@@ -71,7 +71,7 @@ const Footer = () => {
         <div className="border-t border-secondary-foreground/20 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-sm">
-              © {currentYear} Jimmy 2x. Tous droits réservés.
+              © {currentYear} DiscountCG. Tous droits réservés.
             </p>
             <p className="text-sm">
               Service agréé et conforme ANTS

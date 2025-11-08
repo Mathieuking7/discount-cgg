@@ -22,9 +22,9 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center font-bold text-white text-xl">
-              J2
+              DCG
             </div>
-            <span className="text-xl font-bold text-foreground">Jimmy 2x</span>
+            <span className="text-xl font-bold text-foreground">DiscountCG</span>
           </div>
 
           {/* Desktop Navigation */}

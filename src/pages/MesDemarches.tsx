@@ -139,21 +139,21 @@ export default function MesDemarches() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Immatriculation</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Montant</TableHead>
-                    <TableHead>Date de création</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead>Immatriculation</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Montant</TableHead>
+                <TableHead>Date de création</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
                 <TableBody>
                   {demarches.map((demarche) => (
                     <TableRow 
                       key={demarche.id} 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/demarche/${demarche.id}`)}
+                      className="hover:bg-muted/50 transition-colors"
                     >
                       <TableCell className="font-medium">
                         {typeLabels[demarche.type]}
@@ -167,6 +167,11 @@ export default function MesDemarches() {
                       <TableCell>{demarche.montant_ttc.toFixed(2)} €</TableCell>
                       <TableCell>
                         {new Date(demarche.created_at).toLocaleDateString('fr-FR')}
+                      </TableCell>
+                      <TableCell>
+                        <Button size="sm" onClick={() => navigate(`/demarche/${demarche.id}`)}>
+                          Voir
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
