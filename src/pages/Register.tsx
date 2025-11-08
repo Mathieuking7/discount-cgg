@@ -94,7 +94,7 @@ export default function Register() {
               Créer un compte professionnel
             </CardTitle>
             <CardDescription className="text-center">
-              Rejoignez AutoDocs Pro et simplifiez vos démarches
+              Rejoignez DiscountCG et simplifiez vos démarches
             </CardDescription>
           </CardHeader>
           <CardContent>

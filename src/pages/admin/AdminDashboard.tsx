@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Administration</h1>
           <p className="text-muted-foreground">
-            Vue d'ensemble de la plateforme AutoDocs Pro
+            Vue d'ensemble de la plateforme DiscountCG
           </p>
         </div>
 

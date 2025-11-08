@@ -60,7 +60,7 @@ export default function Login() {
         <Card className="shadow-xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              AutoDocs Pro
+              DiscountCG
             </CardTitle>
             <CardDescription className="text-center">
               Connectez-vous à votre espace professionnel
