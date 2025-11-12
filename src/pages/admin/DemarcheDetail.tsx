@@ -31,6 +31,7 @@ export default function DemarcheDetail() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [demarche, setDemarche] = useState<any>(null);
   const [garage, setGarage] = useState<any>(null);
+  const [vehicule, setVehicule] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [paiement, setPaiement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
