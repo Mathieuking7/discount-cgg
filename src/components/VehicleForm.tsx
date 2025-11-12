@@ -88,14 +88,29 @@ export function VehicleForm({ garageId, onVehicleSelect, selectedVehicleId }: Ve
       // Validate with Zod
       const validatedData = vehicleSchema.parse(validationData);
 
-      const vehicleData = {
-        garage_id: garageId,
-        ...validatedData
-      };
-
       const { data, error } = await supabase
         .from('vehicules')
-        .insert(vehicleData)
+        .insert({
+          garage_id: garageId,
+          immatriculation: validatedData.immatriculation,
+          numero_formule: validatedData.numero_formule || null,
+          marque: validatedData.marque || null,
+          modele: validatedData.modele || null,
+          carrosserie: validatedData.carrosserie || null,
+          co2: validatedData.co2,
+          couleur: validatedData.couleur || null,
+          cylindree: validatedData.cylindree,
+          date_cg: validatedData.date_cg,
+          date_mec: validatedData.date_mec,
+          energie: validatedData.energie || null,
+          genre: validatedData.genre || null,
+          puiss_ch: validatedData.puiss_ch,
+          puiss_fisc: validatedData.puiss_fisc,
+          type: validatedData.type || null,
+          version: validatedData.version || null,
+          vin: validatedData.vin || null,
+          ptr: validatedData.ptr
+        })
         .select()
         .single();
 
