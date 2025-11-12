@@ -524,6 +524,10 @@ export default function DemarcheDetail() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
+                  <p className="text-sm text-muted-foreground">N° de démarche</p>
+                  <p className="font-mono text-sm font-semibold text-primary">{demarche.numero_demarche}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Statut</p>
                   <p className="font-medium">{statusLabels[demarche.status]}</p>
                 </div>
