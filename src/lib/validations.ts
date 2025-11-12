@@ -19,7 +19,7 @@ export const vehicleSchema = z.object({
   energie: z.string().max(50).optional(),
   genre: z.string().max(50).optional(),
   puiss_ch: z.number().min(0).max(9999).optional().nullable(),
-  puiss_fisc: z.number().min(0).max(99).optional().nullable(),
+  puiss_fisc: z.number().min(0).max(999).optional().nullable(),
   type: z.string().max(100).optional(),
   version: z.string().max(200).optional(),
   vin: z.string()
