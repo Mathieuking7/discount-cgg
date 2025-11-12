@@ -337,6 +337,11 @@ export default function DemarcheDetail() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-xs font-semibold text-primary px-2 py-1 bg-primary/10 rounded">
+                          {demarche.numero_demarche}
+                        </span>
+                      </div>
                       <CardTitle className="text-2xl">{typeLabels[demarche.type]}</CardTitle>
                       <CardDescription>Immatriculation: {demarche.immatriculation}</CardDescription>
                     </div>
