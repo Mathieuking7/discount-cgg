@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { FileText, CheckCircle, Loader2, X, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface UploadedFile {
+  id: string;
+  fileName: string;
+  storagePath: string;
+  url: string;
+}
+
 interface DocumentUploadProps {
   demarcheId: string;
   documentType: string;
@@ -15,10 +22,7 @@ interface DocumentUploadProps {
 
 export function DocumentUpload({ demarcheId, documentType, label, onUploadComplete }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
-  const [fileName, setFileName] = useState<string>("");
-  const [storagePath, setStoragePath] = useState<string>("");
-  const [documentId, setDocumentId] = useState<string>("");
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -27,8 +31,12 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    setFileName(selectedFile.name);
     await handleUpload(selectedFile);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleUpload = async (file: File) => {
@@ -73,9 +81,16 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
         description: "Le document a été téléchargé avec succès"
       });
 
-      setUploaded(true);
-      setStoragePath(fileName);
-      if (docData) setDocumentId(docData.id);
+      // Add to uploaded files list
+      if (docData) {
+        setUploadedFiles(prev => [...prev, {
+          id: docData.id,
+          fileName: file.name,
+          storagePath: fileName,
+          url: publicUrl
+        }]);
+      }
+      
       if (onUploadComplete) onUploadComplete();
     } catch (error: any) {
       toast({
@@ -88,42 +103,30 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
     }
   };
 
-  const handleRemove = async () => {
+  const handleRemove = async (fileToRemove: UploadedFile) => {
     try {
       // Delete from storage
-      if (storagePath) {
-        const { error: storageError } = await supabase.storage
-          .from('demarche-documents')
-          .remove([storagePath]);
+      const { error: storageError } = await supabase.storage
+        .from('demarche-documents')
+        .remove([fileToRemove.storagePath]);
 
-        if (storageError) throw storageError;
-      }
+      if (storageError) throw storageError;
 
       // Delete from database
-      if (documentId) {
-        const { error: dbError } = await supabase
-          .from('documents')
-          .delete()
-          .eq('id', documentId);
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', fileToRemove.id);
 
-        if (dbError) throw dbError;
-      }
+      if (dbError) throw dbError;
 
       toast({
         title: "Document supprimé",
-        description: "Vous pouvez maintenant uploader un nouveau document"
+        description: "Le document a été supprimé avec succès"
       });
 
-      // Reset state
-      setUploaded(false);
-      setFileName("");
-      setStoragePath("");
-      setDocumentId("");
-      
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      // Remove from state
+      setUploadedFiles(prev => prev.filter(f => f.id !== fileToRemove.id));
       
       if (onUploadComplete) onUploadComplete();
     } catch (error: any) {
@@ -138,7 +141,7 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!uploading && !uploaded) {
+    if (!uploading) {
       setIsDragOver(true);
     }
   };
@@ -154,25 +157,50 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
     e.stopPropagation();
     setIsDragOver(false);
 
-    if (uploading || uploaded) return;
+    if (uploading) return;
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
-      setFileName(file.name);
       await handleUpload(file);
     }
   };
 
   const handleClick = () => {
-    if (!uploading && !uploaded) {
+    if (!uploading) {
       fileInputRef.current?.click();
     }
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <Label>{label}</Label>
+      
+      {/* List of uploaded files */}
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          {uploadedFiles.map((file) => (
+            <div key={file.id} className="flex items-center justify-between gap-2 p-3 rounded-lg border bg-success/5 border-success/20">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <CheckCircle className="h-4 w-4 text-success flex-shrink-0" />
+                <FileText className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm truncate">{file.fileName}</span>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleRemove(file)}
+                className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Upload zone */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -181,8 +209,7 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
         className={`
           relative border-2 border-dashed rounded-lg p-6 transition-all cursor-pointer
           ${isDragOver ? "border-primary bg-primary/5 scale-[1.02]" : "border-border hover:border-primary/50"}
-          ${uploaded ? "border-success bg-success/5" : ""}
-          ${uploading || uploaded ? "cursor-not-allowed opacity-75" : "hover:bg-accent/50"}
+          ${uploading ? "cursor-not-allowed opacity-75" : "hover:bg-accent/50"}
         `}
       >
         <Input
@@ -191,7 +218,7 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
           onChange={handleFileChange}
           accept=".pdf,.jpg,.jpeg,.png,image/*"
           capture="environment"
-          disabled={uploading || uploaded}
+          disabled={uploading}
           className="hidden"
         />
         
@@ -201,17 +228,12 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Upload en cours...</p>
             </>
-          ) : uploaded ? (
-            <>
-              <CheckCircle className="h-8 w-8 text-success" />
-              <p className="text-sm font-medium text-success">Document téléchargé</p>
-            </>
           ) : (
             <>
               <Upload className="h-8 w-8 text-muted-foreground" />
               <div className="space-y-1">
                 <p className="text-sm font-medium">
-                  {isDragOver ? "Déposez le fichier ici" : "Glissez-déposez votre fichier"}
+                  {isDragOver ? "Déposez le fichier ici" : uploadedFiles.length > 0 ? "Ajouter un autre fichier (recto/verso)" : "Glissez-déposez votre fichier"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   ou cliquez pour sélectionner (PDF, JPG, PNG)
@@ -221,27 +243,6 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
           )}
         </div>
       </div>
-      
-      {fileName && (
-        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="truncate">{fileName}</span>
-          </div>
-          {uploaded && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleRemove}
-              className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <X className="h-4 w-4 mr-1" />
-              Supprimer
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 }
