@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, TrendingUp } from "lucide-react";
 
 export const StatsCounter = () => {
   const [count, setCount] = useState(0);
@@ -35,25 +35,43 @@ export const StatsCounter = () => {
   }, []);
 
   return (
-    <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground rounded-lg p-8 shadow-lg border-2 border-primary-foreground/20">
-      <div className="flex items-center justify-center gap-4 mb-4">
-        <CheckCircle2 className="w-12 h-12" />
-        <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-wide opacity-90">
+    <div className="relative overflow-hidden bg-gradient-to-br from-success via-success to-success/80 text-success-foreground rounded-2xl p-10 shadow-2xl border-2 border-success/30">
+      {/* Motif de fond */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+          backgroundSize: '32px 32px'
+        }} />
+      </div>
+      
+      <div className="relative z-10 text-center space-y-4">
+        <div className="flex items-center justify-center gap-3">
+          <CheckCircle2 className="w-16 h-16 animate-pulse" />
+          <TrendingUp className="w-12 h-12" />
+        </div>
+        
+        <div className="space-y-2">
+          <p className="text-sm font-bold uppercase tracking-widest opacity-90">
             Depuis 2017
           </p>
-          <p className="text-5xl font-bold tabular-nums">
+          <p className="text-6xl md:text-7xl font-black tabular-nums drop-shadow-lg">
             {count.toLocaleString('fr-FR')}
           </p>
-          <p className="text-lg font-semibold mt-2">
-            Cartes grises réalisées
+          <div className="h-1 w-48 bg-success-foreground/30 mx-auto rounded-full" />
+          <p className="text-2xl font-bold mt-4">
+            Cartes Grises Réalisées
           </p>
         </div>
-      </div>
-      <div className="mt-4 pt-4 border-t border-primary-foreground/20 text-center">
-        <p className="text-sm opacity-90">
-          ⭐ Service de confiance ⭐
-        </p>
+        
+        <div className="pt-6 mt-6 border-t border-success-foreground/20">
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-3xl">⭐</span>
+            <p className="text-lg font-bold">
+              Service de Confiance Certifié
+            </p>
+            <span className="text-3xl">⭐</span>
+          </div>
+        </div>
       </div>
     </div>
   );
