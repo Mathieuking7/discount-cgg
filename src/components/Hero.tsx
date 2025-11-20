@@ -58,7 +58,7 @@ const Hero = () => {
               
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
-                  <img src="/src/assets/garage-logo.png" alt="Garage Jimmy 2x" className="w-16 h-16 rounded-full shadow-lg object-cover" />
+                  <img alt="Garage Jimmy 2x" className="w-16 h-16 rounded-full shadow-lg object-cover" src="/lovable-uploads/cde191fb-e77f-4260-bde8-152e023920a5.jpg" />
                   <div>
                     <p className="font-bold text-2xl text-foreground">Garage Jimmy 2x</p>
                     <p className="text-sm text-muted-foreground">Google My Business</p>
