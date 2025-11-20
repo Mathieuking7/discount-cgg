@@ -70,16 +70,14 @@ export const GoogleReviewsCarousel = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center text-2xl">
-              G
-            </div>
+            <img src="/src/assets/garage-logo.png" alt="Garage Jimmy 2x" className="w-12 h-12 rounded-full object-cover shadow-lg" />
             <h2 className="text-4xl md:text-5xl font-black text-primary">
               Avis Clients Google
             </h2>
           </div>
           <div className="flex items-center justify-center gap-2 mb-2">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-8 h-8 fill-accent text-accent" />
+              <Star key={i} className="w-8 h-8 fill-yellow-400 text-yellow-400" />
             ))}
             <span className="text-3xl font-bold text-foreground ml-2">5.0</span>
           </div>
@@ -110,7 +108,7 @@ export const GoogleReviewsCarousel = () => {
                           <div className="flex items-center gap-2 mb-2">
                             <div className="flex">
                               {[...Array(review.rating)].map((_, i) => (
-                                <Star key={i} className="w-5 h-5 fill-accent text-accent" />
+                                <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                               ))}
                             </div>
                             <span className="text-sm text-muted-foreground">

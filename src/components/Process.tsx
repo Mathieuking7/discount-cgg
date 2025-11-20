@@ -15,7 +15,7 @@ const Process = () => {
     {
       icon: Mail,
       title: "3. Suivi en temps réel",
-      description: "Recevez des notifications par email et WhatsApp à chaque étape"
+      description: "Recevez des notifications par email et SMS à chaque étape"
     },
     {
       icon: CheckCircle,

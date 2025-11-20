@@ -58,9 +58,7 @@ const Hero = () => {
               
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl shadow-lg">
-                    G
-                  </div>
+                  <img src="/src/assets/garage-logo.png" alt="Garage Jimmy 2x" className="w-16 h-16 rounded-full shadow-lg object-cover" />
                   <div>
                     <p className="font-bold text-2xl text-foreground">Garage Jimmy 2x</p>
                     <p className="text-sm text-muted-foreground">Google My Business</p>
@@ -68,7 +66,7 @@ const Hero = () => {
                 </div>
                 
                 <div className="flex items-center gap-2 mb-4">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-6 h-6 fill-accent text-accent" />)}
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-6 h-6 fill-yellow-400 text-yellow-400" />)}
                   <span className="text-xl font-bold text-foreground ml-2">5.0</span>
                 </div>
                 
