@@ -1,23 +1,20 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, TrendingUp } from "lucide-react";
-
 export const StatsCounter = () => {
   const [count, setCount] = useState(0);
-
   useEffect(() => {
     // Calculer le nombre de cartes grises depuis 2017
     const startDate = new Date(2017, 0, 1);
     const today = new Date();
     const daysSince2017 = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     // Base: 45 cartes grises par jour en moyenne
     const baseCount = daysSince2017 * 45;
-    
+
     // Ajouter un nombre aléatoire pour le jour actuel (0-50)
     const todayProgress = Math.floor(Math.random() * 50);
-    
     const finalCount = baseCount + todayProgress;
-    
+
     // Animation du compteur
     let current = 0;
     const increment = Math.ceil(finalCount / 50);
@@ -30,18 +27,15 @@ export const StatsCounter = () => {
         setCount(current);
       }
     }, 30);
-
     return () => clearInterval(timer);
   }, []);
-
-  return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-success via-success to-success/80 text-success-foreground rounded-2xl p-10 shadow-2xl border-2 border-success/30">
+  return <div className="relative overflow-hidden bg-gradient-to-br from-success via-success to-success/80 text-success-foreground rounded-2xl p-10 shadow-2xl border-2 border-success/30">
       {/* Motif de fond */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-          backgroundSize: '32px 32px'
-        }} />
+        backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
+        backgroundSize: '32px 32px'
+      }} />
       </div>
       
       <div className="relative z-10 text-center space-y-4">
@@ -59,7 +53,7 @@ export const StatsCounter = () => {
           </p>
           <div className="h-1 w-48 bg-success-foreground/30 mx-auto rounded-full" />
           <p className="text-2xl font-bold mt-4">
-            Cartes Grises Réalisées
+            Démarches Réalisées
           </p>
         </div>
         
@@ -73,6 +67,5 @@ export const StatsCounter = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
