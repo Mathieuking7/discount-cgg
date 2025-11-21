@@ -126,7 +126,6 @@ export const PayPalButton = ({ amount, onSuccess, onError }: PayPalButtonProps) 
                 layout: "vertical",
                 color: "white",
                 shape: "rect",
-                label: "paylater",
                 height: 48,
               },
               fundingSource: window.paypal.FUNDING.PAYLATER,
