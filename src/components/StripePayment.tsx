@@ -1,16 +1,29 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { PayPalButton } from "./PayPalButton";
+import { Loader2, CreditCard } from "lucide-react";
+import { loadStripe, StripeCardElement } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+// Get Stripe publishable key from Supabase secrets
+const getStripeKey = async () => {
+  const { data } = await supabase.functions.invoke('get-stripe-key');
+  return data?.publishableKey;
+};
+
+let stripePromise: Promise<any> | null = null;
+const initStripe = async () => {
+  if (!stripePromise) {
+    const key = await getStripeKey();
+    if (key) {
+      stripePromise = loadStripe(key);
+    }
+  }
+  return stripePromise;
+};
 
 interface StripePaymentProps {
   demarcheId: string;
@@ -23,23 +36,69 @@ function PaymentForm({ demarcheId, amount, onSuccess, onCancel }: StripePaymentP
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
-  const [paymentType, setPaymentType] = useState<"full" | "installments">("full");
+  const [clientSecret, setClientSecret] = useState<string>("");
   const { toast } = useToast();
+
+  // Créer le payment intent dès que le composant est monté
+  useEffect(() => {
+    createPaymentIntent();
+  }, []);
+
+  const createPaymentIntent = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Session expirée");
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { demarcheId, paymentType: 'full' }
+      });
+
+      if (error) throw error;
+
+      if (data?.clientSecret) {
+        setClientSecret(data.clientSecret);
+      }
+    } catch (error: any) {
+      console.error('Payment intent error:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'initialiser le paiement",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      toast({
+        title: "Erreur",
+        description: "Le système de paiement n'est pas prêt",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir les informations de carte",
+        variant: "destructive"
+      });
       return;
     }
 
     setLoading(true);
 
     try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/mes-demarches`,
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
         },
       });
 
@@ -49,7 +108,11 @@ function PaymentForm({ demarcheId, amount, onSuccess, onCancel }: StripePaymentP
           description: error.message,
           variant: "destructive"
         });
-      } else {
+      } else if (paymentIntent?.status === 'succeeded') {
+        toast({
+          title: "Paiement réussi",
+          description: "Votre paiement a été effectué avec succès"
+        });
         onSuccess();
       }
     } catch (error: any) {
@@ -63,121 +126,99 @@ function PaymentForm({ demarcheId, amount, onSuccess, onCancel }: StripePaymentP
     }
   };
 
+  if (!clientSecret) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <RadioGroup value={paymentType} onValueChange={(v) => setPaymentType(v as "full" | "installments")}>
-        <div className="flex items-center space-x-2 border rounded-lg p-4">
-          <RadioGroupItem value="full" id="full" />
-          <Label htmlFor="full" className="flex-1 cursor-pointer">
-            <div>
-              <p className="font-medium">Paiement en une fois</p>
-              <p className="text-sm text-muted-foreground">
-                {amount.toFixed(2)} € - Paiement par carte bancaire (Apple Pay & Google Pay acceptés)
-              </p>
-            </div>
-          </Label>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-primary" />
+          <Label className="text-lg font-semibold">Informations de paiement</Label>
         </div>
         
-        <div className="flex items-center space-x-2 border rounded-lg p-4">
-          <RadioGroupItem value="installments" id="installments" />
-          <Label htmlFor="installments" className="flex-1 cursor-pointer">
-            <div>
-              <p className="font-medium">Paiement en 4x sans frais</p>
-              <p className="text-sm text-muted-foreground">
-                4 x {(amount / 4).toFixed(2)} € - Via PayPal
-              </p>
-            </div>
-          </Label>
-        </div>
-      </RadioGroup>
-
-      {paymentType === "full" ? (
-        <>
-          <PaymentElement options={{
-            wallets: {
-              applePay: 'auto',
-              googlePay: 'auto'
-            }
-          }} />
-
-          <div className="flex gap-4">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading} className="flex-1">
-              Annuler
-            </Button>
-            <Button type="submit" disabled={loading || !stripe} className="flex-1">
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Traitement...
-                </>
-              ) : (
-                `Payer ${amount.toFixed(2)} €`
-              )}
-            </Button>
-          </div>
-        </>
-      ) : (
-        <div className="space-y-4">
-          <PayPalButton 
-            amount={amount}
-            onSuccess={onSuccess}
-            onError={(error) => {
-              toast({
-                title: "Erreur PayPal",
-                description: error.message || "Une erreur est survenue",
-                variant: "destructive"
-              });
+        <div className="border rounded-lg p-4 bg-background">
+          <CardElement 
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: 'hsl(var(--foreground))',
+                  '::placeholder': {
+                    color: 'hsl(var(--muted-foreground))',
+                  },
+                  backgroundColor: 'hsl(var(--background))',
+                },
+                invalid: {
+                  color: 'hsl(var(--destructive))',
+                },
+              },
+              hidePostalCode: false,
             }}
           />
-          <Button type="button" variant="outline" onClick={onCancel} className="w-full">
-            Annuler
-          </Button>
         </div>
-      )}
+
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Montant à payer</span>
+          <span className="text-lg font-bold text-foreground">{amount.toFixed(2)} €</span>
+        </div>
+      </div>
+
+      <div className="flex gap-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel} 
+          disabled={loading} 
+          className="flex-1"
+        >
+          Annuler
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={loading || !stripe || !clientSecret} 
+          className="flex-1 bg-success hover:bg-success/90"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Paiement en cours...
+            </>
+          ) : (
+            <>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Valider le paiement
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }
 
 export function StripePayment({ demarcheId, amount, onSuccess, onCancel }: StripePaymentProps) {
-  const [clientSecret, setClientSecret] = useState<string>("");
+  const [stripe, setStripe] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    createPaymentIntent();
+    initializeStripe();
   }, []);
 
-  const createPaymentIntent = async () => {
+  const initializeStripe = async () => {
     try {
-      // Forcer le refresh de la session pour obtenir un token valide
-      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
-      
-      if (sessionError || !session) {
-        throw new Error("Session expirée. Veuillez vous reconnecter.");
-      }
-
-      console.log('Creating payment intent with valid session');
-
-      // Le client Supabase gère automatiquement l'authentification
-      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-        body: { demarcheId, paymentType: 'full' }
-      });
-
-      if (error) {
-        console.error('Function invoke error:', error);
-        throw error;
-      }
-
-      if (data?.clientSecret) {
-        setClientSecret(data.clientSecret);
-      } else {
-        throw new Error("Client secret non reçu");
-      }
+      const stripeInstance = await initStripe();
+      setStripe(stripeInstance);
     } catch (error: any) {
-      console.error('Payment intent error:', error);
+      console.error('Stripe initialization error:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Impossible d'initialiser le paiement",
+        description: "Impossible de charger le système de paiement",
         variant: "destructive"
       });
     } finally {
@@ -188,18 +229,22 @@ export function StripePayment({ demarcheId, amount, onSuccess, onCancel }: Strip
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <CardContent className="flex flex-col items-center justify-center py-8 gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Chargement du système de paiement...</p>
         </CardContent>
       </Card>
     );
   }
 
-  if (!clientSecret) {
+  if (!stripe) {
     return (
       <Card>
         <CardContent className="py-8">
           <p className="text-center text-destructive">Erreur d'initialisation du paiement</p>
+          <Button onClick={initializeStripe} variant="outline" className="mt-4 mx-auto block">
+            Réessayer
+          </Button>
         </CardContent>
       </Card>
     );
@@ -208,11 +253,13 @@ export function StripePayment({ demarcheId, amount, onSuccess, onCancel }: Strip
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Paiement sécurisé</CardTitle>
-        <CardDescription>Choisissez votre mode de paiement</CardDescription>
+        <CardTitle>Paiement sécurisé par carte bancaire</CardTitle>
+        <CardDescription>
+          Renseignez vos informations de carte pour finaliser votre commande
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Elements stripe={stripePromise} options={{ clientSecret }}>
+        <Elements stripe={stripe}>
           <PaymentForm 
             demarcheId={demarcheId}
             amount={amount}
