@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VehicleForm } from "@/components/VehicleForm";
+import { VehicleFormCG } from "@/components/VehicleFormCG";
 import { TrackingServiceOption } from "@/components/TrackingServiceOption";
 import { StripePayment } from "@/components/StripePayment";
 
@@ -333,13 +334,23 @@ export default function NouvelleDemarche() {
               </div>
 
               {garage && (
-                <VehicleForm
-                  garageId={garage.id}
-                  onVehicleSelect={handleVehicleSelect}
-                  selectedVehicleId={selectedVehicleId}
-                  onPriceCalculated={handlePriceCalculated}
-                  useApiMode={formData.type === 'CG'}
-                />
+                <>
+                  {formData.type === 'CG' ? (
+                    <VehicleFormCG
+                      garageId={garage.id}
+                      onVehicleSelect={handleVehicleSelect}
+                      selectedVehicleId={selectedVehicleId}
+                      onPriceCalculated={handlePriceCalculated}
+                    />
+                  ) : (
+                    <VehicleForm
+                      garageId={garage.id}
+                      onVehicleSelect={handleVehicleSelect}
+                      selectedVehicleId={selectedVehicleId}
+                      onPriceCalculated={handlePriceCalculated}
+                    />
+                  )}
+                </>
               )}
 
 
