@@ -238,6 +238,22 @@ export default function NouvelleDemarche() {
       return;
     }
 
+    // Check if all obligatory documents are uploaded
+    const requiredDocs = documentsRequis.filter(doc => doc.obligatoire);
+    const uploadedRequiredDocs = requiredDocs.filter((doc, idx) => {
+      const docKey = `doc_${idx + 1}`;
+      return uploadedDocuments.has(docKey);
+    });
+    
+    if (uploadedRequiredDocs.length < requiredDocs.length) {
+      toast({
+        title: "Documents obligatoires manquants",
+        description: `Veuillez télécharger tous les documents obligatoires (${uploadedRequiredDocs.length}/${requiredDocs.length})`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Update before payment
     if (demarcheId) {
       await supabase
