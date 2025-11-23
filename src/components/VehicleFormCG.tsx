@@ -228,6 +228,7 @@ export function VehicleFormCG({ garageId, onVehicleSelect, selectedVehicleId, on
         {priceCalculated ? (
           <div className="flex gap-2">
             <Button
+              type="button"
               variant="outline"
               onClick={handleModify}
               className="flex-1"
@@ -235,6 +236,7 @@ export function VehicleFormCG({ garageId, onVehicleSelect, selectedVehicleId, on
               Modifier
             </Button>
             <Button
+              type="button"
               onClick={handleValidate}
               className="flex-1"
             >
@@ -243,6 +245,7 @@ export function VehicleFormCG({ garageId, onVehicleSelect, selectedVehicleId, on
           </div>
         ) : (
           <Button
+            type="button"
             onClick={fetchVehicleDataAndPrice}
             disabled={fetchingVehicle || !immatriculation.trim() || !departement}
             className="w-full"
