@@ -21,6 +21,8 @@ import PaiementDemarche from "./pages/PaiementDemarche";
 import SuiviCommande from "./pages/SuiviCommande";
 import RechercheSuivi from "./pages/RechercheSuivi";
 import DevisCarteGrise from "./pages/DevisCarteGrise";
+import Simulateur from "./pages/Simulateur";
+import ResultatCarteGrise from "./pages/ResultatCarteGrise";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AllDemarches from "./pages/admin/AllDemarches";
 import AdminDemarcheDetail from "./pages/admin/DemarcheDetail";
@@ -50,7 +52,9 @@ const App = () => (
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/devis/:orderId" element={<DevisCarteGrise />} />
+          <Route path="/devis/:orderId" element={<DevisCarteGrise />} />
+          <Route path="/simulateur" element={<Simulateur />} />
+          <Route path="/resultat-carte-grise" element={<ResultatCarteGrise />} />
         <Route path="/commander/:orderId" element={<CommanderSansCompte />} />
         <Route path="/paiement/:orderId" element={<PaiementGuestOrder />} />
         <Route path="/paiement-demarche/:demarcheId" element={<PaiementDemarche />} />
