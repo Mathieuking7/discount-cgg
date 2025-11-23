@@ -43,7 +43,7 @@ export function TrackingServiceOption({
     name: 'Suivi par email',
     price: 5,
     icon: Mail,
-    description: 'Notifications quotidiennes par email'
+    description: 'Notifications à chaque étape par email'
   }, {
     type: 'phone',
     name: 'Suivi par téléphone',
