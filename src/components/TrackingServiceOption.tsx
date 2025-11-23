@@ -45,7 +45,7 @@ export function TrackingServiceOption({ demarcheId, garageId, onPriceChange }: T
       name: 'Suivi par email', 
       price: 5, 
       icon: Mail,
-      description: 'Notifications quotidiennes par email' 
+      description: 'Notifications à chaque étapes par email' 
     },
     { 
       type: 'phone', 
