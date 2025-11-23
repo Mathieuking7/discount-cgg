@@ -454,25 +454,22 @@ export default function NouvelleDemarche() {
                     <div className="space-y-3">
                       {documentsRequis.map((doc, idx) => {
                         const docName = doc.nom_document.toLowerCase();
-                        // Ne dédoubler que si le nom contient "carte grise" SANS déjà mentionner "recto" ou "verso"
-                        const isCarteGrise = docName.includes('carte grise') && 
-                                           !docName.includes('recto') && 
-                                           !docName.includes('verso');
+                        // Vérifier si le document contient "recto/verso" ou "recto verso"
+                        const hasRectoVerso = docName.includes('recto/verso') || docName.includes('recto verso');
                         
-                        // Trouver l'index de la première carte grise à dédoubler
-                        const firstCarteGriseIdx = documentsRequis.findIndex(d => {
-                          const name = d.nom_document.toLowerCase();
-                          return name.includes('carte grise') && !name.includes('recto') && !name.includes('verso');
-                        });
-                        
-                        // Dédoubler uniquement la PREMIÈRE carte grise sans mention recto/verso
-                        if (isCarteGrise && idx === firstCarteGriseIdx) {
+                        // Si le document contient "recto/verso", le dédoubler
+                        if (hasRectoVerso) {
+                          // Créer le nom pour le verso en remplaçant "recto/verso" ou "recto verso" par "verso"
+                          const versoName = doc.nom_document
+                            .replace(/recto\/verso/gi, 'verso')
+                            .replace(/recto verso/gi, 'verso');
+                          
                           return (
                             <div key={doc.id} className="space-y-3">
                               <div className="flex items-center gap-4">
                                 <div className="flex-1">
                                   <Label className="text-sm font-medium flex items-center gap-2">
-                                    Carte grise recto (ou recto/verso)
+                                    {doc.nom_document}
                                     {doc.obligatoire ? (
                                       <span className="text-destructive text-xs">*</span>
                                     ) : (
@@ -483,16 +480,17 @@ export default function NouvelleDemarche() {
                                 <div className="w-[400px]">
                                   <DocumentUpload
                                     demarcheId={demarcheId}
-                                    documentType={`doc_${idx + 1}_recto`}
+                                    documentType={`doc_${idx + 1}`}
                                     label=""
-                                    onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}_recto`)}
+                                    onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}`)}
                                   />
                                 </div>
                               </div>
                               <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                  <Label className="text-sm font-medium">
-                                    Carte grise verso
+                                  <Label className="text-sm font-medium flex items-center gap-2">
+                                    {versoName}
+                                    <span className="text-muted-foreground text-xs">(Optionnel)</span>
                                   </Label>
                                 </div>
                                 <div className="w-[400px]">
@@ -508,7 +506,7 @@ export default function NouvelleDemarche() {
                           );
                         }
                         
-                        // Afficher tous les autres documents normalement (y compris ceux avec "recto/verso" dans le nom)
+                        // Afficher tous les autres documents normalement
                         return (
                           <div key={doc.id} className="flex items-center gap-4">
                             <div className="flex-1">
