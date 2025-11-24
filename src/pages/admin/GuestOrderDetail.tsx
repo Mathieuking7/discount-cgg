@@ -285,17 +285,23 @@ export default function GuestOrderDetail() {
       });
 
       // Send email avec carte grise - Envoi de l'email de dossier terminé
-      const { error } = await supabase.functions.invoke('send-order-emails', {
+      const { error: emailError } = await supabase.functions.invoke('send-guest-order-email', {
         body: {
-          type: 'order_complete',
-          email: order.email,
-          customerName: `${order.prenom} ${order.nom}`,
-          immatriculation: order.immatriculation,
-          trackingNumber: order.tracking_number
+          type: 'completed',
+          orderData: {
+            tracking_number: order.tracking_number,
+            email: order.email,
+            nom: order.nom,
+            prenom: order.prenom,
+            immatriculation: order.immatriculation,
+            montant_ttc: order.montant_ttc
+          }
         }
       });
 
-      if (error) throw error;
+      if (emailError) {
+        console.error('Error sending completion email:', emailError);
+      }
 
       // Update order status to finalise
       await supabase
@@ -390,17 +396,17 @@ export default function GuestOrderDetail() {
 
       // Envoyer l'email avec tous les documents refusés
       if (order && rejectedDocs) {
-        await supabase.functions.invoke('send-order-emails', {
+        await supabase.functions.invoke('send-guest-order-email', {
           body: {
             type: 'document_rejected',
-            email: order.email,
-            customerName: `${order.prenom} ${order.nom}`,
-            immatriculation: order.immatriculation,
-            trackingNumber: order.tracking_number,
-            rejectedDocuments: rejectedDocs.map(doc => ({
-              nom: doc.type_document,
-              raison: reason
-            }))
+            orderData: {
+              tracking_number: order.tracking_number,
+              email: order.email,
+              nom: order.nom,
+              prenom: order.prenom,
+              immatriculation: order.immatriculation,
+              montant_ttc: order.montant_ttc
+            }
           }
         });
       }
@@ -919,17 +925,17 @@ function DocumentValidationCard({
       if (error) throw error;
 
       // Send email notification de documents refusés
-      await supabase.functions.invoke('send-order-emails', {
+      await supabase.functions.invoke('send-guest-order-email', {
         body: {
           type: 'document_rejected',
-          email: order.email,
-          customerName: `${order.prenom} ${order.nom}`,
-          immatriculation: order.immatriculation,
-          trackingNumber: order.tracking_number,
-          rejectedDocuments: [{
-            nom: doc.type_document,
-            raison: rejectionReason
-          }]
+          orderData: {
+            tracking_number: order.tracking_number,
+            email: order.email,
+            nom: order.nom,
+            prenom: order.prenom,
+            immatriculation: order.immatriculation,
+            montant_ttc: order.montant_ttc
+          }
         }
       });
 
