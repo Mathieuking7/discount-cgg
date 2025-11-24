@@ -265,8 +265,9 @@ export type Database = {
       factures: {
         Row: {
           created_at: string
-          demarche_id: string
-          garage_id: string
+          demarche_id: string | null
+          garage_id: string | null
+          guest_order_id: string | null
           id: string
           montant_ht: number
           montant_ttc: number
@@ -277,8 +278,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          demarche_id: string
-          garage_id: string
+          demarche_id?: string | null
+          garage_id?: string | null
+          guest_order_id?: string | null
           id?: string
           montant_ht?: number
           montant_ttc?: number
@@ -289,8 +291,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          demarche_id?: string
-          garage_id?: string
+          demarche_id?: string | null
+          garage_id?: string | null
+          guest_order_id?: string | null
           id?: string
           montant_ht?: number
           montant_ttc?: number
@@ -312,6 +315,13 @@ export type Database = {
             columns: ["garage_id"]
             isOneToOne: false
             referencedRelation: "garages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_guest_order_id_fkey"
+            columns: ["guest_order_id"]
+            isOneToOne: false
+            referencedRelation: "guest_orders"
             referencedColumns: ["id"]
           },
         ]
