@@ -209,7 +209,8 @@ const CommanderSansCompte = () => {
 
         // Send confirmation email
         if (formData.email_notifications) {
-          await supabase.functions.invoke('send-guest-order-email', {
+          console.log('Sending payment confirmed email (no Stripe) to:', formData.email);
+          const emailResult = await supabase.functions.invoke('send-guest-order-email', {
             body: {
               type: 'payment_confirmed',
               orderData: {
@@ -222,6 +223,13 @@ const CommanderSansCompte = () => {
               }
             }
           });
+          console.log('Email result:', emailResult);
+          
+          if (emailResult.error) {
+            console.error('Email error:', emailResult.error);
+          }
+        } else {
+          console.log('Email notifications disabled for this order');
         }
 
         toast({
@@ -233,7 +241,8 @@ const CommanderSansCompte = () => {
       } else {
         // Send confirmation email if notifications enabled
         if (formData.email_notifications) {
-          await supabase.functions.invoke('send-guest-order-email', {
+          console.log('Sending order confirmation email to:', formData.email);
+          const emailResult = await supabase.functions.invoke('send-guest-order-email', {
             body: {
               type: 'order_confirmation',
               orderData: {
@@ -246,6 +255,13 @@ const CommanderSansCompte = () => {
               }
             }
           });
+          console.log('Email result:', emailResult);
+          
+          if (emailResult.error) {
+            console.error('Email error:', emailResult.error);
+          }
+        } else {
+          console.log('Email notifications disabled for this order');
         }
 
         toast({
