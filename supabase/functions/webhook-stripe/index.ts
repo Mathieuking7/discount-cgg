@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import Stripe from "https://esm.sh/stripe?target=deno";
 
 // Stripe client
-const stripe = Stripe(Deno.env.get("STRIPE_SECRET_KEY"), {
+const stripe = Stripe(Deno.env.get("STRIPE_SECRET_KEY_TEST"), {
   apiVersion: "2023-10-16",
 });
 
