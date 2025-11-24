@@ -52,10 +52,12 @@ export default function MesFactures() {
           status
         )
       `)
+      .not('garage_id', 'is', null)
       .eq('garage_id', gId)
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Erreur chargement factures:', error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les factures",
