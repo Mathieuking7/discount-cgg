@@ -11,10 +11,10 @@ serve(async (req) => {
   }
 
   try {
-    const publishableKey = Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY');
+    const publishableKey = Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY_TEST');
     
     if (!publishableKey) {
-      throw new Error('VITE_STRIPE_PUBLISHABLE_KEY not configured');
+      throw new Error('VITE_STRIPE_PUBLISHABLE_KEY_TEST not configured');
     }
 
     return new Response(
