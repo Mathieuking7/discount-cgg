@@ -302,14 +302,17 @@ serve(async (req) => {
 
             // Envoyer l'email de confirmation de paiement
             if (order.email_notifications) {
-              await supabaseClient.functions.invoke('send-order-emails', {
+              await supabaseClient.functions.invoke('send-guest-order-email', {
                 body: {
                   type: 'payment_confirmed',
-                  email: order.email,
-                  customerName: `${order.prenom} ${order.nom}`,
-                  immatriculation: order.immatriculation,
-                  trackingNumber: order.tracking_number,
-                  montantTTC: order.montant_ttc
+                  orderData: {
+                    tracking_number: order.tracking_number,
+                    email: order.email,
+                    nom: order.nom,
+                    prenom: order.prenom,
+                    immatriculation: order.immatriculation,
+                    montant_ttc: order.montant_ttc
+                  }
                 }
               });
             }
