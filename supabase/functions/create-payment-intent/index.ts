@@ -61,10 +61,18 @@ serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+    // Récupération des clés Stripe selon le mode actif
+    const stripeMode = Deno.env.get('STRIPE_MODE') || 'test';
+    const stripeKey = stripeMode === 'live' 
+      ? Deno.env.get('STRIPE_SECRET_KEY')
+      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+    
     if (!stripeKey) {
-      throw new Error('STRIPE_SECRET_KEY not configured');
+      throw new Error(`STRIPE_SECRET_KEY${stripeMode === 'test' ? '_TEST' : ''} is not configured`);
     }
+    
+    console.log(`Current Stripe mode: ${stripeMode.toUpperCase()}`);
+    console.log(`Using key starting with: ${stripeKey.substring(0, 7)}...`);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
