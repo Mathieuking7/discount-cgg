@@ -11,14 +11,24 @@ serve(async (req) => {
   }
 
   try {
-    const publishableKey = Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY');
+    // Récupération du mode actif et de la clé correspondante
+    const stripeMode = Deno.env.get('STRIPE_MODE') || 'test';
+    const publishableKey = stripeMode === 'live'
+      ? Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY')
+      : Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY_TEST');
     
     if (!publishableKey) {
-      throw new Error('VITE_STRIPE_PUBLISHABLE_KEY not configured');
+      throw new Error(`VITE_STRIPE_PUBLISHABLE_KEY${stripeMode === 'test' ? '_TEST' : ''} not configured`);
     }
 
+    console.log(`Returning Stripe key for mode: ${stripeMode.toUpperCase()}`);
+    console.log(`Key starts with: ${publishableKey.substring(0, 7)}...`);
+
     return new Response(
-      JSON.stringify({ publishableKey }),
+      JSON.stringify({ 
+        publishableKey,
+        mode: stripeMode 
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
