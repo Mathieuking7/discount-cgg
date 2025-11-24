@@ -263,6 +263,31 @@ serve(async (req) => {
           )}€ a été validé. Votre démarche est en cours de traitement.`,
         });
 
+        // Envoi d'email de confirmation si demarche est disponible
+        if (demarche && demarche.garages) {
+          console.log("📧 Envoi email payment_confirmed pour démarche à:", demarche.garages.email);
+          try {
+            const emailResult = await supabase.functions.invoke("send-order-emails", {
+              body: {
+                type: "payment_confirmed",
+                email: demarche.garages.email,
+                customerName: demarche.garages.raison_sociale,
+                immatriculation: demarche.immatriculation,
+                demarcheId: demarche.numero_demarche || demarcheId,
+                montantTTC: (paymentIntent.amount / 100).toFixed(2),
+              },
+            });
+
+            if (emailResult.error) {
+              console.error("❌ Erreur envoi email:", emailResult.error);
+            } else {
+              console.log("✅ Email payment_confirmed envoyé avec succès");
+            }
+          } catch (emailError) {
+            console.error("❌ Exception envoi email:", emailError);
+          }
+        }
+
         console.log("✔️ Démarche traitée :", demarcheId);
       }
 
