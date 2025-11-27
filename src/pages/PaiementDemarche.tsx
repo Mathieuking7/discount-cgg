@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { PayPalButton } from "@/components/PayPalButton";
 import { StripeWalletPayment } from "@/components/StripeWalletPayment";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PaymentDetailsSummary } from "@/components/payment/PaymentDetailsSummary";
+import type { PaymentCalculationResult } from "@/utils/calculatePaymentDetails";
 
 const StripeCardForm = ({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) => {
   const stripe = useStripe();
@@ -115,6 +116,9 @@ const PaiementDemarche = () => {
   const [trackingServices, setTrackingServices] = useState<any[]>([]);
   const [actionRapide, setActionRapide] = useState<any>(null);
   const [stripePromise, setStripePromise] = useState<any>(null);
+  
+  // Montant TTC calculé correctement
+  const [calculatedTTC, setCalculatedTTC] = useState<number>(0);
 
   useEffect(() => {
     loadDemarche();
@@ -214,6 +218,11 @@ const PaiementDemarche = () => {
     }
   };
 
+  // Callback pour récupérer le montant TTC calculé
+  const handlePaymentCalculated = useCallback((result: PaymentCalculationResult) => {
+    setCalculatedTTC(result.totalTTC);
+  }, []);
+
   const handlePaymentSuccess = async () => {
     try {
       // Mettre à jour le statut de la démarche
@@ -250,6 +259,12 @@ const PaiementDemarche = () => {
   }
 
   if (!demarche || !clientSecret || !stripePromise) return null;
+
+  // Utiliser le montant calculé ou le montant stocké si pas encore calculé
+  const finalAmount = calculatedTTC > 0 ? calculatedTTC : demarche.montant_ttc;
+  
+  // PayPal 4x désactivé si montant < 30€
+  const canUsePayPal4x = finalAmount >= 30;
 
   return (
     <div className="min-h-screen bg-background">
@@ -302,7 +317,7 @@ const PaiementDemarche = () => {
                   </p>
                   <Elements stripe={stripePromise}>
                     <StripeWalletPayment 
-                      amount={demarche.montant_ttc} 
+                      amount={finalAmount} 
                       onSuccess={handlePaymentSuccess}
                     />
                   </Elements>
@@ -317,36 +332,66 @@ const PaiementDemarche = () => {
                   </div>
                 </div>
 
-                {/* 3. PayPal avec 4X */}
-                <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary rounded-lg p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Paiement recommandé</p>
-                      <h3 className="text-xl font-bold">Payez en 4x sans frais</h3>
+                {/* 3. PayPal */}
+                {canUsePayPal4x ? (
+                  // PayPal avec option 4x (montant >= 30€)
+                  <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary rounded-lg p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-1">Paiement recommandé</p>
+                        <h3 className="text-xl font-bold">Payez en 4x sans frais</h3>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-primary">{(finalAmount / 4).toFixed(2)} €</p>
+                        <p className="text-sm text-muted-foreground">par mois</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">{(demarche.montant_ttc / 4).toFixed(2)} €</p>
-                      <p className="text-sm text-muted-foreground">par mois</p>
-                    </div>
+                    
+                    <p className="text-sm text-muted-foreground">
+                      soit 4 mensualités de <span className="font-semibold text-foreground">{(finalAmount / 4).toFixed(2)} €</span>
+                    </p>
+                    
+                    <PayPalButton
+                      amount={finalAmount}
+                      onSuccess={handlePaymentSuccess}
+                      onError={(error) => {
+                        console.error("PayPal error:", error);
+                        toast({
+                          title: "Erreur PayPal",
+                          description: "Impossible de charger PayPal",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
                   </div>
-                  
-                  <p className="text-sm text-muted-foreground">
-                    soit 4 mensualités de <span className="font-semibold text-foreground">{(demarche.montant_ttc / 4).toFixed(2)} €</span>
-                  </p>
-                  
-                  <PayPalButton
-                    amount={demarche.montant_ttc}
-                    onSuccess={handlePaymentSuccess}
-                    onError={(error) => {
-                      console.error("PayPal error:", error);
-                      toast({
-                        title: "Erreur PayPal",
-                        description: "Impossible de charger PayPal",
-                        variant: "destructive",
-                      });
-                    }}
-                  />
-                </div>
+                ) : (
+                  // PayPal sans option 4x (montant < 30€)
+                  <div className="border rounded-lg p-6 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">PayPal</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Paiement sécurisé via PayPal
+                      </p>
+                    </div>
+                    
+                    <PayPalButton
+                      amount={finalAmount}
+                      onSuccess={handlePaymentSuccess}
+                      onError={(error) => {
+                        console.error("PayPal error:", error);
+                        toast({
+                          title: "Erreur PayPal",
+                          description: "Impossible de charger PayPal",
+                          variant: "destructive",
+                        });
+                      }}
+                    />
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Le paiement en 4x est disponible à partir de 30€
+                    </p>
+                  </div>
+                )}
 
                 <p className="text-xs text-muted-foreground text-center pt-2">
                   🔒 Tous les paiements sont sécurisés et cryptés
@@ -396,6 +441,7 @@ const PaiementDemarche = () => {
                       montantTtc={demarche.montant_ttc}
                       trackingServices={trackingServices}
                       actionRapideTitre={actionRapide?.titre}
+                      onCalculated={handlePaymentCalculated}
                     />
                   </CollapsibleContent>
                 </Collapsible>
@@ -404,7 +450,7 @@ const PaiementDemarche = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-base font-semibold">Total TTC</span>
                     <span className="text-2xl font-bold text-primary">
-                      {demarche.montant_ttc.toFixed(2)}€
+                      {finalAmount.toFixed(2)}€
                     </span>
                   </div>
                 </div>
