@@ -33,7 +33,7 @@ export const PriceSummary = ({
   // Prix des options
   const emailPrix = 5;
   const smsPrix = 8;
-  const packPrix = 19;
+  const packPrix = 10;
 
   // Calcul TVA comme pour les garages
   const prixCarteGrise = calculation.prixTotal;

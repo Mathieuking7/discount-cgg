@@ -36,7 +36,7 @@ export default function ResultatCarteGrise() {
 
   const emailPrix = 5;
   const smsPrix = 8;
-  const packPrix = 19;
+  const packPrix = 10;
 
   const fraisDossier = 30;
 
