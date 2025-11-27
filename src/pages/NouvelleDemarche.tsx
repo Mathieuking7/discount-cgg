@@ -89,15 +89,32 @@ export default function NouvelleDemarche() {
   const updateDemarcheMontant = async () => {
     if (!demarcheId || !actionDetails) return;
 
-    // Pour DA et DC, pas de carte grise donc pas de carteGrisePrice
-    const totalMontant = actionDetails.prix + (formData.type === 'DA' || formData.type === 'DC' ? 0 : carteGrisePrice) + trackingServicePrice;
+    // Frais de dossier = prix de l'action (soumis à TVA)
+    const fraisDossierHT = actionDetails.prix;
+    
+    // Prix carte grise (taxe régionale, exonérée TVA) - 0 pour DA/DC
+    const prixCarteGrise = (formData.type === 'DA' || formData.type === 'DC') ? 0 : carteGrisePrice;
+    
+    // Options (soumises à TVA)
+    const optionsHT = trackingServicePrice;
+    
+    // Total des services soumis à TVA
+    const totalServicesHT = fraisDossierHT + optionsHT;
+    
+    // TVA 20% sur les services uniquement
+    const tva = totalServicesHT * 0.20;
+    
+    // Total TTC = carte grise (exonérée) + services HT + TVA
+    const totalTTC = prixCarteGrise + totalServicesHT + tva;
 
     await supabase
       .from('demarches')
       .update({
-        frais_dossier: totalMontant,
-        montant_ttc: totalMontant,
-      })
+        prix_carte_grise: prixCarteGrise,
+        frais_dossier: fraisDossierHT,
+        montant_ht: totalServicesHT,
+        montant_ttc: totalTTC,
+      } as any)
       .eq('id', demarcheId);
   };
 
@@ -165,8 +182,20 @@ export default function NouvelleDemarche() {
   const handleAutoCreateDraft = async () => {
     if (!garage || demarcheId || !actionDetails) return;
 
-    // Pour DA et DC, on n'attend pas le carteGrisePrice
-    const totalMontant = actionDetails.prix + (formData.type === 'DA' || formData.type === 'DC' ? 0 : carteGrisePrice);
+    // Frais de dossier = prix de l'action (soumis à TVA)
+    const fraisDossierHT = actionDetails.prix;
+    
+    // Prix carte grise (taxe régionale, exonérée TVA) - 0 pour DA/DC
+    const prixCarteGrise = (formData.type === 'DA' || formData.type === 'DC') ? 0 : carteGrisePrice;
+    
+    // Total des services soumis à TVA (pas d'options au début)
+    const totalServicesHT = fraisDossierHT;
+    
+    // TVA 20% sur les services uniquement
+    const tva = totalServicesHT * 0.20;
+    
+    // Total TTC = carte grise (exonérée) + services HT + TVA
+    const totalTTC = prixCarteGrise + totalServicesHT + tva;
 
     const { data, error } = await supabase
       .from('demarches')
@@ -175,8 +204,10 @@ export default function NouvelleDemarche() {
         type: formData.type,
         immatriculation: selectedImmatriculation || 'TEMP',
         commentaire: formData.commentaire,
-        frais_dossier: totalMontant,
-        montant_ttc: totalMontant,
+        prix_carte_grise: prixCarteGrise,
+        frais_dossier: fraisDossierHT,
+        montant_ht: totalServicesHT,
+        montant_ttc: totalTTC,
         status: 'en_saisie',
         is_draft: true,
         paye: false,
