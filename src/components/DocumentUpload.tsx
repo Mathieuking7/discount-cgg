@@ -20,9 +20,11 @@ interface DocumentUploadProps {
   documentType: string;
   label: string;
   onUploadComplete?: () => void;
+  isBlocked?: boolean;
+  blockedMessage?: string;
 }
 
-export function DocumentUpload({ demarcheId, documentType, label, onUploadComplete }: DocumentUploadProps) {
+export function DocumentUpload({ demarcheId, documentType, label, onUploadComplete, isBlocked = false, blockedMessage }: DocumentUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -255,6 +257,19 @@ export function DocumentUpload({ demarcheId, documentType, label, onUploadComple
       </Label>
     );
   };
+
+  if (isBlocked) {
+    return (
+      <div className="space-y-2">
+        {label && renderLabel()}
+        <div className="p-4 border-2 border-dashed border-warning/50 rounded-md bg-warning/5">
+          <p className="text-sm text-warning font-medium">
+            {blockedMessage || "Upload bloqué - Paiement requis"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">

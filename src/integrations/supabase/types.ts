@@ -106,6 +106,10 @@ export type Database = {
           montant_ttc: number | null
           numero_demarche: string | null
           paye: boolean | null
+          requires_resubmission_payment: boolean | null
+          resubmission_paid: boolean | null
+          resubmission_payment_amount: number | null
+          resubmission_payment_intent_id: string | null
           status: Database["public"]["Enums"]["demarche_status"]
           type: Database["public"]["Enums"]["demarche_type"]
           updated_at: string
@@ -127,6 +131,10 @@ export type Database = {
           montant_ttc?: number | null
           numero_demarche?: string | null
           paye?: boolean | null
+          requires_resubmission_payment?: boolean | null
+          resubmission_paid?: boolean | null
+          resubmission_payment_amount?: number | null
+          resubmission_payment_intent_id?: string | null
           status?: Database["public"]["Enums"]["demarche_status"]
           type: Database["public"]["Enums"]["demarche_type"]
           updated_at?: string
@@ -148,6 +156,10 @@ export type Database = {
           montant_ttc?: number | null
           numero_demarche?: string | null
           paye?: boolean | null
+          requires_resubmission_payment?: boolean | null
+          resubmission_paid?: boolean | null
+          resubmission_payment_amount?: number | null
+          resubmission_payment_intent_id?: string | null
           status?: Database["public"]["Enums"]["demarche_status"]
           type?: Database["public"]["Enums"]["demarche_type"]
           updated_at?: string
