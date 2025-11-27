@@ -13,26 +13,10 @@ export const getSignedUrl = async (
   trackingNumber?: string
 ): Promise<string | null> => {
   try {
-    // Get the current session for JWT
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    
-    // Add JWT if authenticated
-    if (session?.access_token) {
-      headers["Authorization"] = `Bearer ${session.access_token}`;
-    }
-    
-    // Add tracking number header if provided
-    if (trackingNumber) {
-      headers["x-tracking-number"] = trackingNumber;
-    }
+    console.log("📁 Getting signed URL for:", { bucket, path, trackingNumber });
     
     const { data, error } = await supabase.functions.invoke("get-signed-url", {
       body: { bucket, path, trackingNumber },
-      headers,
     });
     
     if (error) {
@@ -40,6 +24,7 @@ export const getSignedUrl = async (
       return null;
     }
     
+    console.log("✅ Got signed URL response:", data);
     return data?.signedUrl || null;
   } catch (error) {
     console.error("Error in getSignedUrl:", error);
