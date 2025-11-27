@@ -218,7 +218,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { subject, html } = getEmailTemplate(type, data);
 
     const emailResponse = await resend.emails.send({
-      from: "DiscountCarteGrise <noreply@discountcg.fr>",
+      from: "DiscountCarteGrise <noreply@discountcartegrise.fr>",
       to: to,
       subject: subject,
       html: html,
