@@ -92,6 +92,63 @@ function BulkRejectDialog({
   );
 }
 
+// Reject with Payment Dialog Component for garage abuse prevention
+function RejectWithPaymentDialog({ 
+  onReject, 
+  disabled,
+  amount = 10
+}: { 
+  onReject: (reason: string) => void; 
+  disabled: boolean;
+  amount?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  const handleReject = () => {
+    if (reason.trim()) {
+      onReject(reason);
+      setOpen(false);
+      setReason("");
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="sm" disabled={disabled} className="border-warning text-warning hover:bg-warning/10">
+          <XCircle className="mr-2 h-4 w-4" />
+          Refuser + Paiement ({amount}€)
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Refuser et demander un paiement</AlertDialogTitle>
+          <AlertDialogDescription>
+            Le garage devra payer {amount}€ avant de pouvoir renvoyer des documents. Utilisez cette option pour les documents abusifs ou illisibles répétés.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Textarea
+          placeholder="Raison du refus (ex: Document illisible, non-conforme...)..."
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={4}
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleReject}
+            disabled={!reason.trim()}
+            className="bg-warning text-warning-foreground hover:bg-warning/90"
+          >
+            Refuser et demander {amount}€
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export default function DemarcheDetail() {
   const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
@@ -421,6 +478,81 @@ export default function DemarcheDetail() {
     }
   };
 
+// Handle reject with payment (abuse prevention)
+  const handleRejectWithPayment = async (docId: string, reason: string) => {
+    if (!docId || !reason.trim()) return;
+
+    try {
+      // Update document status
+      await supabase
+        .from("documents")
+        .update({
+          validation_status: "rejected",
+          validated_at: new Date().toISOString(),
+          validated_by: user?.id,
+          validation_comment: reason,
+        })
+        .eq("id", docId);
+
+      // Update demarche to require resubmission payment
+      await supabase
+        .from("demarches")
+        .update({
+          requires_resubmission_payment: true,
+          resubmission_paid: false,
+        })
+        .eq("id", id);
+
+      // Create notification
+      if (garage) {
+        await supabase
+          .from('notifications')
+          .insert({
+            garage_id: garage.id,
+            demarche_id: id,
+            type: 'resubmission_payment_required',
+            message: `Un paiement de ${demarche.resubmission_payment_amount || 10}€ est requis pour renvoyer des documents. Raison: ${reason}`,
+            created_by: user?.id
+          });
+
+        // Send email to garage
+        try {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'demarche_resubmission_payment_required',
+              to: garage.email,
+              data: {
+                tracking_number: demarche.numero_demarche || demarche.id,
+                nom: garage.raison_sociale,
+                prenom: '',
+                amount: demarche.resubmission_payment_amount || 10,
+                reason: reason,
+                immatriculation: demarche.immatriculation
+              }
+            }
+          });
+          console.log('Email de demande de paiement envoyé au garage');
+        } catch (emailError) {
+          console.error('Erreur envoi email:', emailError);
+        }
+      }
+
+      toast({
+        title: "Document refusé avec paiement requis",
+        description: `Le garage devra payer ${demarche.resubmission_payment_amount || 10}€ avant de pouvoir renvoyer des documents`,
+      });
+
+      await loadDemarcheData();
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de traiter le refus",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleBulkReject = async (reason: string) => {
     if (selectedDocs.length === 0 || !reason.trim()) return;
 
@@ -728,6 +860,28 @@ export default function DemarcheDetail() {
                   </div>
                 </div>
 
+                {/* Resubmission payment status */}
+                {demarche.requires_resubmission_payment && (
+                  <div className={`p-3 rounded-md ${demarche.resubmission_paid ? 'bg-success/10 border border-success/20' : 'bg-warning/10 border border-warning/20'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {demarche.resubmission_paid 
+                            ? "✅ Paiement de renvoi effectué" 
+                            : `⚠️ Paiement de renvoi requis (${demarche.resubmission_payment_amount || 10}€)`
+                          }
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {demarche.resubmission_paid 
+                            ? "Le garage peut maintenant renvoyer des documents"
+                            : "Le garage doit payer avant de pouvoir renvoyer des documents"
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {demarche.commentaire && (
                   <div>
                     <Label>Commentaire</Label>
@@ -833,7 +987,7 @@ export default function DemarcheDetail() {
                         </div>
                         
                         {doc.validation_status !== 'valid' && doc.validation_status !== 'validated' && doc.validation_status !== 'invalid' && doc.validation_status !== 'rejected' && (
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <Button 
                               size="sm" 
                               className="flex-1 bg-success hover:bg-success/90"
@@ -851,6 +1005,11 @@ export default function DemarcheDetail() {
                               <XCircle className="h-4 w-4 mr-1" />
                               Refuser
                             </Button>
+                            <RejectWithPaymentDialog
+                              onReject={(reason) => handleRejectWithPayment(doc.id, reason)}
+                              disabled={false}
+                              amount={demarche.resubmission_payment_amount || 10}
+                            />
                           </div>
                         )}
                       </div>

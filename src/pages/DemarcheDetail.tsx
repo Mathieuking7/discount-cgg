@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentViewer } from "@/components/DocumentViewer";
-import { ArrowLeft, FileText, AlertCircle, CheckCircle, XCircle, Upload, Eye, Mail, Phone, Zap, FileCheck as FileCheckIcon } from "lucide-react";
+import { ArrowLeft, FileText, AlertCircle, CheckCircle, XCircle, Upload, Eye, Mail, Phone, Zap, FileCheck as FileCheckIcon, CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FactureButton } from "@/components/FactureButton";
 
@@ -31,6 +31,7 @@ const typeLabels: Record<string, string> = {
 
 export default function DemarcheDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,12 +42,25 @@ export default function DemarcheDetail() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [trackingServices, setTrackingServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [viewerState, setViewerState] = useState<{
     isOpen: boolean;
     url: string;
     name: string;
     type: string;
   }>({ isOpen: false, url: "", name: "", type: "" });
+
+  // Show toast on successful resubmission payment
+  useEffect(() => {
+    if (searchParams.get('resubmission_paid') === 'true') {
+      toast({
+        title: "Paiement accepté",
+        description: "Vous pouvez maintenant renvoyer vos documents.",
+      });
+      // Clean URL
+      window.history.replaceState({}, '', `/demarche/${id}`);
+    }
+  }, [searchParams, id, toast]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -202,6 +216,38 @@ export default function DemarcheDetail() {
         return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />En attente</Badge>;
     }
   };
+
+  const handleResubmissionPayment = async () => {
+    if (!demarche) return;
+    
+    setIsProcessingPayment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-resubmission-payment', {
+        body: {
+          demarche_id: demarche.id,
+          amount: demarche.resubmission_payment_amount || 10,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      console.error('Payment error:', err);
+      toast({
+        title: "Erreur",
+        description: err.message || "Impossible de créer le paiement",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Check if uploads should be blocked due to pending resubmission payment
+  const isUploadBlocked = demarche?.requires_resubmission_payment && !demarche?.resubmission_paid;
 
   if (authLoading || loading) {
     return (
@@ -549,6 +595,40 @@ export default function DemarcheDetail() {
               </CardContent>
             </Card>
 
+            {/* Resubmission Payment Required */}
+            {isUploadBlocked && (
+              <Card className="border-warning bg-warning/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-warning">
+                    <CreditCard className="h-5 w-5" />
+                    Paiement requis
+                  </CardTitle>
+                  <CardDescription>
+                    Suite à des documents non conformes, un paiement de {demarche.resubmission_payment_amount || 10}€ est requis pour pouvoir renvoyer vos documents.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={handleResubmissionPayment}
+                    disabled={isProcessingPayment}
+                    className="w-full bg-warning hover:bg-warning/90 text-warning-foreground"
+                  >
+                    {isProcessingPayment ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Redirection...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Payer {demarche.resubmission_payment_amount || 10}€ pour renvoyer
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Upload new document if rejected */}
             {rejectedDocuments.length > 0 && (
               <Card>
@@ -558,7 +638,9 @@ export default function DemarcheDetail() {
                     Remplacer les documents refusés
                   </CardTitle>
                   <CardDescription>
-                    Certains documents ont été refusés. Veuillez uploader de nouveaux documents.
+                    {isUploadBlocked 
+                      ? "Veuillez d'abord effectuer le paiement ci-dessus pour pouvoir renvoyer vos documents."
+                      : "Certains documents ont été refusés. Veuillez uploader de nouveaux documents."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -567,6 +649,8 @@ export default function DemarcheDetail() {
                     documentType="correction"
                     label="Nouveau document"
                     onUploadComplete={loadData}
+                    isBlocked={isUploadBlocked}
+                    blockedMessage="Paiement requis pour renvoyer des documents"
                   />
                 </CardContent>
               </Card>

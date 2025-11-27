@@ -593,7 +593,7 @@ serve(async (req) => {
       const session = event.data.object;
       const metadata = session.metadata || {};
       
-      // Handle resubmission payment
+      // Handle guest order resubmission payment
       if (metadata.type === 'resubmission_payment' && metadata.order_id) {
         console.log("📦 Traitement paiement de renvoi pour commande:", metadata.order_id);
         
@@ -621,7 +621,7 @@ serve(async (req) => {
             // Send confirmation email that they can now resubmit
             await supabase.functions.invoke("send-email", {
               body: {
-                type: "document_rejected", // Reuse this template to notify they can upload
+                type: "document_rejected",
                 to: order.email,
                 data: {
                   tracking_number: order.tracking_number,
@@ -633,6 +633,42 @@ serve(async (req) => {
                   }]
                 }
               }
+            });
+          }
+        }
+      }
+      
+      // Handle demarche resubmission payment
+      if (metadata.type === 'demarche_resubmission_payment' && metadata.demarche_id) {
+        console.log("📦 Traitement paiement de renvoi pour démarche:", metadata.demarche_id);
+        
+        const { error: updateError } = await supabase
+          .from("demarches")
+          .update({
+            resubmission_paid: true,
+            resubmission_payment_intent_id: session.payment_intent,
+          })
+          .eq("id", metadata.demarche_id);
+
+        if (updateError) {
+          console.error("❌ Erreur mise à jour resubmission_paid démarche:", updateError);
+        } else {
+          console.log("✔️ Paiement de renvoi validé pour démarche:", metadata.demarche_id);
+          
+          // Get demarche and garage for notification
+          const { data: demarche } = await supabase
+            .from("demarches")
+            .select("*, garages(*)")
+            .eq("id", metadata.demarche_id)
+            .single();
+            
+          if (demarche && demarche.garages) {
+            // Create notification
+            await supabase.from("notifications").insert({
+              garage_id: demarche.garage_id,
+              demarche_id: metadata.demarche_id,
+              type: "resubmission_payment_confirmed",
+              message: `Votre paiement de renvoi a été accepté. Vous pouvez maintenant renvoyer vos documents pour la démarche ${demarche.immatriculation}.`,
             });
           }
         }
