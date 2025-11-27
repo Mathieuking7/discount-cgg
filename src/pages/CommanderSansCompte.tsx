@@ -298,7 +298,7 @@ const CommanderSansCompte = () => {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
               <Clock className="w-5 h-5 text-primary" />
               <span className="font-semibold text-primary">
-                Recevez votre carte grise en 24h maximum
+                Votre carte grise traitée en 24h maximum
               </span>
             </div>
           </div>
