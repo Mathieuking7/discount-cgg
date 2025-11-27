@@ -1,32 +1,31 @@
 import { Separator } from "@/components/ui/separator";
-
-interface TrackingService {
-  id: string;
-  service_type: string;
-  price: number; // Prix HT
-}
+import {
+  calculatePaymentDetails,
+  calculateNonCGPaymentDetails,
+  extractPrixCarteGriseFromTTC,
+  SERVICE_LABELS,
+  type TrackingService,
+  type PaymentCalculationResult,
+} from "@/utils/calculatePaymentDetails";
 
 interface PaymentDetailsSummaryProps {
   demarcheType: string;
-  fraisDossier: number; // Prix HT
-  montantTtc: number;
+  fraisDossier: number;         // Prix HT
+  montantTtc: number;           // Montant total stocké en BD
   trackingServices: TrackingService[];
   actionRapideTitre?: string;
+  prixCarteGrise?: number;      // Prix carte grise si connu
+  onCalculated?: (result: PaymentCalculationResult) => void;
 }
 
-const SERVICE_LABELS: Record<string, string> = {
-  dossier_prioritaire: "Dossier prioritaire",
-  certificat_non_gage: "Certificat de non-gage",
-  suivi_email: "Suivi par email",
-  suivi_sms: "Suivi par SMS",
-  suivi_complet: "Suivi complet",
-};
-
 /**
- * Règles TVA simplifiées :
- * - TVA 20% sur TOUT sauf la carte grise (taxe régionale)
- * - Carte grise = exonérée TVA (HT = TTC)
- * - Services = prix HT + TVA 20%
+ * Composant d'affichage du récapitulatif de paiement
+ * 
+ * RÈGLES D'AFFICHAGE :
+ * 1. Chaque ligne est affichée séparément (pas d'addition dans cette zone)
+ * 2. Carte grise = exonérée TVA
+ * 3. Services = prix HT uniquement (TVA calculée à la fin)
+ * 4. Totaux en bas : Total HT, TVA 20%, Total TTC
  */
 export const PaymentDetailsSummary = ({
   demarcheType,
@@ -34,25 +33,49 @@ export const PaymentDetailsSummary = ({
   montantTtc,
   trackingServices,
   actionRapideTitre,
+  prixCarteGrise: prixCarteGriseProp,
+  onCalculated,
 }: PaymentDetailsSummaryProps) => {
-  // Calcul des totaux - tous les prix en HT
-  const totalOptionsHT = trackingServices.reduce((sum, s) => sum + (s.price || 0), 0);
-  
-  if (demarcheType === "CG") {
-    // Pour CG : TVA uniquement sur les services, pas sur la taxe régionale
-    // Calcul: Total TTC = prix carte grise + services HT + TVA (20% sur services)
-    const servicesHT = fraisDossier + totalOptionsHT;
-    const servicesTVA = servicesHT * 0.20;
-    // Prix carte grise = ce qui reste après avoir enlevé les services + TVA
-    // Ne peut pas être négatif
-    const prixCarteGrise = Math.max(0, montantTtc - servicesHT - servicesTVA);
-    // Total TTC = TOUJOURS au moins (services HT + TVA)
-    const totalTTC = prixCarteGrise + servicesHT + servicesTVA;
+  // Détermine si c'est une démarche Carte Grise
+  const isCG = demarcheType === "CG" || demarcheType === "CG_DA" || demarcheType === "CG_IMPORT";
 
+  // Calcul des montants
+  let result: PaymentCalculationResult;
+
+  if (isCG) {
+    // Pour les démarches CG : extraire le prix carte grise si non fourni
+    const prixCarteGrise = prixCarteGriseProp ?? extractPrixCarteGriseFromTTC(
+      montantTtc,
+      fraisDossier,
+      trackingServices
+    );
+
+    result = calculatePaymentDetails({
+      prixCarteGrise,
+      fraisDossier,
+      trackingServices,
+    });
+  } else {
+    // Pour les autres démarches : pas de carte grise
+    result = calculateNonCGPaymentDetails({
+      fraisDossier,
+      trackingServices,
+    });
+  }
+
+  // Notifier le parent du calcul si callback fourni
+  if (onCalculated) {
+    onCalculated(result);
+  }
+
+  // ==============================
+  // AFFICHAGE POUR CARTE GRISE
+  // ==============================
+  if (isCG) {
     return (
       <div className="space-y-4">
-        {/* Bloc 1 : Carte grise (SANS TVA) */}
-        {prixCarteGrise > 0 && (
+        {/* BLOC 1 : Carte grise (exonérée TVA) */}
+        {result.prixCarteGrise > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Carte grise
@@ -60,27 +83,29 @@ export const PaymentDetailsSummary = ({
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Taxe régionale</span>
               <div className="text-right">
-                <span className="font-medium">{prixCarteGrise.toFixed(2)} €</span>
+                <span className="font-medium">{result.prixCarteGrise.toFixed(2)} €</span>
                 <span className="text-xs text-muted-foreground ml-1">(exonéré TVA)</span>
               </div>
             </div>
           </div>
         )}
 
-        {(prixCarteGrise > 0 && servicesHT > 0) && <Separator />}
+        {(result.prixCarteGrise > 0 && result.totalServicesHT > 0) && <Separator />}
 
-        {/* Bloc 2 : Services (HT - TVA 20% appliquée à la fin) */}
-        {servicesHT > 0 && (
+        {/* BLOC 2 : Services (HT) - chaque ligne séparément */}
+        {result.totalServicesHT > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Services (HT)
             </p>
-            
+
+            {/* Frais de dossier */}
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Frais de dossier</span>
-              <span>{fraisDossier.toFixed(2)} €</span>
+              <span>{result.fraisDossier.toFixed(2)} €</span>
             </div>
 
+            {/* Options - chacune sur sa propre ligne */}
             {trackingServices.map((service) => (
               <div key={service.id} className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">
@@ -94,51 +119,50 @@ export const PaymentDetailsSummary = ({
 
         <Separator />
 
-        {/* Bloc 3 : TVA et totaux */}
+        {/* BLOC 3 : Totaux */}
         <div className="space-y-2">
-          {servicesHT > 0 && (
+          {result.totalServicesHT > 0 && (
             <>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Total HT (services)</span>
-                <span>{servicesHT.toFixed(2)} €</span>
+                <span>{result.totalServicesHT.toFixed(2)} €</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">TVA (20%)</span>
-                <span>{servicesTVA.toFixed(2)} €</span>
+                <span>{result.tva.toFixed(2)} €</span>
               </div>
               <Separator className="my-2" />
             </>
           )}
           <div className="flex justify-between items-center font-semibold">
             <span>Total TTC</span>
-            <span className="text-lg text-primary">{totalTTC.toFixed(2)} €</span>
+            <span className="text-lg text-primary">{result.totalTTC.toFixed(2)} €</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Pour les autres types (DA, DC, etc.) : TVA 20% sur tout
-  // Tous les prix sont stockés en HT dans la DB
-  const servicesHT = fraisDossier + totalOptionsHT;
-  const servicesTVA = servicesHT * 0.20;
-  const totalTTC = servicesHT + servicesTVA;
-
+  // ==============================
+  // AFFICHAGE POUR NON CARTE GRISE (DA, DC, etc.)
+  // ==============================
   return (
     <div className="space-y-4">
-      {/* Services (HT - TVA 20% appliquée à la fin) */}
+      {/* Services (HT) - chaque ligne séparément */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Services (HT)
         </p>
-        
+
+        {/* Action rapide / Frais de dossier */}
         {actionRapideTitre && (
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">{actionRapideTitre}</span>
-            <span>{fraisDossier.toFixed(2)} €</span>
+            <span>{result.fraisDossier.toFixed(2)} €</span>
           </div>
         )}
 
+        {/* Options - chacune sur sa propre ligne */}
         {trackingServices.map((service) => (
           <div key={service.id} className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">
@@ -151,20 +175,20 @@ export const PaymentDetailsSummary = ({
 
       <Separator />
 
-      {/* TVA et totaux */}
+      {/* Totaux */}
       <div className="space-y-2">
         <div className="flex justify-between items-center text-sm">
           <span className="text-muted-foreground">Total HT</span>
-          <span>{servicesHT.toFixed(2)} €</span>
+          <span>{result.totalServicesHT.toFixed(2)} €</span>
         </div>
         <div className="flex justify-between items-center text-sm">
           <span className="text-muted-foreground">TVA (20%)</span>
-          <span>{servicesTVA.toFixed(2)} €</span>
+          <span>{result.tva.toFixed(2)} €</span>
         </div>
         <Separator className="my-2" />
         <div className="flex justify-between items-center font-semibold">
           <span>Total TTC</span>
-          <span className="text-lg text-primary">{totalTTC.toFixed(2)} €</span>
+          <span className="text-lg text-primary">{result.totalTTC.toFixed(2)} €</span>
         </div>
       </div>
     </div>
