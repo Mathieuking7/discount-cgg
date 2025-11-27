@@ -107,13 +107,15 @@ export const PriceSummary = ({
             </div>
           )}
 
-          {/* Total TTC - Always visible */}
-          <div className="flex justify-between items-center text-xl font-bold">
-            <span>Total TTC</span>
-            <span className="text-primary">{totalTTC.toFixed(2)} €</span>
-          </div>
+          {/* Total TTC - Visible only when collapsed */}
+          {!isOpen && (
+            <div className="flex justify-between items-center text-xl font-bold">
+              <span>Total TTC</span>
+              <span className="text-primary">{totalTTC.toFixed(2)} €</span>
+            </div>
+          )}
 
-          {calculation.abattement && (
+          {!isOpen && calculation.abattement && (
             <Badge variant="secondary" className="w-full justify-center py-2 text-xs">
               👉 Abattement -50% appliqué
             </Badge>
@@ -206,6 +208,20 @@ export const PriceSummary = ({
                   <span>{tva.toFixed(2)} €</span>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Total TTC - At bottom when expanded */}
+              <div className="flex justify-between items-center text-xl font-bold pt-2">
+                <span>Total TTC</span>
+                <span className="text-primary">{totalTTC.toFixed(2)} €</span>
+              </div>
+
+              {calculation.abattement && (
+                <Badge variant="secondary" className="w-full justify-center py-2 text-xs">
+                  👉 Abattement -50% appliqué
+                </Badge>
+              )}
             </CollapsibleContent>
           </Collapsible>
         </div>
