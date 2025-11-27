@@ -478,17 +478,24 @@ export type Database = {
       guest_orders: {
         Row: {
           adresse: string
+          certificat_non_gage: boolean | null
           code_postal: string
           commentaire: string | null
+          cotitulaire_nom: string | null
+          cotitulaire_prenom: string | null
           created_at: string
           date_mec: string | null
           documents_complets: boolean
+          dossier_prioritaire: boolean | null
           email: string
           email_notifications: boolean
           energie: string | null
           frais_dossier: number
+          has_cotitulaire: boolean | null
           id: string
           immatriculation: string
+          is_heberge: boolean | null
+          is_mineur: boolean | null
           marque: string | null
           modele: string | null
           montant_ht: number
@@ -510,21 +517,30 @@ export type Database = {
           updated_at: string
           validated_at: string | null
           validated_by: string | null
+          vehicule_leasing: boolean | null
+          vehicule_pro: boolean | null
           ville: string
         }
         Insert: {
           adresse: string
+          certificat_non_gage?: boolean | null
           code_postal: string
           commentaire?: string | null
+          cotitulaire_nom?: string | null
+          cotitulaire_prenom?: string | null
           created_at?: string
           date_mec?: string | null
           documents_complets?: boolean
+          dossier_prioritaire?: boolean | null
           email: string
           email_notifications?: boolean
           energie?: string | null
           frais_dossier?: number
+          has_cotitulaire?: boolean | null
           id?: string
           immatriculation: string
+          is_heberge?: boolean | null
+          is_mineur?: boolean | null
           marque?: string | null
           modele?: string | null
           montant_ht?: number
@@ -546,21 +562,30 @@ export type Database = {
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
+          vehicule_leasing?: boolean | null
+          vehicule_pro?: boolean | null
           ville: string
         }
         Update: {
           adresse?: string
+          certificat_non_gage?: boolean | null
           code_postal?: string
           commentaire?: string | null
+          cotitulaire_nom?: string | null
+          cotitulaire_prenom?: string | null
           created_at?: string
           date_mec?: string | null
           documents_complets?: boolean
+          dossier_prioritaire?: boolean | null
           email?: string
           email_notifications?: boolean
           energie?: string | null
           frais_dossier?: number
+          has_cotitulaire?: boolean | null
           id?: string
           immatriculation?: string
+          is_heberge?: boolean | null
+          is_mineur?: boolean | null
           marque?: string | null
           modele?: string | null
           montant_ht?: number
@@ -582,6 +607,8 @@ export type Database = {
           updated_at?: string
           validated_at?: string | null
           validated_by?: string | null
+          vehicule_leasing?: boolean | null
+          vehicule_pro?: boolean | null
           ville?: string
         }
         Relationships: []

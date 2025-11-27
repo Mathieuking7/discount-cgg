@@ -20,6 +20,8 @@ interface PriceSummaryProps {
     smsNotifications: boolean;
     emailNotifications: boolean;
     packNotifications?: boolean;
+    dossierPrioritaire?: boolean;
+    certificatNonGage?: boolean;
   };
 }
 
@@ -34,6 +36,8 @@ export const PriceSummary = ({
   const emailPrix = 5;
   const smsPrix = 8;
   const packPrix = 10;
+  const dossierPrioritairePrix = 5;
+  const certificatNonGagePrix = 10;
 
   // Calcul TVA comme pour les garages
   const prixCarteGrise = calculation.prixTotal;
@@ -44,6 +48,9 @@ export const PriceSummary = ({
     if (selectedOptions?.emailNotifications) optionsPrix += emailPrix;
     if (selectedOptions?.smsNotifications) optionsPrix += smsPrix;
   }
+  if (selectedOptions?.dossierPrioritaire) optionsPrix += dossierPrioritairePrix;
+  if (selectedOptions?.certificatNonGage) optionsPrix += certificatNonGagePrix;
+  
   const totalServicesHT = fraisDossier + optionsPrix;
   const tva = totalServicesHT * 0.20;
   const totalTTC = prixCarteGrise + totalServicesHT + tva;
@@ -109,6 +116,18 @@ export const PriceSummary = ({
               <span>Frais de dossier</span>
               <span className="font-medium">{fraisDossier.toFixed(2)} €</span>
             </div>
+            {selectedOptions?.dossierPrioritaire && (
+              <div className="flex justify-between items-center text-sm">
+                <span>Dossier Prioritaire</span>
+                <span className="font-medium">{dossierPrioritairePrix.toFixed(2)} €</span>
+              </div>
+            )}
+            {selectedOptions?.certificatNonGage && (
+              <div className="flex justify-between items-center text-sm">
+                <span>Certificat de non-gage</span>
+                <span className="font-medium">{certificatNonGagePrix.toFixed(2)} €</span>
+              </div>
+            )}
             {selectedOptions?.packNotifications && (
               <div className="flex justify-between items-center text-sm">
                 <span>Pack Suivi Complet</span>

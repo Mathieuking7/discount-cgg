@@ -56,6 +56,15 @@ interface GuestOrder {
   resubmission_paid: boolean;
   sms_notifications: boolean;
   email_notifications: boolean;
+  dossier_prioritaire?: boolean;
+  certificat_non_gage?: boolean;
+  has_cotitulaire?: boolean;
+  cotitulaire_nom?: string | null;
+  cotitulaire_prenom?: string | null;
+  vehicule_pro?: boolean;
+  vehicule_leasing?: boolean;
+  is_mineur?: boolean;
+  is_heberge?: boolean;
 }
 
 interface Document {
@@ -702,6 +711,102 @@ export default function GuestOrderDetail() {
                 <MapPin className="h-4 w-4" /> Adresse
               </p>
               <p className="font-medium">{order.adresse}, {order.code_postal} {order.ville}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Options supplémentaires */}
+        {(order.dossier_prioritaire || order.certificat_non_gage) && (
+          <Card className="border-orange-200 dark:border-orange-800">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                <CardTitle>Options supplémentaires</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {order.dossier_prioritaire && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-orange-500">Prioritaire</Badge>
+                    <span className="text-sm font-medium">Dossier Prioritaire</span>
+                  </div>
+                  <span className="text-sm text-orange-600 font-medium">+5,00 €</span>
+                </div>
+              )}
+              {order.certificat_non_gage && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-500">Non-gage</Badge>
+                    <span className="text-sm font-medium">Certificat de non-gage</span>
+                  </div>
+                  <span className="text-sm text-blue-600 font-medium">+10,00 €</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Co-titulaire */}
+        {order.has_cotitulaire && (
+          <Card className="border-purple-200 dark:border-purple-800">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-purple-500" />
+                <CardTitle>Co-titulaire</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Nom complet</p>
+                  <p className="font-medium">{order.cotitulaire_prenom} {order.cotitulaire_nom}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Questions conditionnelles */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileCheck className="h-5 w-5 text-primary" />
+              <CardTitle>Informations complémentaires</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-sm">Véhicule acheté chez un pro</span>
+                <Badge variant={order.vehicule_pro ? "default" : "secondary"}>
+                  {order.vehicule_pro ? "Oui" : "Non"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-sm">Véhicule en leasing/LLD/LOA</span>
+                <Badge variant={order.vehicule_leasing ? "default" : "secondary"}>
+                  {order.vehicule_leasing ? "Oui" : "Non"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-sm">Client mineur (-18 ans)</span>
+                <Badge variant={order.is_mineur ? "destructive" : "secondary"}>
+                  {order.is_mineur ? "Oui" : "Non"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-sm">Client hébergé</span>
+                <Badge variant={order.is_heberge ? "default" : "secondary"}>
+                  {order.is_heberge ? "Oui" : "Non"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border">
+                <span className="text-sm">Co-titulaire</span>
+                <Badge variant={order.has_cotitulaire ? "default" : "secondary"}>
+                  {order.has_cotitulaire ? "Oui" : "Non"}
+                </Badge>
+              </div>
             </div>
           </CardContent>
         </Card>
