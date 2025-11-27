@@ -27,6 +27,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { GuestDocumentUpload } from "@/components/GuestDocumentUpload";
+import { SecureDownloadButton } from "@/components/SecureDownloadButton";
 
 const SuiviCommande = () => {
   const { trackingNumber } = useParams();
@@ -628,15 +629,17 @@ const SuiviCommande = () => {
                           Envoyé le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
                         </p>
                       </div>
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <SecureDownloadButton
+                        url={doc.url}
+                        filename={doc.nom_fichier}
+                        trackingNumber={trackingNumber}
+                        variant="default"
+                        size="default"
                         className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
                       >
                         <Download className="w-4 h-4" />
                         Télécharger
-                      </a>
+                      </SecureDownloadButton>
                     </div>
                   ))}
                   {/* Legacy admin documents from guest_order_documents */}
@@ -648,15 +651,17 @@ const SuiviCommande = () => {
                           Envoyé le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
                         </p>
                       </div>
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <SecureDownloadButton
+                        url={doc.url}
+                        filename={doc.nom_fichier || doc.type_document}
+                        trackingNumber={trackingNumber}
+                        variant="default"
+                        size="default"
                         className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
                       >
                         <Download className="w-4 h-4" />
                         Télécharger
-                      </a>
+                      </SecureDownloadButton>
                     </div>
                   ))}
                 </div>

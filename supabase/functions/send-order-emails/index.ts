@@ -6,7 +6,39 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-key",
+};
+
+const INTERNAL_API_KEY = Deno.env.get("INTERNAL_API_KEY");
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Validate either internal API key OR admin JWT
+const validateAuth = async (req: Request): Promise<boolean> => {
+  const providedKey = req.headers.get("x-internal-key");
+  if (providedKey === INTERNAL_API_KEY) {
+    return true;
+  }
+
+  const authHeader = req.headers.get("authorization");
+  if (authHeader) {
+    const token = authHeader.replace("Bearer ", "");
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (user && !userError) {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+      
+      if (roleData) return true;
+    }
+  }
+
+  return false;
 };
 
 interface EmailRequest {
@@ -27,13 +59,19 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const isAuthorized = await validateAuth(req);
+  if (!isAuthorized) {
+    console.error("Unauthorized: Invalid or missing authentication");
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+
   try {
     const emailData: EmailRequest = await req.json();
     
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch template from database
     const { data: template, error: templateError } = await supabase

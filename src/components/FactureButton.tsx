@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { downloadPrivateFile } from "@/lib/storage-utils";
 
 interface FactureButtonProps {
   demarcheId: string;
@@ -60,8 +61,8 @@ export const FactureButton = ({
         throw new Error('Facture URL not found');
       }
 
-      // Open PDF in new tab
-      window.open(facture.pdf_url, '_blank');
+      // Download via signed URL
+      await downloadPrivateFile(facture.pdf_url, `facture-${facture.numero}.pdf`);
 
       toast({
         title: "Facture téléchargée",
