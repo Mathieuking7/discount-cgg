@@ -218,7 +218,7 @@ const SuiviCommande = () => {
         };
       case "finalise":
         return {
-          label: "Expédié",
+          label: "Terminé",
           color: "bg-green-600",
           icon: Truck,
         };
@@ -264,7 +264,7 @@ const SuiviCommande = () => {
         date: order?.validated_at,
       },
       {
-        label: "Expédié",
+        label: "Terminé",
         status: order?.status === "finalise" ? "completed" : "pending",
         date: null,
       },
@@ -562,7 +562,7 @@ const SuiviCommande = () => {
                   <div>
                     <p className="font-semibold mb-2">Délai de traitement</p>
                     <p className="text-sm text-muted-foreground">
-                      Votre carte grise sera traitée et expédiée sous 24h ouvrées
+                      Votre carte grise sera traitée sous 24h ouvrées
                       maximum après validation de votre dossier. Vous recevrez un
                       email de confirmation à chaque étape.
                     </p>
