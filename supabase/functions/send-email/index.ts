@@ -265,6 +265,32 @@ const getEmailTemplate = (type: string, data: any) => {
         `,
       };
 
+    case "admin_document":
+      return {
+        subject: `📄 Document disponible - ${data.tracking_number}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #3b82f6;">Nouveau document disponible</h1>
+            <p>Bonjour ${data.prenom} ${data.nom},</p>
+            <p>Un nouveau document est disponible pour votre commande <strong>${data.tracking_number}</strong>.</p>
+            
+            <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0;">
+              <p style="margin: 8px 0;"><strong>📄 ${data.document_name}</strong></p>
+              ${data.description ? `<p style="margin: 8px 0; color: #6b7280;">${data.description}</p>` : ''}
+            </div>
+
+            <p>Vous pouvez consulter et télécharger ce document sur votre page de suivi :</p>
+
+            <a href="${trackingUrl}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+              Accéder à mon suivi
+            </a>
+
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px;">Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
+          </div>
+        `,
+      };
+
     default:
       throw new Error(`Type d'email non supporté: ${type}`);
   }

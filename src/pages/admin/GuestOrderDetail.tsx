@@ -210,6 +210,11 @@ export default function GuestOrderDetail() {
   const [carteGriseUrl, setCarteGriseUrl] = useState("");
   const [isSendingCarteGrise, setIsSendingCarteGrise] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [adminDocFile, setAdminDocFile] = useState<File | null>(null);
+  const [adminDocName, setAdminDocName] = useState("");
+  const [adminDocDescription, setAdminDocDescription] = useState("");
+  const [isSendingAdminDoc, setIsSendingAdminDoc] = useState(false);
+  const [sentAdminDocs, setSentAdminDocs] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -255,6 +260,17 @@ export default function GuestOrderDetail() {
 
       if (docsError) throw docsError;
       setDocuments(docsData || []);
+
+      // Load admin sent documents
+      const { data: adminDocs, error: adminDocsError } = await supabase
+        .from("guest_order_admin_documents")
+        .select("*")
+        .eq("order_id", id)
+        .order("created_at", { ascending: false });
+
+      if (!adminDocsError) {
+        setSentAdminDocs(adminDocs || []);
+      }
     } catch (error) {
       console.error("Erreur:", error);
       toast({
@@ -1151,6 +1167,179 @@ export default function GuestOrderDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Envoyer un document au client */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-primary" />
+              Envoyer un document au client
+            </CardTitle>
+            <CardDescription>
+              Uploadez un document qui sera envoyé par email et visible sur le suivi du client
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-doc-name">Nom du document *</Label>
+              <Input
+                id="admin-doc-name"
+                placeholder="Ex: Certificat de non-gage, Attestation..."
+                value={adminDocName}
+                onChange={(e) => setAdminDocName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-doc-description">Description (optionnel)</Label>
+              <Input
+                id="admin-doc-description"
+                placeholder="Description du document..."
+                value={adminDocDescription}
+                onChange={(e) => setAdminDocDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-doc-file">Fichier (PDF) *</Label>
+              <Input
+                id="admin-doc-file"
+                type="file"
+                accept=".pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setAdminDocFile(file);
+                    if (!adminDocName) {
+                      setAdminDocName(file.name.replace('.pdf', ''));
+                    }
+                  }
+                }}
+              />
+              {adminDocFile && (
+                <p className="text-sm text-green-600 flex items-center gap-1">
+                  <FileCheck className="h-4 w-4" />
+                  {adminDocFile.name}
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={async () => {
+                if (!adminDocFile || !adminDocName.trim() || !order) return;
+                
+                setIsSendingAdminDoc(true);
+                try {
+                  // Upload file
+                  const fileName = `${order.id}/admin_${Date.now()}_${adminDocFile.name}`;
+                  const { error: uploadError } = await supabase.storage
+                    .from('guest-order-documents')
+                    .upload(fileName, adminDocFile);
+
+                  if (uploadError) throw uploadError;
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from('guest-order-documents')
+                    .getPublicUrl(fileName);
+
+                  // Save to database
+                  const { error: dbError } = await supabase
+                    .from('guest_order_admin_documents')
+                    .insert({
+                      order_id: order.id,
+                      nom_fichier: adminDocName,
+                      url: publicUrl,
+                      description: adminDocDescription || null,
+                      taille_octets: adminDocFile.size,
+                      sent_by: user?.id,
+                      email_sent: true,
+                      email_sent_at: new Date().toISOString()
+                    });
+
+                  if (dbError) throw dbError;
+
+                  // Send email
+                  await supabase.functions.invoke('send-email', {
+                    body: {
+                      type: 'admin_document',
+                      to: order.email,
+                      data: {
+                        tracking_number: order.tracking_number,
+                        nom: order.nom,
+                        prenom: order.prenom,
+                        document_name: adminDocName,
+                        description: adminDocDescription
+                      }
+                    }
+                  });
+
+                  toast({
+                    title: "Document envoyé",
+                    description: "Le document a été envoyé au client par email",
+                  });
+
+                  // Reset form
+                  setAdminDocFile(null);
+                  setAdminDocName("");
+                  setAdminDocDescription("");
+                  
+                  // Reload admin docs
+                  await loadOrderData();
+                } catch (error) {
+                  console.error("Error:", error);
+                  toast({
+                    title: "Erreur",
+                    description: "Impossible d'envoyer le document",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsSendingAdminDoc(false);
+                }
+              }}
+              disabled={isSendingAdminDoc || !adminDocFile || !adminDocName.trim()}
+              className="w-full"
+            >
+              {isSendingAdminDoc ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background mr-2" />
+                  Envoi en cours...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Envoyer au client
+                </>
+              )}
+            </Button>
+
+            {/* List of sent admin documents */}
+            {sentAdminDocs.length > 0 && (
+              <div className="mt-6 space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Documents déjà envoyés:</p>
+                {sentAdminDocs.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{doc.nom_fichier}</p>
+                      {doc.description && (
+                        <p className="text-xs text-muted-foreground">{doc.description}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Envoyé le {new Date(doc.created_at).toLocaleDateString('fr-FR', { 
+                          day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                        })}
+                      </p>
+                    </div>
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      <Download className="h-4 w-4" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

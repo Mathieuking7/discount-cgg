@@ -392,6 +392,53 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_order_admin_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          email_sent: boolean | null
+          email_sent_at: string | null
+          id: string
+          nom_fichier: string
+          order_id: string
+          sent_by: string | null
+          taille_octets: number | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          id?: string
+          nom_fichier: string
+          order_id: string
+          sent_by?: string | null
+          taille_octets?: number | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
+          id?: string
+          nom_fichier?: string
+          order_id?: string
+          sent_by?: string | null
+          taille_octets?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_order_admin_documents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "guest_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_order_documents: {
         Row: {
           created_at: string
