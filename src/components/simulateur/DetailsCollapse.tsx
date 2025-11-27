@@ -4,29 +4,23 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { PriceCalculation } from "@/utils/calculatePrice";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
-
 interface DetailsCollapseProps {
   calculation: PriceCalculation;
 }
-
-export const DetailsCollapse = ({ calculation }: DetailsCollapseProps) => {
+export const DetailsCollapse = ({
+  calculation
+}: DetailsCollapseProps) => {
   const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+  return <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant="outline" className="w-full">
-          Voir les détails du calcul
-          {isOpen ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
-        </Button>
+        
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-4">
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-3">
               {/* Prix taxe régionale */}
-              {calculation.prixCVAvantAbattement ? (
-                <>
+              {calculation.prixCVAvantAbattement ? <>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Taxe régionale avant abattement</span>
                     <span className="font-medium">{calculation.prixCVAvantAbattement.toFixed(2)} €</span>
@@ -39,13 +33,10 @@ export const DetailsCollapse = ({ calculation }: DetailsCollapseProps) => {
                     <span>Taxe régionale après abattement</span>
                     <span>{calculation.prixCV.toFixed(2)} €</span>
                   </div>
-                </>
-              ) : (
-                <div className="flex justify-between text-sm">
+                </> : <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Taxe régionale</span>
                   <span className="font-medium">{calculation.prixCV.toFixed(2)} €</span>
-                </div>
-              )}
+                </div>}
               
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Taxe de gestion</span>
@@ -69,6 +60,5 @@ export const DetailsCollapse = ({ calculation }: DetailsCollapseProps) => {
           </CardContent>
         </Card>
       </CollapsibleContent>
-    </Collapsible>
-  );
+    </Collapsible>;
 };
