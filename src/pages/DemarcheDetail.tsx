@@ -222,6 +222,8 @@ export default function DemarcheDetail() {
     
     setIsProcessingPayment(true);
     try {
+      console.log('Creating resubmission payment for demarche:', demarche.id);
+      
       const { data, error } = await supabase.functions.invoke('create-resubmission-payment', {
         body: {
           demarche_id: demarche.id,
@@ -229,10 +231,15 @@ export default function DemarcheDetail() {
         },
       });
 
+      console.log('Payment response:', { data, error });
+
       if (error) throw error;
 
       if (data?.url) {
-        window.location.href = data.url;
+        console.log('Redirecting to:', data.url);
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error("URL de paiement non reçue");
       }
     } catch (err: any) {
       console.error('Payment error:', err);
