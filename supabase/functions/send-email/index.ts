@@ -8,10 +8,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64 encoded
+}
+
 interface EmailRequest {
   type: string;
   to: string;
   data: Record<string, any>;
+  attachments?: EmailAttachment[];
 }
 
 const getEmailTemplate = (type: string, data: any) => {
@@ -58,6 +64,10 @@ const getEmailTemplate = (type: string, data: any) => {
               <p style="margin: 8px 0;"><strong>Numéro de suivi :</strong> ${data.tracking_number}</p>
               <p style="margin: 8px 0;"><strong>Immatriculation :</strong> ${data.immatriculation}</p>
               <p style="margin: 8px 0;"><strong>Montant :</strong> ${data.montant_ttc} €</p>
+            </div>
+
+            <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0;">
+              <p style="margin: 0;"><strong>📎 Votre facture est jointe à cet email</strong></p>
             </div>
 
             <p>Nous allons maintenant traiter votre dossier. Vous recevrez un email dès qu'il y aura du nouveau.</p>
@@ -211,17 +221,24 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { type, to, data }: EmailRequest = await req.json();
+    const { type, to, data, attachments }: EmailRequest = await req.json();
 
     console.log(`📧 Envoi email type: ${type} à ${to}`);
 
     const { subject, html } = getEmailTemplate(type, data);
+
+    // Préparer les pièces jointes si présentes
+    const emailAttachments = attachments?.map(att => ({
+      filename: att.filename,
+      content: att.content,
+    }));
 
     const emailResponse = await resend.emails.send({
       from: "DiscountCarteGrise <noreply@discountcartegrise.fr>",
       to: to,
       subject: subject,
       html: html,
+      attachments: emailAttachments,
     });
 
     console.log("✅ Email envoyé avec succès:", emailResponse);

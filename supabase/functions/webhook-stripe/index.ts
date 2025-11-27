@@ -336,11 +336,15 @@ serve(async (req) => {
 
         if (order) {
           // FACTURE "guest order" - PDF
+          let pdfBase64: string | null = null;
+          let factureNumero: string | null = null;
+
           try {
             const { data: numeroData } = await supabase.rpc("generate_facture_numero");
 
             if (numeroData) {
               const numero = numeroData as string;
+              factureNumero = numero;
               const montantTTC = Number(order.montant_ttc);
               const montantHT = montantTTC / 1.2;
 
@@ -358,6 +362,14 @@ serve(async (req) => {
 
               if (facture) {
                 const pdfBytes = await generateGuestOrderFacturePDF(facture, order);
+
+                // Convertir en base64 pour l'email
+                const uint8Array = new Uint8Array(pdfBytes);
+                let binary = '';
+                for (let i = 0; i < uint8Array.length; i++) {
+                  binary += String.fromCharCode(uint8Array[i]);
+                }
+                pdfBase64 = btoa(binary);
 
                 const fileName = `guest-orders/${order.tracking_number}/${facture.numero}.pdf`;
 
@@ -383,23 +395,36 @@ serve(async (req) => {
             console.error("❌ Erreur facture guest order:", err);
           }
 
-          // EMAIL
+          // EMAIL avec facture en pièce jointe
           console.log("📧 Vérification email_notifications:", order.email_notifications);
           if (order.email_notifications) {
             console.log("📧 Envoi email payment_confirmed à:", order.email);
             try {
-              const emailResult = await supabase.functions.invoke("send-email", {
-                body: {
-                  type: "payment_confirmed",
-                  to: order.email,
-                  data: {
-                    tracking_number: order.tracking_number,
-                    nom: order.nom,
-                    prenom: order.prenom,
-                    immatriculation: order.immatriculation,
-                    montant_ttc: order.montant_ttc,
-                  },
+              const emailBody: any = {
+                type: "payment_confirmed",
+                to: order.email,
+                data: {
+                  tracking_number: order.tracking_number,
+                  nom: order.nom,
+                  prenom: order.prenom,
+                  immatriculation: order.immatriculation,
+                  montant_ttc: order.montant_ttc,
                 },
+              };
+
+              // Ajouter la facture en pièce jointe si disponible
+              if (pdfBase64 && factureNumero) {
+                emailBody.attachments = [
+                  {
+                    filename: `facture_${factureNumero}.pdf`,
+                    content: pdfBase64,
+                  },
+                ];
+                console.log("📎 Facture PDF jointe à l'email");
+              }
+
+              const emailResult = await supabase.functions.invoke("send-email", {
+                body: emailBody,
               });
               console.log("✅ Email envoyé, résultat:", emailResult);
               if (emailResult.error) {
