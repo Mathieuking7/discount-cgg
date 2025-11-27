@@ -12,8 +12,7 @@ import Footer from "@/components/Footer";
 import { PayPalButton } from "@/components/PayPalButton";
 import { StripeWalletPayment } from "@/components/StripeWalletPayment";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { PaymentDetailsSummary } from "@/components/payment/PaymentDetailsSummary";
-import type { PaymentCalculationResult } from "@/utils/calculatePaymentDetails";
+import { PaymentDetailsSummary, type PaymentCalculationResult } from "@/components/payment/PaymentDetailsSummary";
 
 const StripeCardForm = ({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) => {
   const stripe = useStripe();
@@ -441,6 +440,7 @@ const PaiementDemarche = () => {
                       montantTtc={demarche.montant_ttc}
                       trackingServices={trackingServices}
                       actionRapideTitre={actionRapide?.titre}
+                      prixCarteGrise={demarche.prix_carte_grise || 0}
                       onCalculated={handlePaymentCalculated}
                     />
                   </CollapsibleContent>

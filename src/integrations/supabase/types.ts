@@ -106,6 +106,7 @@ export type Database = {
           montant_ttc: number | null
           numero_demarche: string | null
           paye: boolean | null
+          prix_carte_grise: number | null
           requires_resubmission_payment: boolean | null
           resubmission_paid: boolean | null
           resubmission_payment_amount: number | null
@@ -131,6 +132,7 @@ export type Database = {
           montant_ttc?: number | null
           numero_demarche?: string | null
           paye?: boolean | null
+          prix_carte_grise?: number | null
           requires_resubmission_payment?: boolean | null
           resubmission_paid?: boolean | null
           resubmission_payment_amount?: number | null
@@ -156,6 +158,7 @@ export type Database = {
           montant_ttc?: number | null
           numero_demarche?: string | null
           paye?: boolean | null
+          prix_carte_grise?: number | null
           requires_resubmission_payment?: boolean | null
           resubmission_paid?: boolean | null
           resubmission_payment_amount?: number | null
