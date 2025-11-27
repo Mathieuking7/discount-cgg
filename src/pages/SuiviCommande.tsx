@@ -34,6 +34,7 @@ const SuiviCommande = () => {
   const [order, setOrder] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [adminDocuments, setAdminDocuments] = useState<any[]>([]);
+  const [adminSentDocuments, setAdminSentDocuments] = useState<any[]>([]);
   const [carteGriseUrl, setCarteGriseUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requiredDocuments, setRequiredDocuments] = useState<any[]>([]);
@@ -159,7 +160,7 @@ const SuiviCommande = () => {
       setDocuments(docsData);
     }
 
-    // Load admin documents separately
+    // Load admin documents separately (from guest_order_documents)
     const { data: adminDocs } = await supabase
       .from("guest_order_documents")
       .select("*")
@@ -169,6 +170,17 @@ const SuiviCommande = () => {
 
     if (adminDocs) {
       setAdminDocuments(adminDocs);
+    }
+
+    // Load admin sent documents (from new table)
+    const { data: adminSentDocs } = await supabase
+      .from("guest_order_admin_documents")
+      .select("*")
+      .eq("order_id", orderData.id)
+      .order("created_at", { ascending: false });
+
+    if (adminSentDocs) {
+      setAdminSentDocuments(adminSentDocs);
     }
   };
 
@@ -591,7 +603,7 @@ const SuiviCommande = () => {
           )}
 
           {/* Documents envoyés par l'administration */}
-          {adminDocuments.length > 0 && (
+          {(adminDocuments.length > 0 || adminSentDocuments.length > 0) && (
             <Card className="border-2 border-primary">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-primary">
@@ -604,6 +616,30 @@ const SuiviCommande = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
+                  {/* Admin sent documents from new table */}
+                  {adminSentDocuments.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg bg-primary/5">
+                      <div className="flex-1">
+                        <p className="font-medium">{doc.nom_fichier}</p>
+                        {doc.description && (
+                          <p className="text-sm text-muted-foreground">{doc.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Envoyé le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                        Télécharger
+                      </a>
+                    </div>
+                  ))}
+                  {/* Legacy admin documents from guest_order_documents */}
                   {adminDocuments.map((doc) => (
                     <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg bg-primary/5">
                       <div className="flex-1">
