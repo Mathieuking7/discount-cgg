@@ -8,10 +8,11 @@ import { PriceSummary } from "@/components/simulateur/PriceSummary";
 import { DetailsCollapse } from "@/components/simulateur/DetailsCollapse";
 import { PaymentMethods } from "@/components/payment/PaymentMethods";
 import { UploadList } from "@/components/upload/UploadList";
+import { GuestOrderInfoForm } from "@/components/GuestOrderInfoForm";
 import { calculatePrice, PriceCalculation } from "@/utils/calculatePrice";
 import { getVehicleByPlate, NormalizedVehicleData } from "@/lib/vehicle-api";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ChevronLeft, Mail, MessageSquare, Bell } from "lucide-react";
+import { Loader2, ChevronLeft, Mail, MessageSquare, Bell, Zap, FileSearch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -28,15 +29,22 @@ export default function ResultatCarteGrise() {
   const [vehicleInfo, setVehicleInfo] = useState<NormalizedVehicleData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false);
+  const [isInfoCompleted, setIsInfoCompleted] = useState(false);
   
-  // Options de paiement
+  // Options de suivi
   const [smsNotifications, setSmsNotifications] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(false);
   const [packNotifications, setPackNotifications] = useState(false);
+  
+  // Nouvelles options
+  const [dossierPrioritaire, setDossierPrioritaire] = useState(false);
+  const [certificatNonGage, setCertificatNonGage] = useState(false);
 
   const emailPrix = 5;
   const smsPrix = 8;
   const packPrix = 10;
+  const dossierPrioritairePrix = 5;
+  const certificatNonGagePrix = 10;
 
   const fraisDossier = 30;
 
@@ -51,6 +59,9 @@ export default function ResultatCarteGrise() {
       if (emailNotifications) optionsPrix += emailPrix;
       if (smsNotifications) optionsPrix += smsPrix;
     }
+    if (dossierPrioritaire) optionsPrix += dossierPrioritairePrix;
+    if (certificatNonGage) optionsPrix += certificatNonGagePrix;
+    
     const totalServicesHT = fraisDossier + optionsPrix;
     const tva = totalServicesHT * 0.20;
     return prixCarteGrise + totalServicesHT + tva;
@@ -122,6 +133,9 @@ export default function ResultatCarteGrise() {
         if (emailNotifications) optionsPrix += emailPrix;
         if (smsNotifications) optionsPrix += smsPrix;
       }
+      if (dossierPrioritaire) optionsPrix += dossierPrioritairePrix;
+      if (certificatNonGage) optionsPrix += certificatNonGagePrix;
+      
       const totalServicesHT = fraisDossier + optionsPrix;
       const tva = totalServicesHT * 0.20;
       const montantTTC = prixCarteGrise + totalServicesHT + tva;
@@ -136,6 +150,8 @@ export default function ResultatCarteGrise() {
           frais_dossier: fraisDossier,
           sms_notifications: smsNotifications || packNotifications,
           email_notifications: true, // Toujours actif
+          dossier_prioritaire: dossierPrioritaire,
+          certificat_non_gage: certificatNonGage,
           marque: vehicleInfo?.marque || null,
           modele: vehicleInfo?.modele || null,
           energie: vehicleInfo?.energie || null,
@@ -146,7 +162,7 @@ export default function ResultatCarteGrise() {
     };
 
     updateOrder();
-  }, [orderId, calculation, smsNotifications, emailNotifications, packNotifications, vehicleInfo, fraisDossier]);
+  }, [orderId, calculation, smsNotifications, emailNotifications, packNotifications, dossierPrioritaire, certificatNonGage, vehicleInfo, fraisDossier]);
 
   if (isLoading) {
     return (
@@ -183,16 +199,70 @@ export default function ResultatCarteGrise() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left side - Options and Payment */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Step 1: Options de suivi - masqué après paiement */}
+            {/* Step 1: Options - masqué après paiement */}
             {!isPaid && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground font-bold text-lg">
                   1
                 </div>
-                <h2 className="text-2xl font-bold">Options de suivi</h2>
+                <h2 className="text-2xl font-bold">Options</h2>
               </div>
               
+              {/* Options supplémentaires */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    Options supplémentaires
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Dossier Prioritaire */}
+                  <div className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-colors ${
+                    dossierPrioritaire ? 'border-orange-500 bg-orange-50 dark:bg-orange-950' : 'border-border bg-card hover:bg-accent/50'
+                  }`}>
+                    <Checkbox
+                      id="dossier_prioritaire"
+                      checked={dossierPrioritaire}
+                      onCheckedChange={(checked) => setDossierPrioritaire(checked as boolean)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="dossier_prioritaire" className="cursor-pointer flex items-center gap-2 font-medium">
+                        <Zap className="w-4 h-4 text-orange-500" />
+                        Dossier Prioritaire
+                        <span className="ml-auto text-orange-500 font-semibold">+{dossierPrioritairePrix},00 €</span>
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Démarche traitée en priorité, vous garantissant des délais plus rapides
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Certificat de non-gage */}
+                  <div className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-colors ${
+                    certificatNonGage ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-border bg-card hover:bg-accent/50'
+                  }`}>
+                    <Checkbox
+                      id="certificat_non_gage"
+                      checked={certificatNonGage}
+                      onCheckedChange={(checked) => setCertificatNonGage(checked as boolean)}
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="certificat_non_gage" className="cursor-pointer flex items-center gap-2 font-medium">
+                        <FileSearch className="w-4 h-4 text-blue-500" />
+                        Certificat de non-gage
+                        <span className="ml-auto text-blue-500 font-semibold">+{certificatNonGagePrix},00 €</span>
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Recommandé pour vérifier qu'aucun bloquant n'empêche la vente du véhicule
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Options de suivi */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -293,7 +363,7 @@ export default function ResultatCarteGrise() {
               />
             </div>
 
-            {/* Step 3: Documents */}
+            {/* Step 3: Vos informations */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg ${
@@ -303,12 +373,32 @@ export default function ResultatCarteGrise() {
                 }`}>
                   3
                 </div>
+                <h2 className="text-2xl font-bold">Vos informations</h2>
+              </div>
+              
+              <GuestOrderInfoForm
+                orderId={orderId}
+                isPaid={isPaid}
+                onComplete={() => setIsInfoCompleted(true)}
+              />
+            </div>
+
+            {/* Step 4: Documents */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg ${
+                  isPaid && isInfoCompleted
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground'
+                }`}>
+                  4
+                </div>
                 <h2 className="text-2xl font-bold">Envoyer vos documents</h2>
               </div>
               
               <UploadList
                 orderId={orderId}
-                isPaid={isPaid}
+                isPaid={isPaid && isInfoCompleted}
               />
             </div>
           </div>
@@ -324,6 +414,8 @@ export default function ResultatCarteGrise() {
                 smsNotifications,
                 emailNotifications,
                 packNotifications,
+                dossierPrioritaire,
+                certificatNonGage,
               }}
             />
 

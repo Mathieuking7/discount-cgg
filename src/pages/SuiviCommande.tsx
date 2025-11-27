@@ -390,6 +390,28 @@ const SuiviCommande = () => {
               <CardTitle>Options souscrites</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Options supplémentaires */}
+              {order.dossier_prioritaire && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-orange-500">Prioritaire</Badge>
+                    <span className="text-sm">Dossier Prioritaire</span>
+                  </div>
+                  <span className="text-sm text-orange-600 font-medium">+5,00 €</span>
+                </div>
+              )}
+              
+              {order.certificat_non_gage && (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-500">Non-gage</Badge>
+                    <span className="text-sm">Certificat de non-gage</span>
+                  </div>
+                  <span className="text-sm text-blue-600 font-medium">+10,00 €</span>
+                </div>
+              )}
+
+              {/* Options de suivi */}
               {order.email_notifications ? (
                 <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
                   <div className="flex items-center gap-2">
@@ -429,6 +451,50 @@ const SuiviCommande = () => {
               <p className="text-xs text-muted-foreground pt-2">
                 * Les emails essentiels (document refusé, dossier terminé) sont toujours envoyés.
               </p>
+            </CardContent>
+          </Card>
+
+          {/* Informations complémentaires */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informations complémentaires</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Co-titulaire */}
+              {order.has_cotitulaire && (
+                <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800">
+                  <p className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2">Co-titulaire</p>
+                  <p className="font-medium">{order.cotitulaire_prenom} {order.cotitulaire_nom}</p>
+                </div>
+              )}
+
+              {/* Questions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <span className="text-sm">Véhicule acheté chez un pro</span>
+                  <Badge variant={order.vehicule_pro ? "default" : "secondary"}>
+                    {order.vehicule_pro ? "Oui" : "Non"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <span className="text-sm">Leasing/LLD/LOA</span>
+                  <Badge variant={order.vehicule_leasing ? "default" : "secondary"}>
+                    {order.vehicule_leasing ? "Oui" : "Non"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <span className="text-sm">Mineur (-18 ans)</span>
+                  <Badge variant={order.is_mineur ? "destructive" : "secondary"}>
+                    {order.is_mineur ? "Oui" : "Non"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <span className="text-sm">Hébergé</span>
+                  <Badge variant={order.is_heberge ? "default" : "secondary"}>
+                    {order.is_heberge ? "Oui" : "Non"}
+                  </Badge>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
