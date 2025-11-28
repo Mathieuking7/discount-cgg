@@ -13,9 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY_TEST');
+    // Use production Stripe secret key
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) {
-      throw new Error('STRIPE_SECRET_KEY_TEST not configured');
+      throw new Error('STRIPE_SECRET_KEY not configured');
     }
 
     const supabaseClient = createClient(

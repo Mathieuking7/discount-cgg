@@ -11,10 +11,11 @@ serve(async (req) => {
   }
 
   try {
-    const publishableKey = Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY_TEST');
+    // Use production Stripe publishable key
+    const publishableKey = Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY');
     
     if (!publishableKey) {
-      throw new Error('VITE_STRIPE_PUBLISHABLE_KEY_TEST not configured');
+      throw new Error('VITE_STRIPE_PUBLISHABLE_KEY not configured');
     }
 
     return new Response(
