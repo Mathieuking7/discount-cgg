@@ -155,7 +155,8 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {actionsRapides.map(action => {
             const displayPrice = garage?.free_token_available ? 0 : action.prix;
-            const priceLabel = garage?.free_token_available ? action.code === 'CG' ? '0€ HT + CG' : '0€ HT' : `${action.prix}€ HT${action.code === 'CG' ? ' + CG' : ''}`;
+            const mainPrice = garage?.free_token_available ? '0€' : `${action.prix}€`;
+            const cgSuffix = action.code === 'CG' ? ' + CG' : '';
             return <Card key={action.id} className={`cursor-pointer hover:shadow-xl transition-all border-2 hover:border-${action.couleur} hover:scale-105 bg-gradient-to-br from-${action.couleur}/10 to-${action.couleur}/5 ${garage?.free_token_available ? 'ring-2 ring-green-500' : ''}`} onClick={() => navigate(`/nouvelle-demarche?type=${action.code}`)}>
                   <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2">
@@ -167,7 +168,7 @@ export default function Dashboard() {
                     </CardTitle>
                     <CardDescription className={`text-3xl font-bold mt-2 ${garage?.free_token_available ? 'text-green-500' : `text-${action.couleur}`}`}>
                       {garage?.free_token_available && action.prix > 0 && <span className="text-lg line-through text-muted-foreground mr-2">{action.prix}€</span>}
-                      {priceLabel}
+                      {mainPrice}<span className="text-sm font-normal ml-1">HT</span>{cgSuffix}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
