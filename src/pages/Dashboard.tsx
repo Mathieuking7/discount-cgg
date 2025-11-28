@@ -52,7 +52,14 @@ export default function Dashboard() {
     }
     const {
       data: garageData
-    } = await supabase.from('garages').select('*').eq('user_id', user.id).single();
+    } = await supabase.from('garages').select('*').eq('user_id', user.id).maybeSingle();
+    
+    // If not admin and no garage profile, redirect to complete profile
+    if (!roleData && !garageData) {
+      navigate("/complete-profile");
+      return;
+    }
+    
     if (garageData) {
       setGarage(garageData);
       const {
