@@ -207,27 +207,52 @@ export const PaymentMethods = ({ amount, orderId, onPaymentSuccess }: PaymentMet
   }
 
   const monthlyAmount = (amount / 4).toFixed(2);
+  
+  // PayPal 4x désactivé si montant < 30€
+  const canUsePayPal4x = amount >= 30;
 
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
-        {/* Highlighted 4x Payment */}
-        <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary rounded-lg p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Paiement recommandé</p>
-              <h3 className="text-2xl font-bold">Payez en 4x sans frais</h3>
+        {canUsePayPal4x ? (
+          // PayPal avec option 4x (montant >= 30€)
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary rounded-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Paiement recommandé</p>
+                <h3 className="text-2xl font-bold">Payez en 4x sans frais</h3>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold text-primary">{monthlyAmount} €</p>
+                <p className="text-sm text-muted-foreground">par mois</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-primary">{monthlyAmount} €</p>
-              <p className="text-sm text-muted-foreground">par mois</p>
+            
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                soit 4 mensualités de <span className="font-semibold text-foreground">{monthlyAmount} €</span>
+              </p>
+              <PayPalButton
+                amount={amount}
+                onSuccess={handleInternalSuccess}
+                onError={(error) => {
+                  console.error("PayPal error:", error);
+                  toast({
+                    title: "Erreur PayPal",
+                    description: "Une erreur est survenue lors du paiement",
+                    variant: "destructive",
+                  });
+                }}
+              />
             </div>
           </div>
-          
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              soit 4 mensualités de <span className="font-semibold text-foreground">{monthlyAmount} €</span>
-            </p>
+        ) : (
+          // PayPal sans option 4x (montant < 30€)
+          <div className="border rounded-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold">Payer avec PayPal</h3>
+              <p className="text-2xl font-bold text-primary">{amount.toFixed(2)} €</p>
+            </div>
             <PayPalButton
               amount={amount}
               onSuccess={handleInternalSuccess}
@@ -240,8 +265,11 @@ export const PaymentMethods = ({ amount, orderId, onPaymentSuccess }: PaymentMet
                 });
               }}
             />
+            <p className="text-xs text-muted-foreground text-center">
+              Le paiement en 4x est disponible à partir de 30€
+            </p>
           </div>
-        </div>
+        )}
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
