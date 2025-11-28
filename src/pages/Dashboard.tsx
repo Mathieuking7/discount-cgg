@@ -54,13 +54,12 @@ export default function Dashboard() {
     const {
       data: garageData
     } = await supabase.from('garages').select('*').eq('user_id', user.id).maybeSingle();
-    
+
     // If not admin and no garage profile, redirect to complete profile
     if (!roleData && !garageData) {
       navigate("/complete-profile");
       return;
     }
-    
     if (garageData) {
       setGarage(garageData);
       const {
@@ -95,7 +94,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">DIscountCG</h1>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Discount Carte Grise </h1>
               <nav className="hidden md:flex items-center gap-2">
                 <Button variant="default" size="sm">
                   Tableau de bord
@@ -132,54 +131,42 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <h2 className="text-3xl font-bold mb-2">Tableau de bord</h2>
-            {garage?.is_verified && (
-              <Badge className="bg-green-500 mb-2">
+            {garage?.is_verified && <Badge className="bg-green-500 mb-2">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 Compte Vérifié
-              </Badge>
-            )}
+              </Badge>}
           </div>
           <p className="text-muted-foreground">Bienvenue sur votre espace professionnel</p>
         </div>
 
         {/* Free Token Alert */}
-        {garage?.free_token_available && (
-          <Alert className="mb-8 border-2 border-green-500 bg-green-500/10">
+        {garage?.free_token_available && <Alert className="mb-8 border-2 border-green-500 bg-green-500/10">
             <Gift className="h-5 w-5 text-green-500" />
             <AlertTitle className="text-green-600 font-bold">🎁 Bienvenue ! Votre première démarche est offerte</AlertTitle>
             <AlertDescription className="text-green-600">
               En tant que nouveau client, vous bénéficiez d'une démarche gratuite (hors taxe régionale carte grise). 
               Cette offre est valable une seule fois.
             </AlertDescription>
-          </Alert>
-        )}
+          </Alert>}
 
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Actions rapides</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {actionsRapides.map(action => {
-              const displayPrice = garage?.free_token_available ? 0 : action.prix;
-              const priceLabel = garage?.free_token_available 
-                ? (action.code === 'CG' ? '0€ HT + CG' : '0€ HT')
-                : `${action.prix}€ HT${action.code === 'CG' ? ' + CG' : ''}`;
-              
-              return (
-                <Card key={action.id} className={`cursor-pointer hover:shadow-xl transition-all border-2 hover:border-${action.couleur} hover:scale-105 bg-gradient-to-br from-${action.couleur}/10 to-${action.couleur}/5 ${garage?.free_token_available ? 'ring-2 ring-green-500' : ''}`} onClick={() => navigate(`/nouvelle-demarche?type=${action.code}`)}>
+            const displayPrice = garage?.free_token_available ? 0 : action.prix;
+            const priceLabel = garage?.free_token_available ? action.code === 'CG' ? '0€ HT + CG' : '0€ HT' : `${action.prix}€ HT${action.code === 'CG' ? ' + CG' : ''}`;
+            return <Card key={action.id} className={`cursor-pointer hover:shadow-xl transition-all border-2 hover:border-${action.couleur} hover:scale-105 bg-gradient-to-br from-${action.couleur}/10 to-${action.couleur}/5 ${garage?.free_token_available ? 'ring-2 ring-green-500' : ''}`} onClick={() => navigate(`/nouvelle-demarche?type=${action.code}`)}>
                   <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2">
                       <div className={`w-10 h-10 rounded-full bg-${action.couleur}/20 flex items-center justify-center`}>
                         <FileText className={`h-5 w-5 text-${action.couleur}`} />
                       </div>
                       {action.titre}
-                      {garage?.free_token_available && (
-                        <Badge className="bg-green-500 text-white ml-2">GRATUIT</Badge>
-                      )}
+                      {garage?.free_token_available && <Badge className="bg-green-500 text-white ml-2">GRATUIT</Badge>}
                     </CardTitle>
                     <CardDescription className={`text-3xl font-bold mt-2 ${garage?.free_token_available ? 'text-green-500' : `text-${action.couleur}`}`}>
-                      {garage?.free_token_available && action.prix > 0 && (
-                        <span className="text-lg line-through text-muted-foreground mr-2">{action.prix}€</span>
-                      )}
+                      {garage?.free_token_available && action.prix > 0 && <span className="text-lg line-through text-muted-foreground mr-2">{action.prix}€</span>}
                       {priceLabel}
                     </CardDescription>
                   </CardHeader>
@@ -190,9 +177,8 @@ export default function Dashboard() {
                       {garage?.free_token_available ? 'Utiliser mon offre' : 'Créer'}
                     </Button>
                   </CardContent>
-                </Card>
-              );
-            })}
+                </Card>;
+          })}
           </div>
         </div>
 
