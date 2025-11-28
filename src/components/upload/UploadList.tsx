@@ -254,18 +254,19 @@ export const UploadList = ({ orderId, isPaid }: UploadListProps) => {
     );
   }
 
-  // Documents nécessitant recto + verso
-  const documentsWithVerso = [
-    "Carte d'identité",
-    "Permis",
-  ];
+  // Documents nécessitant recto + verso (vérification par inclusion dans le nom)
+  const needsVerso = (docName: string) => {
+    const lowerName = docName.toLowerCase();
+    return lowerName.includes("carte d'identité") || 
+           lowerName.includes("permis de conduire");
+  };
 
   // Build the list of documents to display
   const documentsToShow: Array<{ id: string; nom_document: string; rectoOnly?: boolean }> = [
     ...requiredDocuments.map(doc => ({ 
       id: doc.id, 
       nom_document: doc.nom_document, 
-      rectoOnly: !documentsWithVerso.includes(doc.nom_document)
+      rectoOnly: !needsVerso(doc.nom_document)
     }))
   ];
 
