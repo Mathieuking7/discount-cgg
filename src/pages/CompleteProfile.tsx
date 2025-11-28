@@ -65,21 +65,46 @@ export default function CompleteProfile() {
     setLoading(true);
 
     try {
-      // Create garage profile
-      const { error: garageError } = await supabase
+      // Check if garage already exists
+      const { data: existingGarage } = await supabase
         .from("garages")
-        .insert({
-          user_id: user.id,
-          raison_sociale: formData.raison_sociale,
-          siret: formData.siret,
-          adresse: formData.adresse,
-          code_postal: formData.code_postal,
-          ville: formData.ville,
-          email: user.email || "",
-          telephone: formData.telephone
-        });
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (garageError) throw garageError;
+      if (existingGarage) {
+        // Update existing garage
+        const { error: garageError } = await supabase
+          .from("garages")
+          .update({
+            raison_sociale: formData.raison_sociale,
+            siret: formData.siret,
+            adresse: formData.adresse,
+            code_postal: formData.code_postal,
+            ville: formData.ville,
+            email: user.email || "",
+            telephone: formData.telephone
+          })
+          .eq("user_id", user.id);
+
+        if (garageError) throw garageError;
+      } else {
+        // Create new garage profile
+        const { error: garageError } = await supabase
+          .from("garages")
+          .insert({
+            user_id: user.id,
+            raison_sociale: formData.raison_sociale,
+            siret: formData.siret,
+            adresse: formData.adresse,
+            code_postal: formData.code_postal,
+            ville: formData.ville,
+            email: user.email || "",
+            telephone: formData.telephone
+          });
+
+        if (garageError) throw garageError;
+      }
 
       // Assign garage role
       const { error: roleError } = await supabase
