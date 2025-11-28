@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import CompleteProfile from "./pages/CompleteProfile";
 import Dashboard from "./pages/Dashboard";
 import NouvelleDemarche from "./pages/NouvelleDemarche";
 import MesDemarches from "./pages/MesDemarches";
@@ -52,6 +53,7 @@ const App = () => (
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/devis/:orderId" element={<DevisCarteGrise />} />
           <Route path="/simulateur" element={<Simulateur />} />
           <Route path="/resultat-carte-grise" element={<ResultatCarteGrise />} />
