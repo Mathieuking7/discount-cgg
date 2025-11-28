@@ -258,7 +258,8 @@ export const UploadList = ({ orderId, isPaid }: UploadListProps) => {
   const needsVerso = (docName: string) => {
     const lowerName = docName.toLowerCase();
     return lowerName.includes("carte d'identité") || 
-           lowerName.includes("permis de conduire");
+           lowerName.includes("permis de conduire") ||
+           lowerName.includes("carte grise barrée");
   };
 
   // Build the list of documents to display
