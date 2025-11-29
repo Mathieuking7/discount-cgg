@@ -300,7 +300,11 @@ export default function DevisCarteGrise() {
                         amount={order.montant_ttc}
                         onSuccess={handleWalletSuccess}
                         onError={handleWalletError}
-                        metadata={{ order_id: orderId || "", type: "guest_order" }}
+                        metadata={{ 
+                          order_id: orderId || "", 
+                          type: "guest_order",
+                          tracking_number: order.tracking_number || ""
+                        }}
                       />
                     </Elements>
                   </div>

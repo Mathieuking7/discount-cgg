@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, CheckCircle, Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 interface PaymentMethodsProps {
   amount: number;
   orderId: string;
+  trackingNumber?: string;
   onPaymentSuccess: () => void;
 }
 
@@ -135,13 +136,13 @@ const StripeCardForm = ({ amount, orderId, onSuccess }: { amount: number; orderI
   );
 };
 
-export const PaymentMethods = ({ amount, orderId, onPaymentSuccess }: PaymentMethodsProps) => {
+export const PaymentMethods = ({ amount, orderId, trackingNumber, onPaymentSuccess }: PaymentMethodsProps) => {
   const [isPaid, setIsPaid] = useState(false);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
   const [showCardForm, setShowCardForm] = useState(false);
   const { toast } = useToast();
 
-  useState(() => {
+  useEffect(() => {
     const initStripe = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-stripe-key');
@@ -154,7 +155,7 @@ export const PaymentMethods = ({ amount, orderId, onPaymentSuccess }: PaymentMet
       }
     };
     initStripe();
-  });
+  }, []);
 
   const handlePaymentSuccess = async () => {
     try {
@@ -297,7 +298,11 @@ export const PaymentMethods = ({ amount, orderId, onPaymentSuccess }: PaymentMet
                 amount={amount}
                 onSuccess={handleInternalSuccess}
                 onError={handleWalletError}
-                metadata={{ order_id: orderId, type: "guest_order" }}
+                metadata={{ 
+                  order_id: orderId, 
+                  type: "guest_order",
+                  tracking_number: trackingNumber || ""
+                }}
               />
             </Elements>
           </div>
