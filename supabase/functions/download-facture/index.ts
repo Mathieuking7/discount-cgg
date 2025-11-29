@@ -42,23 +42,68 @@ serve(async (req) => {
 
     if (!facture.pdf_url) {
       return new Response(
-        JSON.stringify({ error: "PDF non disponible" }),
+        JSON.stringify({ error: "PDF non disponible pour cette facture" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Télécharger le PDF depuis l'URL Supabase
-    const pdfResponse = await fetch(facture.pdf_url);
+    // Extraire le chemin du fichier depuis l'URL
+    // Format attendu: https://xxx.supabase.co/storage/v1/object/public/factures/path/file.pdf
+    // ou: factures/path/file.pdf (chemin relatif)
+    let filePath = facture.pdf_url;
     
-    if (!pdfResponse.ok) {
-      console.error("Erreur téléchargement PDF:", pdfResponse.status);
+    // Si c'est une URL complète, extraire le chemin
+    if (filePath.includes('/storage/v1/object/')) {
+      const match = filePath.match(/\/storage\/v1\/object\/(?:public|sign)\/factures\/(.+)/);
+      if (match) {
+        filePath = match[1];
+      }
+    } else if (filePath.startsWith('factures/')) {
+      filePath = filePath.replace('factures/', '');
+    }
+
+    console.log("Téléchargement du fichier:", filePath);
+
+    // Télécharger le fichier depuis le bucket privé
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from("factures")
+      .download(filePath);
+
+    if (downloadError || !fileData) {
+      console.error("Erreur téléchargement storage:", downloadError);
+      
+      // Essayer avec le chemin original si l'extraction a échoué
+      if (facture.pdf_url !== filePath) {
+        console.log("Tentative avec chemin original:", facture.pdf_url);
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from("factures")
+          .download(facture.pdf_url);
+        
+        if (retryError || !retryData) {
+          console.error("Erreur téléchargement retry:", retryError);
+          return new Response(
+            JSON.stringify({ error: "Impossible de télécharger le PDF" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        const pdfBytes = await retryData.arrayBuffer();
+        return new Response(pdfBytes, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="facture_${facture.numero}.pdf"`,
+          },
+        });
+      }
+      
       return new Response(
         JSON.stringify({ error: "Impossible de télécharger le PDF" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const pdfBytes = await pdfResponse.arrayBuffer();
+    const pdfBytes = await fileData.arrayBuffer();
 
     return new Response(pdfBytes, {
       headers: {
