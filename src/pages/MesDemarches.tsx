@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 
 const getStatusLabel = (demarche: any): string => {
   // Si c'est une démarche offerte (free token) et non payée, afficher "Offert"
@@ -339,9 +339,32 @@ export default function MesDemarches() {
                       </TableCell>
                       <TableCell>{demarche.immatriculation}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(demarche)}>
-                          {getStatusLabel(demarche)}
-                        </Badge>
+                        {/* Statut de paiement mis en avant */}
+                        {demarche.status === 'paye' || demarche.paye ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <span className="font-semibold text-green-700 dark:text-green-400">Paiement accepté</span>
+                          </div>
+                        ) : demarche.status === 'refuse' ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                            <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                            <span className="font-semibold text-red-700 dark:text-red-400">Refusé</span>
+                          </div>
+                        ) : demarche.is_free_token ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="font-semibold text-emerald-700 dark:text-emerald-400">Offert</span>
+                          </div>
+                        ) : demarche.status === 'en_attente' ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg">
+                            <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                            <span className="font-semibold text-orange-700 dark:text-orange-400">En attente paiement</span>
+                          </div>
+                        ) : (
+                          <Badge className={getStatusColor(demarche)}>
+                            {getStatusLabel(demarche)}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>{demarche.montant_ttc.toFixed(2)} €</TableCell>
                       <TableCell>

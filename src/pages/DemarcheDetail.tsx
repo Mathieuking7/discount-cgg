@@ -285,6 +285,49 @@ export default function DemarcheDetail() {
           Retour à mes démarches
         </Button>
 
+        {/* Bandeau de statut de paiement bien visible */}
+        {demarche.paye || demarche.status === 'paye' ? (
+          <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border-2 border-green-400 dark:border-green-600 rounded-xl flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center">
+              <CheckCircle className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-green-800 dark:text-green-300">Paiement accepté</p>
+              <p className="text-sm text-green-700 dark:text-green-400">Votre paiement a été validé avec succès</p>
+            </div>
+          </div>
+        ) : demarche.status === 'refuse' ? (
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600 rounded-xl flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-red-500 flex items-center justify-center">
+              <XCircle className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-red-800 dark:text-red-300">Démarche refusée</p>
+              <p className="text-sm text-red-700 dark:text-red-400">Cette démarche a été refusée. Consultez les commentaires pour plus d'informations.</p>
+            </div>
+          </div>
+        ) : demarche.is_free_token ? (
+          <div className="mb-6 p-4 bg-emerald-100 dark:bg-emerald-900/30 border-2 border-emerald-400 dark:border-emerald-600 rounded-xl flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-emerald-500 flex items-center justify-center">
+              <CheckCircle className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-emerald-800 dark:text-emerald-300">Démarche offerte</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-400">Cette démarche est gratuite grâce à votre jeton offert</p>
+            </div>
+          </div>
+        ) : demarche.status === 'en_attente' && !demarche.paye ? (
+          <div className="mb-6 p-4 bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400 dark:border-orange-600 rounded-xl flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-orange-500 flex items-center justify-center animate-pulse">
+              <AlertCircle className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-orange-800 dark:text-orange-300">En attente de paiement</p>
+              <p className="text-sm text-orange-700 dark:text-orange-400">Veuillez procéder au paiement pour finaliser votre démarche</p>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
