@@ -8,6 +8,7 @@ import { PayPalButton } from "@/components/PayPalButton";
 import { StripeWalletPayment } from "@/components/StripeWalletPayment";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/utils";
 
 interface PaymentMethodsProps {
   amount: number;
@@ -128,7 +129,7 @@ const StripeCardForm = ({ amount, orderId, onSuccess }: { amount: number; orderI
         ) : (
           <>
             <CreditCard className="w-5 h-5 mr-2" />
-            Payer {amount.toFixed(2)} €
+            Payer {formatPrice(amount)} €
           </>
         )}
       </Button>
@@ -216,7 +217,7 @@ export const PaymentMethods = ({ amount, orderId, trackingNumber, onPaymentSucce
     );
   }
 
-  const monthlyAmount = (amount / 4).toFixed(2);
+  const monthlyAmount = formatPrice(amount / 4);
   
   // PayPal 4x désactivé si montant < 30€
   const canUsePayPal4x = amount >= 30;
@@ -261,7 +262,7 @@ export const PaymentMethods = ({ amount, orderId, trackingNumber, onPaymentSucce
           <div className="border rounded-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold">Payer avec PayPal</h3>
-              <p className="text-2xl font-bold text-primary">{amount.toFixed(2)} €</p>
+              <p className="text-2xl font-bold text-primary">{formatPrice(amount)} €</p>
             </div>
             <PayPalButton
               amount={amount}
@@ -318,7 +319,7 @@ export const PaymentMethods = ({ amount, orderId, trackingNumber, onPaymentSucce
               size="lg"
             >
               <CreditCard className="w-5 h-5 mr-2" />
-              Payer par carte ({amount.toFixed(2)} €)
+              Payer par carte ({formatPrice(amount)} €)
             </Button>
           ) : stripePromise ? (
             <Elements stripe={stripePromise}>

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Receipt } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
 
 interface GuestPaymentDetailsSummaryProps {
   prixCarteGrise: number;
@@ -44,7 +45,7 @@ export const GuestPaymentDetailsSummary = ({
             </p>
             <div className="flex justify-between items-center">
               <span className="text-sm">Taxe régionale</span>
-              <span className="font-medium">{prixCarteGrise.toFixed(2)} €</span>
+              <span className="font-medium">{formatPrice(prixCarteGrise)} €</span>
             </div>
           </div>
         )}
@@ -58,7 +59,7 @@ export const GuestPaymentDetailsSummary = ({
           {/* Frais de dossier */}
           <div className="flex justify-between items-center">
             <span className="text-sm">Frais de dossier</span>
-            <span className="font-medium">{fraisDossier.toFixed(2)} €</span>
+            <span className="font-medium">{formatPrice(fraisDossier)} €</span>
           </div>
 
           {/* Options */}
@@ -85,25 +86,25 @@ export const GuestPaymentDetailsSummary = ({
           {prixCarteGrise > 0 && (
             <div className="flex justify-between items-center text-sm text-muted-foreground">
               <span>Carte grise (exonérée TVA)</span>
-              <span>{prixCarteGrise.toFixed(2)} €</span>
+              <span>{formatPrice(prixCarteGrise)} €</span>
             </div>
           )}
           
           <div className="flex justify-between items-center text-sm">
             <span>Total HT (services)</span>
-            <span>{totalServicesHT.toFixed(2)} €</span>
+            <span>{formatPrice(totalServicesHT)} €</span>
           </div>
           
           <div className="flex justify-between items-center text-sm">
             <span>TVA (20%)</span>
-            <span>{tva.toFixed(2)} €</span>
+            <span>{formatPrice(tva)} €</span>
           </div>
           
           <Separator />
           
           <div className="flex justify-between items-center text-xl font-bold pt-2">
             <span>Total TTC</span>
-            <span className="text-primary">{totalTTC.toFixed(2)} €</span>
+            <span className="text-primary">{formatPrice(totalTTC)} €</span>
           </div>
         </div>
       </CardContent>

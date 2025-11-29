@@ -10,6 +10,7 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { ArrowLeft, FileText, AlertCircle, CheckCircle, XCircle, Upload, Eye, Mail, Phone, Zap, FileCheck as FileCheckIcon, CreditCard, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FactureButton } from "@/components/FactureButton";
+import { formatPrice } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   en_saisie: "En saisie",
@@ -489,7 +490,7 @@ export default function DemarcheDetail() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Montant TTC</p>
-                    <p className="text-xl font-bold">{demarche.montant_ttc?.toFixed(2)} €</p>
+                    <p className="text-xl font-bold">{formatPrice(demarche.montant_ttc || 0)} €</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Date de création</p>

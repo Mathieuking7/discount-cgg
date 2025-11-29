@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/utils";
 
 interface PayPalButtonProps {
   amount: number;
@@ -79,7 +80,7 @@ export const PayPalButton = ({ amount, onSuccess, onError }: PayPalButtonProps) 
               purchase_units: [
                 {
                   amount: { 
-                    value: amount.toFixed(2),
+                    value: formatPrice(amount),
                     currency_code: "EUR"
                   },
                 },
@@ -134,7 +135,7 @@ export const PayPalButton = ({ amount, onSuccess, onError }: PayPalButtonProps) 
                   purchase_units: [
                     {
                       amount: { 
-                        value: amount.toFixed(2),
+                        value: formatPrice(amount),
                         currency_code: "EUR"
                       },
                     },

@@ -10,6 +10,7 @@ import { Loader2, ChevronLeft, FileText, ArrowRightLeft, CheckCircle, Car } from
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { formatPrice } from "@/lib/utils";
 
 interface DemarcheTypeInfo {
   id: string;
@@ -169,8 +170,8 @@ export default function DemarcheSimple() {
               </div>
               <div>
                 <span className="text-muted-foreground">Prix TTC :</span>
-                <p className="font-bold text-primary text-lg">{totalTTC.toFixed(2)}€</p>
-                <p className="text-xs text-muted-foreground">({fraisHT}€ HT + {tva.toFixed(2)}€ TVA)</p>
+                <p className="font-bold text-primary text-lg">{formatPrice(totalTTC)}€</p>
+                <p className="text-xs text-muted-foreground">({fraisHT}€ HT + {formatPrice(tva)}€ TVA)</p>
               </div>
             </div>
             {demarcheTypeInfo?.description && (
