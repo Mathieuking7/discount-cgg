@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { PaymentRequestButtonElement, useStripe } from "@stripe/react-stripe-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Smartphone, Loader2 } from "lucide-react";
@@ -28,6 +28,7 @@ export const StripeWalletPayment = ({
   const [showNotAvailable, setShowNotAvailable] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(providedClientSecret || null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
+  const [retryCount, setRetryCount] = useState(0); // Track retries to force new payment intent
   const hasCreatedIntent = useRef(false);
   const paymentRequestRef = useRef<any>(null);
   
@@ -37,6 +38,22 @@ export const StripeWalletPayment = ({
   const onErrorRef = useRef(onError);
 
   const amountInCents = useMemo(() => Math.round(amount * 100), [amount]);
+
+  // Function to reset and create a new payment intent
+  const resetForRetry = useCallback(() => {
+    console.log("[StripeWallet] Resetting for retry...");
+    hasCreatedIntent.current = false;
+    setClientSecret(null);
+    clientSecretRef.current = null;
+    // Clean up old payment request
+    if (paymentRequestRef.current) {
+      paymentRequestRef.current.off("paymentmethod");
+      paymentRequestRef.current = null;
+    }
+    setPaymentRequest(null);
+    setCanMakePayment(false);
+    setRetryCount(prev => prev + 1);
+  }, []);
 
   // Keep refs in sync with latest values
   useEffect(() => {
@@ -50,6 +67,12 @@ export const StripeWalletPayment = ({
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
+
+  // Ref for resetForRetry to use in event handlers
+  const resetForRetryRef = useRef(resetForRetry);
+  useEffect(() => {
+    resetForRetryRef.current = resetForRetry;
+  }, [resetForRetry]);
 
   // Create payment intent if not provided
   useEffect(() => {
@@ -67,7 +90,7 @@ export const StripeWalletPayment = ({
       setIsCreatingIntent(true);
       
       try {
-        console.log("[StripeWallet] Creating payment intent:", { amountInCents, demarcheId, metadata });
+        console.log("[StripeWallet] Creating payment intent:", { amountInCents, demarcheId, metadata, retryCount });
         
         const { data, error } = await supabase.functions.invoke("create-payment-intent", {
           body: {
@@ -99,7 +122,7 @@ export const StripeWalletPayment = ({
     };
 
     createPaymentIntent();
-  }, [providedClientSecret, amountInCents, metadata, demarcheId, isCreatingIntent, clientSecret, onError]);
+  }, [providedClientSecret, amountInCents, metadata, demarcheId, isCreatingIntent, clientSecret, onError, retryCount]);
 
   // Setup PaymentRequest when stripe and clientSecret are ready
   useEffect(() => {
@@ -183,6 +206,8 @@ export const StripeWalletPayment = ({
           console.error("[StripeWallet] Error message:", confirmError.message);
           e.complete("fail");
           onErrorRef.current?.(confirmError.message || "Erreur lors du paiement");
+          // Reset for retry with new payment intent
+          setTimeout(() => resetForRetryRef.current(), 1000);
           return;
         }
 
@@ -198,6 +223,8 @@ export const StripeWalletPayment = ({
           if (actionError) {
             console.error("[StripeWallet] Action error:", actionError);
             onErrorRef.current?.(actionError.message || "Authentification échouée");
+            // Reset for retry with new payment intent
+            setTimeout(() => resetForRetryRef.current(), 1000);
             return;
           }
 
@@ -207,6 +234,8 @@ export const StripeWalletPayment = ({
           } else {
             console.log("[StripeWallet] Payment status after action:", confirmedIntent?.status);
             onErrorRef.current?.("Le paiement n'a pas pu être complété");
+            // Reset for retry with new payment intent
+            setTimeout(() => resetForRetryRef.current(), 1000);
           }
         } else if (paymentIntent?.status === "succeeded") {
           e.complete("success");
@@ -216,12 +245,16 @@ export const StripeWalletPayment = ({
           console.log("[StripeWallet] Unexpected payment status:", paymentIntent?.status);
           e.complete("fail");
           onErrorRef.current?.(`Statut inattendu: ${paymentIntent?.status}`);
+          // Reset for retry with new payment intent
+          setTimeout(() => resetForRetryRef.current(), 1000);
         }
       } catch (err: any) {
         console.error("[StripeWallet] Payment error:", err);
         console.error("[StripeWallet] Error stack:", err.stack);
         e.complete("fail");
         onErrorRef.current?.(err.message || "Erreur lors du paiement");
+        // Reset for retry with new payment intent
+        setTimeout(() => resetForRetryRef.current(), 1000);
       }
     });
 
