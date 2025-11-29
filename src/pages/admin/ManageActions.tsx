@@ -475,6 +475,27 @@ export default function ManageActions() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="couleur">Couleur</Label>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {[
+                        { name: 'Bleu', color: '#3b82f6' },
+                        { name: 'Vert', color: '#22c55e' },
+                        { name: 'Rouge', color: '#ef4444' },
+                        { name: 'Orange', color: '#f97316' },
+                        { name: 'Violet', color: '#8b5cf6' },
+                        { name: 'Rose', color: '#ec4899' },
+                        { name: 'Cyan', color: '#06b6d4' },
+                        { name: 'Jaune', color: '#eab308' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.color}
+                          type="button"
+                          onClick={() => setEditingAction({ ...editingAction, couleur: preset.color })}
+                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${editingAction.couleur === preset.color ? 'ring-2 ring-offset-2 ring-primary' : 'border-transparent'}`}
+                          style={{ backgroundColor: preset.color }}
+                          title={preset.name}
+                        />
+                      ))}
+                    </div>
                     <div className="flex items-center gap-3">
                       <input
                         type="color"
