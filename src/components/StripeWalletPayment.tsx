@@ -30,8 +30,26 @@ export const StripeWalletPayment = ({
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
   const hasCreatedIntent = useRef(false);
   const paymentRequestRef = useRef<any>(null);
+  
+  // Use refs to avoid stale closures in event handlers
+  const clientSecretRef = useRef<string | null>(clientSecret);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
 
   const amountInCents = useMemo(() => Math.round(amount * 100), [amount]);
+
+  // Keep refs in sync with latest values
+  useEffect(() => {
+    clientSecretRef.current = clientSecret;
+  }, [clientSecret]);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   // Create payment intent if not provided
   useEffect(() => {
@@ -132,15 +150,27 @@ export const StripeWalletPayment = ({
     });
 
     pr.on("paymentmethod", async (e) => {
+      // Use refs to get latest values and avoid stale closures
+      const currentClientSecret = clientSecretRef.current;
+      
       console.log("[StripeWallet] Payment method received:", e.paymentMethod.id);
       console.log("[StripeWallet] Payment method type:", e.paymentMethod.type);
-      console.log("[StripeWallet] Client secret available:", clientSecret ? "yes" : "no");
+      console.log("[StripeWallet] Payment method wallet:", e.walletName);
+      console.log("[StripeWallet] Client secret available:", currentClientSecret ? "yes" : "no");
+      
+      if (!currentClientSecret) {
+        console.error("[StripeWallet] No client secret available!");
+        e.complete("fail");
+        onErrorRef.current?.("Erreur: secret de paiement manquant");
+        return;
+      }
       
       try {
         // Step 1: Confirm the payment with the payment method from Google Pay/Apple Pay
         // Using handleActions: false because we'll handle any required actions ourselves
+        console.log("[StripeWallet] Confirming payment with Stripe...");
         const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
-          clientSecret,
+          currentClientSecret,
           { payment_method: e.paymentMethod.id },
           { handleActions: false }
         );
@@ -150,8 +180,9 @@ export const StripeWalletPayment = ({
           console.error("[StripeWallet] Error type:", confirmError.type);
           console.error("[StripeWallet] Error code:", confirmError.code);
           console.error("[StripeWallet] Error decline_code:", (confirmError as any).decline_code);
+          console.error("[StripeWallet] Error message:", confirmError.message);
           e.complete("fail");
-          onError?.(confirmError.message || "Erreur lors du paiement");
+          onErrorRef.current?.(confirmError.message || "Erreur lors du paiement");
           return;
         }
 
@@ -162,35 +193,35 @@ export const StripeWalletPayment = ({
           console.log("[StripeWallet] Payment requires action, handling...");
           e.complete("success"); // Complete the Payment Request UI first
           
-          const { error: actionError, paymentIntent: confirmedIntent } = await stripe.confirmCardPayment(clientSecret);
+          const { error: actionError, paymentIntent: confirmedIntent } = await stripe.confirmCardPayment(currentClientSecret);
           
           if (actionError) {
             console.error("[StripeWallet] Action error:", actionError);
-            onError?.(actionError.message || "Authentification échouée");
+            onErrorRef.current?.(actionError.message || "Authentification échouée");
             return;
           }
 
           if (confirmedIntent?.status === "succeeded") {
             console.log("[StripeWallet] Payment succeeded after action:", confirmedIntent.id);
-            onSuccess();
+            onSuccessRef.current();
           } else {
             console.log("[StripeWallet] Payment status after action:", confirmedIntent?.status);
-            onError?.("Le paiement n'a pas pu être complété");
+            onErrorRef.current?.("Le paiement n'a pas pu être complété");
           }
         } else if (paymentIntent?.status === "succeeded") {
           e.complete("success");
           console.log("[StripeWallet] Payment succeeded immediately:", paymentIntent.id);
-          onSuccess();
+          onSuccessRef.current();
         } else {
           console.log("[StripeWallet] Unexpected payment status:", paymentIntent?.status);
           e.complete("fail");
-          onError?.(`Statut inattendu: ${paymentIntent?.status}`);
+          onErrorRef.current?.(`Statut inattendu: ${paymentIntent?.status}`);
         }
       } catch (err: any) {
         console.error("[StripeWallet] Payment error:", err);
         console.error("[StripeWallet] Error stack:", err.stack);
         e.complete("fail");
-        onError?.(err.message || "Erreur lors du paiement");
+        onErrorRef.current?.(err.message || "Erreur lors du paiement");
       }
     });
 
@@ -199,7 +230,7 @@ export const StripeWalletPayment = ({
         paymentRequestRef.current.off("paymentmethod");
       }
     };
-  }, [stripe, clientSecret, amountInCents, onSuccess, onError]);
+  }, [stripe, clientSecret, amountInCents]);
 
   if (isCreatingIntent) {
     return (
