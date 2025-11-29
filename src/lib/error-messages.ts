@@ -9,12 +9,12 @@ export const getSupabaseErrorMessage = (error: { message?: string; code?: string
   const errorCode = error.code?.toLowerCase() || '';
 
   // Erreurs de contrainte unique (duplicate key)
-  if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint')) {
+  if (errorMessage.includes('duplicate key') || errorMessage.includes('unique constraint') || errorMessage.includes('unique_violation')) {
     if (errorMessage.includes('garages_user_id_key')) {
       return "Un compte garage existe déjà pour cet utilisateur. Vous ne pouvez avoir qu'un seul garage par compte.";
     }
     if (errorMessage.includes('garages_siret_key') || errorMessage.includes('siret')) {
-      return "Ce numéro SIRET est déjà enregistré. Veuillez vérifier vos informations.";
+      return "Ce numéro SIRET est déjà enregistré. Un compte existe peut-être déjà avec ce SIRET.";
     }
     if (errorMessage.includes('garages_email_key') || (errorMessage.includes('garages') && errorMessage.includes('email'))) {
       return "Cette adresse email est déjà utilisée par un autre garage.";
@@ -29,6 +29,11 @@ export const getSupabaseErrorMessage = (error: { message?: string; code?: string
       return "Cette adresse email est déjà utilisée.";
     }
     return "Cette information existe déjà dans notre système. Veuillez vérifier vos données.";
+  }
+
+  // Erreur spécifique à la création de garage via trigger (message générique de Supabase)
+  if (errorMessage.includes('database error') || errorMessage.includes('trigger') || errorMessage.includes('aborted')) {
+    return "Une erreur s'est produite lors de la création du compte. Le SIRET ou l'email est peut-être déjà utilisé. Veuillez vérifier vos informations ou vous connecter si vous avez déjà un compte.";
   }
 
   // Erreurs RLS (Row Level Security)
