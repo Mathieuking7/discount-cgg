@@ -154,26 +154,44 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold mb-4">Actions rapides</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {actionsRapides.map(action => {
-            const displayPrice = garage?.free_token_available ? 0 : action.prix;
             const mainPrice = garage?.free_token_available ? '0€' : `${action.prix}€`;
             const cgSuffix = action.code === 'CG' ? ' + CG' : '';
-            return <Card key={action.id} className={`cursor-pointer hover:shadow-xl transition-all border-2 hover:border-${action.couleur} hover:scale-105 bg-gradient-to-br from-${action.couleur}/10 to-${action.couleur}/5 ${garage?.free_token_available ? 'ring-2 ring-green-500' : ''}`} onClick={() => navigate(`/nouvelle-demarche?type=${action.code}`)}>
+            const actionColor = action.couleur.startsWith('#') ? action.couleur : '#3b82f6';
+            return <Card 
+              key={action.id} 
+              className={`cursor-pointer hover:shadow-xl transition-all border-2 hover:scale-105 ${garage?.free_token_available ? 'ring-2 ring-green-500' : ''}`} 
+              style={{ 
+                borderColor: `${actionColor}40`,
+                background: `linear-gradient(to bottom right, ${actionColor}15, ${actionColor}08)`
+              }}
+              onClick={() => navigate(`/nouvelle-demarche?type=${action.code}`)}
+            >
                   <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2">
-                      <div className={`w-10 h-10 rounded-full bg-${action.couleur}/20 flex items-center justify-center`}>
-                        <FileText className={`h-5 w-5 text-${action.couleur}`} />
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${actionColor}20` }}
+                      >
+                        <FileText className="h-5 w-5" style={{ color: actionColor }} />
                       </div>
                       {action.titre}
                       {garage?.free_token_available && <Badge className="bg-green-500 text-white ml-2">GRATUIT</Badge>}
                     </CardTitle>
-                    <CardDescription className={`text-3xl font-bold mt-2 ${garage?.free_token_available ? 'text-green-500' : `text-${action.couleur}`}`}>
+                    <CardDescription 
+                      className="text-3xl font-bold mt-2"
+                      style={{ color: garage?.free_token_available ? '#22c55e' : actionColor }}
+                    >
                       {garage?.free_token_available && action.prix > 0 && <span className="text-lg line-through text-muted-foreground mr-2">{action.prix}€</span>}
                       {mainPrice}<span className="text-sm font-normal ml-1">HT</span>{cgSuffix}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">{action.description}</p>
-                    <Button className={`w-full mt-4 ${garage?.free_token_available ? 'bg-green-500 hover:bg-green-600' : `bg-${action.couleur} hover:bg-${action.couleur}/90`}`} size="sm">
+                    <Button 
+                      className="w-full mt-4 text-white hover:opacity-90"
+                      style={{ backgroundColor: garage?.free_token_available ? '#22c55e' : actionColor }}
+                      size="sm"
+                    >
                       <Plus className="mr-2 h-4 w-4" />
                       {garage?.free_token_available ? 'Utiliser mon offre' : 'Créer'}
                     </Button>
