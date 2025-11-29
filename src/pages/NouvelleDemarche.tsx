@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,10 +45,61 @@ export default function NouvelleDemarche() {
   const [carteGrisePrice, setCarteGrisePrice] = useState<number>(0);
   const [trackingServicePrice, setTrackingServicePrice] = useState<number>(0);
   const [freeTokenAvailable, setFreeTokenAvailable] = useState<boolean>(false);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const demarcheIdRef = useRef<string | null>(null);
+  const paymentCompletedRef = useRef(false);
   const [formData, setFormData] = useState({
     type: searchParams.get('type') || "",
     commentaire: ""
   });
+
+  // Keep refs in sync with state for cleanup
+  useEffect(() => {
+    demarcheIdRef.current = demarcheId;
+  }, [demarcheId]);
+
+  useEffect(() => {
+    paymentCompletedRef.current = paymentCompleted;
+  }, [paymentCompleted]);
+
+  // Cleanup: delete draft demarche if user leaves without completing payment
+  useEffect(() => {
+    const deleteDraft = async () => {
+      const draftId = demarcheIdRef.current;
+      if (draftId && !paymentCompletedRef.current) {
+        console.log("[NouvelleDemarche] Cleaning up unpaid draft:", draftId);
+        await supabase
+          .from('demarches')
+          .delete()
+          .eq('id', draftId)
+          .eq('is_draft', true)
+          .eq('paye', false);
+      }
+    };
+
+    // Handle page unload
+    const handleBeforeUnload = () => {
+      if (demarcheIdRef.current && !paymentCompletedRef.current) {
+        // Use fetch with keepalive for page unload
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/demarches?id=eq.${demarcheIdRef.current}&is_draft=eq.true&paye=eq.false`;
+        fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Content-Type': 'application/json',
+          },
+          keepalive: true,
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      deleteDraft();
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -362,6 +413,9 @@ export default function NouvelleDemarche() {
 
   const handlePaymentSuccess = async () => {
     if (!demarcheId) return;
+
+    // Mark payment as completed to prevent cleanup deletion
+    setPaymentCompleted(true);
 
     // Update demarche to mark as not draft
     await supabase
