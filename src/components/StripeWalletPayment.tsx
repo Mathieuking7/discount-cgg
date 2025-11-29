@@ -105,14 +105,14 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
       console.log("[StripeWallet] Payment method received:", e.paymentMethod.id);
       
       try {
-        // Confirm the payment with Stripe using the clientSecret
-        const { error, paymentIntent } = await stripe.confirmCardPayment(
+        // Confirm the payment with Stripe using confirmPayment (works with automatic_payment_methods)
+        const { error, paymentIntent } = await stripe.confirmPayment({
           clientSecret,
-          {
+          confirmParams: {
             payment_method: e.paymentMethod.id,
           },
-          { handleActions: false }
-        );
+          redirect: "if_required",
+        });
 
         if (error) {
           console.error("[StripeWallet] Payment confirmation error:", error);
@@ -121,21 +121,20 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
           return;
         }
 
-        if (paymentIntent?.status === "requires_action") {
+        if (paymentIntent?.status === "succeeded") {
+          // Payment succeeded
+          e.complete("success");
+          console.log("[StripeWallet] Payment succeeded:", paymentIntent?.id);
+          onSuccess();
+        } else if (paymentIntent?.status === "requires_action") {
           console.log("[StripeWallet] Payment requires action");
-          const { error: confirmError } = await stripe.confirmCardPayment(clientSecret);
-          if (confirmError) {
-            console.error("[StripeWallet] Payment action error:", confirmError);
-            e.complete("fail");
-            onError?.(confirmError.message || "Authentification requise échouée");
-            return;
-          }
+          e.complete("fail");
+          onError?.("Action supplémentaire requise - veuillez utiliser le paiement par carte");
+        } else {
+          console.log("[StripeWallet] Payment status:", paymentIntent?.status);
+          e.complete("fail");
+          onError?.("Le paiement n'a pas pu être complété");
         }
-
-        // Payment succeeded
-        e.complete("success");
-        console.log("[StripeWallet] Payment succeeded:", paymentIntent?.id);
-        onSuccess();
       } catch (err: any) {
         console.error("[StripeWallet] Payment error:", err);
         e.complete("fail");
