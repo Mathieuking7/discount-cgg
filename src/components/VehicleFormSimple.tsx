@@ -62,7 +62,8 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
   };
 
   const handleFetchVehicle = async () => {
-    if (!formData.immatriculation.trim()) {
+    const plateToSearch = formData.immatriculation.trim();
+    if (!plateToSearch) {
       toast({
         title: "Erreur",
         description: "Veuillez entrer une immatriculation",
@@ -73,15 +74,15 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
 
     setFetchingVehicle(true);
     try {
-      const result = await getVehicleByPlate(formData.immatriculation);
+      const result = await getVehicleByPlate(plateToSearch);
 
       if (result.success && result.data) {
-        setVehicleData(result.data);
-        setFormData(prev => ({
-          ...prev,
-          marque: result.data?.marque || "",
-          modele: result.data?.modele || ""
-        }));
+        // Stocker l'immatriculation saisie avec les données du véhicule
+        const vehicleWithPlate = {
+          ...result.data,
+          immatriculation: plateToSearch.toUpperCase()
+        };
+        setVehicleData(vehicleWithPlate);
         toast({
           title: "Véhicule trouvé",
           description: `${result.data.marque} ${result.data.modele}`
@@ -106,7 +107,9 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
   };
 
   const handleSubmit = async () => {
-    if (!formData.immatriculation.trim()) {
+    const plateToSave = vehicleData?.immatriculation || formData.immatriculation.trim();
+    
+    if (!plateToSave) {
       toast({
         title: "Erreur",
         description: "L'immatriculation est obligatoire",
@@ -118,23 +121,28 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
     setLoading(true);
 
     try {
+      console.log("Saving vehicle with data:", { plateToSave, vehicleData, garageId });
+      
       const { data, error } = await supabase
         .from('vehicules')
         .insert({
           garage_id: garageId,
-          immatriculation: formData.immatriculation.toUpperCase(),
+          immatriculation: plateToSave.toUpperCase(),
           marque: vehicleData?.marque || null,
           modele: vehicleData?.modele || null,
-          vin: vehicleData?.vin || null,
           energie: vehicleData?.energie || null,
           puiss_fisc: vehicleData?.puissance_fiscale || null,
           date_mec: vehicleData?.date_mec || null,
-          couleur: vehicleData?.couleur || null
+          couleur: vehicleData?.couleur || null,
+          co2: vehicleData?.co2 || null
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("DB Error:", error);
+        throw error;
+      }
 
       toast({
         title: "Succès",
@@ -154,11 +162,11 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
       if (data) {
         onVehicleSelect(data.id, data.immatriculation);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur:", error);
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter le véhicule",
+        description: error?.message || "Impossible d'ajouter le véhicule",
         variant: "destructive"
       });
     } finally {
@@ -234,14 +242,14 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
                 <div className="p-4 bg-green-50 border border-green-200 rounded-md">
                   <h4 className="font-semibold text-green-900 mb-2">Informations du véhicule</h4>
                   <div className="space-y-1 text-sm text-green-800">
-                    <p><strong>Immatriculation:</strong> {formData.immatriculation}</p>
-                    <p><strong>Marque:</strong> {vehicleData.marque}</p>
-                    <p><strong>Modèle:</strong> {vehicleData.modele}</p>
+                    <p><strong>Immatriculation:</strong> {vehicleData.immatriculation}</p>
+                    {vehicleData.marque && <p><strong>Marque:</strong> {vehicleData.marque}</p>}
+                    {vehicleData.modele && <p><strong>Modèle:</strong> {vehicleData.modele}</p>}
                     {vehicleData.date_mec && <p><strong>Date MEC:</strong> {vehicleData.date_mec}</p>}
                     {vehicleData.puissance_fiscale && <p><strong>Puissance fiscale:</strong> {vehicleData.puissance_fiscale} CV</p>}
                     {vehicleData.energie && <p><strong>Énergie:</strong> {vehicleData.energie}</p>}
                     {vehicleData.couleur && <p><strong>Couleur:</strong> {vehicleData.couleur}</p>}
-                    {vehicleData.vin && <p><strong>VIN:</strong> {vehicleData.vin}</p>}
+                    {vehicleData.co2 && <p><strong>CO2:</strong> {vehicleData.co2} g/km</p>}
                   </div>
                 </div>
 
