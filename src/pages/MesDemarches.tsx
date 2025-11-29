@@ -95,6 +95,7 @@ export default function MesDemarches() {
   const [sortField, setSortField] = useState<string>("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(true);
+  const [showAllBrouillons, setShowAllBrouillons] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -251,45 +252,54 @@ export default function MesDemarches() {
 
         {/* Section Brouillons */}
         {brouillons.length > 0 && (
-          <Card className="p-6 mb-6 border-dashed border-2 border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
-                <Edit className="h-5 w-5" />
-                Brouillons en cours ({brouillons.length})
+          <Card className="p-4 mb-6 border-dashed border-2 border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                <Edit className="h-4 w-4" />
+                Brouillons ({brouillons.length})
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Ces démarches n'ont pas encore été payées. Vous pouvez les reprendre ou les supprimer.
-              </p>
+              {brouillons.length > 2 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAllBrouillons(!showAllBrouillons)}
+                  className="text-xs text-amber-600 hover:text-amber-700"
+                >
+                  {showAllBrouillons ? "Masquer" : `Afficher tout (${brouillons.length})`}
+                </Button>
+              )}
             </div>
-            <div className="space-y-3">
-              {brouillons.map((brouillon) => (
+            <div className="space-y-2">
+              {(showAllBrouillons ? brouillons : brouillons.slice(0, 2)).map((brouillon) => (
                 <div 
                   key={brouillon.id} 
-                  className="flex items-center justify-between p-4 bg-background rounded-lg border"
+                  className="flex items-center justify-between p-3 bg-background rounded-lg border text-sm"
                 >
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Badge variant="outline" className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 text-xs">
                       {typeLabels[brouillon.type] || brouillon.type}
                     </Badge>
-                    <span className="font-mono text-sm">{brouillon.immatriculation}</span>
-                    <span className="text-sm text-muted-foreground">
-                      Créé le {new Date(brouillon.created_at).toLocaleDateString('fr-FR')}
+                    <span className="font-mono text-xs">{brouillon.immatriculation}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(brouillon.created_at).toLocaleDateString('fr-FR')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button 
                       size="sm"
+                      variant="outline"
                       onClick={() => navigate(`/paiement-demarche/${brouillon.id}`)}
+                      className="h-7 text-xs"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
                       Reprendre
                     </Button>
                     <Button 
                       size="sm" 
-                      variant="destructive"
+                      variant="ghost"
                       onClick={() => handleDeleteBrouillon(brouillon.id)}
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
