@@ -319,6 +319,7 @@ const PaiementDemarche = () => {
                   <Elements stripe={stripePromise}>
                     <StripeWalletPayment 
                       amount={finalAmount} 
+                      clientSecret={clientSecret}
                       onSuccess={handlePaymentSuccess}
                       onError={(error) => {
                         toast({
@@ -327,8 +328,6 @@ const PaiementDemarche = () => {
                           variant: "destructive",
                         });
                       }}
-                      metadata={{ demarche_id: demarcheId || "", type: "demarche" }}
-                      demarcheId={demarcheId || undefined}
                     />
                   </Elements>
                 </div>

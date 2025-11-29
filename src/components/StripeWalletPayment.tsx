@@ -8,29 +8,43 @@ interface StripeWalletPaymentProps {
   amount: number;
   onSuccess: () => void;
   onError?: (error: string) => void;
+  // Either pass clientSecret directly OR pass metadata to create a new payment intent
+  clientSecret?: string;
   metadata?: Record<string, string>;
   demarcheId?: string;
 }
 
-export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, demarcheId }: StripeWalletPaymentProps) => {
+export const StripeWalletPayment = ({ 
+  amount, 
+  onSuccess, 
+  onError, 
+  clientSecret: providedClientSecret,
+  metadata, 
+  demarcheId 
+}: StripeWalletPaymentProps) => {
   const stripe = useStripe();
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
   const [canMakePayment, setCanMakePayment] = useState(false);
   const [showNotAvailable, setShowNotAvailable] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(providedClientSecret || null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
   const hasCreatedIntent = useRef(false);
   const paymentRequestRef = useRef<any>(null);
 
-  // Stable metadata string for dependency
-  const metadataString = useMemo(() => JSON.stringify(metadata || {}), [metadata]);
   const amountInCents = useMemo(() => Math.round(amount * 100), [amount]);
 
-  // Create payment intent on mount - only once
+  // Create payment intent if not provided
   useEffect(() => {
+    // If clientSecret was provided as prop, use it
+    if (providedClientSecret) {
+      setClientSecret(providedClientSecret);
+      return;
+    }
+
+    // Don't create if already created or in progress
+    if (hasCreatedIntent.current || isCreatingIntent || clientSecret) return;
+    
     const createPaymentIntent = async () => {
-      if (hasCreatedIntent.current || isCreatingIntent || clientSecret) return;
-      
       hasCreatedIntent.current = true;
       setIsCreatingIntent(true);
       
@@ -59,7 +73,7 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
         }
       } catch (err: any) {
         console.error("[StripeWallet] Error creating payment intent:", err);
-        hasCreatedIntent.current = false; // Allow retry
+        hasCreatedIntent.current = false;
         onError?.(err.message || "Erreur lors de la création du paiement");
       } finally {
         setIsCreatingIntent(false);
@@ -67,7 +81,7 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
     };
 
     createPaymentIntent();
-  }, [amountInCents, metadataString, demarcheId]);
+  }, [providedClientSecret, amountInCents, metadata, demarcheId, isCreatingIntent, clientSecret, onError]);
 
   // Setup PaymentRequest when stripe and clientSecret are ready
   useEffect(() => {
@@ -99,20 +113,25 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
       } else {
         setShowNotAvailable(true);
       }
+    }).catch((err) => {
+      console.error("[StripeWallet] canMakePayment error:", err);
+      setShowNotAvailable(true);
     });
 
     pr.on("paymentmethod", async (e) => {
       console.log("[StripeWallet] Payment method received:", e.paymentMethod.id);
       
       try {
-        // Confirm the payment with Stripe using confirmPayment (works with automatic_payment_methods)
-        const { error, paymentIntent } = await stripe.confirmPayment({
+        // Confirm the payment with Stripe
+        const { error, paymentIntent } = await stripe.confirmCardPayment(
           clientSecret,
-          confirmParams: {
+          {
             payment_method: e.paymentMethod.id,
           },
-          redirect: "if_required",
-        });
+          {
+            handleActions: false,
+          }
+        );
 
         if (error) {
           console.error("[StripeWallet] Payment confirmation error:", error);
@@ -121,17 +140,32 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
           return;
         }
 
-        if (paymentIntent?.status === "succeeded") {
-          // Payment succeeded
+        if (paymentIntent?.status === "requires_action") {
+          console.log("[StripeWallet] Payment requires 3DS action");
+          // Handle 3DS authentication
+          const { error: actionError, paymentIntent: confirmedIntent } = await stripe.confirmCardPayment(clientSecret);
+          
+          if (actionError) {
+            console.error("[StripeWallet] 3DS action error:", actionError);
+            e.complete("fail");
+            onError?.(actionError.message || "Authentification échouée");
+            return;
+          }
+
+          if (confirmedIntent?.status === "succeeded") {
+            e.complete("success");
+            console.log("[StripeWallet] Payment succeeded after 3DS:", confirmedIntent.id);
+            onSuccess();
+          } else {
+            e.complete("fail");
+            onError?.("Le paiement n'a pas pu être complété");
+          }
+        } else if (paymentIntent?.status === "succeeded") {
           e.complete("success");
-          console.log("[StripeWallet] Payment succeeded:", paymentIntent?.id);
+          console.log("[StripeWallet] Payment succeeded:", paymentIntent.id);
           onSuccess();
-        } else if (paymentIntent?.status === "requires_action") {
-          console.log("[StripeWallet] Payment requires action");
-          e.complete("fail");
-          onError?.("Action supplémentaire requise - veuillez utiliser le paiement par carte");
         } else {
-          console.log("[StripeWallet] Payment status:", paymentIntent?.status);
+          console.log("[StripeWallet] Unexpected payment status:", paymentIntent?.status);
           e.complete("fail");
           onError?.("Le paiement n'a pas pu être complété");
         }
@@ -143,7 +177,6 @@ export const StripeWalletPayment = ({ amount, onSuccess, onError, metadata, dema
     });
 
     return () => {
-      // Cleanup
       if (paymentRequestRef.current) {
         paymentRequestRef.current.off("paymentmethod");
       }
