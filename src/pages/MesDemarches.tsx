@@ -164,11 +164,12 @@ export default function MesDemarches() {
     if (garageData) {
       setGarage(garageData);
 
-      // Load demarches
+      // Load demarches - only show paid or free token demarches (exclude unpaid drafts)
       const { data: demarchesData } = await supabase
         .from('demarches')
         .select('*')
         .eq('garage_id', garageData.id)
+        .or('paye.eq.true,is_free_token.eq.true')
         .order('created_at', { ascending: false });
 
       if (demarchesData) {
