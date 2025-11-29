@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 import { getSupabaseErrorMessage } from "@/lib/error-messages";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -54,6 +55,42 @@ export default function Register() {
         description: "Les mots de passe ne correspondent pas",
         variant: "destructive"
       });
+      return;
+    }
+
+    setLoading(true);
+
+    // Vérifier si le SIRET existe déjà AVANT de créer le compte
+    const { data: existingSiret } = await supabase
+      .from("garages")
+      .select("id")
+      .eq("siret", siretClean)
+      .maybeSingle();
+
+    if (existingSiret) {
+      toast({
+        title: "SIRET déjà enregistré",
+        description: "Ce numéro SIRET est déjà associé à un compte. Veuillez vous connecter ou utiliser un autre SIRET.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Vérifier si l'email existe déjà dans les garages
+    const { data: existingEmail } = await supabase
+      .from("garages")
+      .select("id")
+      .eq("email", formData.email)
+      .maybeSingle();
+
+    if (existingEmail) {
+      toast({
+        title: "Email déjà utilisé",
+        description: "Cette adresse email est déjà associée à un compte garage. Veuillez vous connecter ou utiliser un autre email.",
+        variant: "destructive"
+      });
+      setLoading(false);
       return;
     }
 
