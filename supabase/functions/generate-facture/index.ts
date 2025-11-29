@@ -44,7 +44,7 @@ async function generateFacturePDF(
   let y = height - margin;
   
   // Header
-  page.drawText("DiscountCarteGrise", { x: margin, y, size: 24, font: fontBold, color: blue });
+  page.drawText("DISCOUNT AUTO PARE BRISE", { x: margin, y, size: 20, font: fontBold, color: blue });
   
   const date = new Date(facture.created_at).toLocaleDateString("fr-FR");
   page.drawText(`Facture N° ${facture.numero}`, { x: width - margin - 180, y, size: 16, font: fontBold, color: blue });
@@ -61,7 +61,7 @@ async function generateFacturePDF(
   page.drawText("CLIENT", { x: width / 2, y, size: 10, font: fontBold, color: gray });
   
   y -= 20;
-  page.drawText("DiscountCarteGrise", { x: margin, y, size: 12, font: fontBold, color: black });
+  page.drawText("DISCOUNT AUTO PARE BRISE", { x: margin, y, size: 12, font: fontBold, color: black });
   page.drawText(garage?.raison_sociale || "Client", { x: width / 2, y, size: 12, font: fontBold, color: black });
   
   y -= 15;
@@ -69,7 +69,7 @@ async function generateFacturePDF(
   page.drawText(garage?.adresse || "", { x: width / 2, y, size: 10, font: fontRegular, color: gray });
   
   y -= 12;
-  page.drawText("SIRET : 123 456 789 00012", { x: margin, y, size: 10, font: fontRegular, color: gray });
+  page.drawText("SIRET : 83088827700027", { x: margin, y, size: 10, font: fontRegular, color: gray });
   page.drawText(`${garage?.code_postal || ""} ${garage?.ville || ""}`, { x: width / 2, y, size: 10, font: fontRegular, color: gray });
   
   y -= 12;
@@ -213,7 +213,7 @@ async function generateFacturePDF(
   y = margin + 40;
   page.drawLine({ start: { x: margin, y }, end: { x: width - margin, y }, thickness: 1, color: rgb(0.9, 0.9, 0.9) });
   y -= 15;
-  page.drawText("DiscountCarteGrise - Service agree de cartes grises", { x: width / 2 - 120, y, size: 9, font: fontRegular, color: gray });
+  page.drawText("DISCOUNT AUTO PARE BRISE - Service agree de cartes grises", { x: width / 2 - 140, y, size: 9, font: fontRegular, color: gray });
   y -= 12;
   page.drawText("Cette facture a ete generee automatiquement et est valable sans signature.", { x: width / 2 - 160, y, size: 8, font: fontRegular, color: gray });
   
