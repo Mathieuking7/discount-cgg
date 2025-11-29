@@ -138,11 +138,14 @@ export default function NouvelleDemarche() {
     }
   }, [carteGrisePrice, trackingServicePrice, demarcheId, actionDetails, formData.type]);
 
+  // Jeton gratuit uniquement pour DA et DC
+  const isFreeTokenEligible = freeTokenAvailable && (formData.type === 'DA' || formData.type === 'DC');
+
   const updateDemarcheMontant = async () => {
     if (!demarcheId || !actionDetails) return;
 
-    // Frais de dossier = prix de l'action (0 si jeton gratuit)
-    const fraisDossierHT = freeTokenAvailable ? 0 : actionDetails.prix;
+    // Frais de dossier = prix de l'action (0 si jeton gratuit ET DA/DC)
+    const fraisDossierHT = isFreeTokenEligible ? 0 : actionDetails.prix;
     
     // Prix carte grise (taxe régionale, exonérée TVA) - 0 pour DA/DC
     const prixCarteGrise = (formData.type === 'DA' || formData.type === 'DC') ? 0 : carteGrisePrice;
@@ -286,8 +289,8 @@ export default function NouvelleDemarche() {
 
 
   const getFraisDossier = () => {
-    // Si jeton gratuit disponible, le prix de l'action est 0
-    if (freeTokenAvailable) return 0;
+    // Si jeton gratuit disponible ET DA/DC, le prix de l'action est 0
+    if (isFreeTokenEligible) return 0;
     return actionDetails?.prix || 0;
   };
 
@@ -389,8 +392,8 @@ export default function NouvelleDemarche() {
       })
       .eq('id', demarcheId);
 
-    // Si jeton gratuit utilisé, le marquer comme consommé
-    if (freeTokenAvailable && garage) {
+    // Si jeton gratuit utilisé (DA/DC uniquement), le marquer comme consommé
+    if (isFreeTokenEligible && garage) {
       await supabase
         .from('garages')
         .update({ free_token_available: false })
@@ -518,14 +521,21 @@ export default function NouvelleDemarche() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {freeTokenAvailable && (
+            {isFreeTokenEligible && (
               <Alert className="mb-6 border-2 border-green-500 bg-green-500/10">
                 <Gift className="h-5 w-5 text-green-500" />
                 <AlertTitle className="text-green-600 font-bold">🎁 Offre de bienvenue activée</AlertTitle>
                 <AlertDescription className="text-green-600">
-                  Les frais de dossier sont offerts pour cette démarche ! 
-                  {(formData.type !== 'DA' && formData.type !== 'DC') && " Seule la taxe régionale carte grise reste à payer."}
-                  {(formData.type === 'DA' || formData.type === 'DC') && " Cette démarche sera entièrement gratuite."}
+                  Les frais de dossier sont offerts pour cette démarche ! Cette démarche sera entièrement gratuite.
+                </AlertDescription>
+              </Alert>
+            )}
+            {freeTokenAvailable && !isFreeTokenEligible && (formData.type === 'DA' || formData.type === 'DC' || !formData.type) && (
+              <Alert className="mb-6 border-2 border-blue-500 bg-blue-500/10">
+                <Gift className="h-5 w-5 text-blue-500" />
+                <AlertTitle className="text-blue-600 font-bold">💡 Offre de bienvenue disponible</AlertTitle>
+                <AlertDescription className="text-blue-600">
+                  Votre jeton gratuit est utilisable uniquement pour une Déclaration de cession ou une Déclaration d'achat.
                 </AlertDescription>
               </Alert>
             )}
@@ -543,7 +553,7 @@ export default function NouvelleDemarche() {
                   <SelectContent>
                     {actionsRapides.map((action) => (
                       <SelectItem key={action.id} value={action.code}>
-                        {action.titre} - {freeTokenAvailable ? '0€ (offert)' : `${action.prix}€`}
+                        {action.titre} - {(freeTokenAvailable && (action.code === 'DA' || action.code === 'DC')) ? '0€ (offert)' : `${action.prix}€`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -797,9 +807,9 @@ export default function NouvelleDemarche() {
                 type="submit"
                 size="lg" 
                 disabled={loading || !selectedImmatriculation.trim() || ((formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice === 0)}
-                className={`w-full ${freeTokenAvailable ? 'bg-green-500 hover:bg-green-600' : 'bg-success hover:bg-success/90'}`}
+                className={`w-full ${isFreeTokenEligible ? 'bg-green-500 hover:bg-green-600' : 'bg-success hover:bg-success/90'}`}
               >
-                {freeTokenAvailable && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())}€ HT`}
+                {isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())}€ HT`}
               </Button>
             </form>
 
@@ -807,15 +817,15 @@ export default function NouvelleDemarche() {
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>
-                      {freeTokenAvailable ? '🎁 Confirmation de votre démarche offerte' : 'Paiement de la démarche'}
+                      {isFreeTokenEligible ? '🎁 Confirmation de votre démarche offerte' : 'Paiement de la démarche'}
                     </DialogTitle>
                     <DialogDescription>
-                      {freeTokenAvailable && (
+                      {isFreeTokenEligible && (
                         <span className="block text-green-600 font-medium mb-2">
                           Votre jeton gratuit sera utilisé pour cette démarche.
                         </span>
                       )}
-                      Frais de dossier : {freeTokenAvailable ? (
+                      Frais de dossier : {isFreeTokenEligible ? (
                         <><span className="line-through text-muted-foreground">{formatPrice(getOriginalFraisDossier())}€</span> <span className="text-green-600 font-bold">0€ (offert)</span></>
                       ) : `${formatPrice(getFraisDossier())}€`}
                       {(formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice > 0 && ` + Prix carte grise : ${formatPrice(carteGrisePrice)}€`}
