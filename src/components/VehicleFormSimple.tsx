@@ -4,15 +4,35 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Plus, Search, Loader2 } from "lucide-react";
+import { Car, Plus, Search, Loader2, Edit } from "lucide-react";
 import { getVehicleByPlate } from "@/lib/vehicle-api";
 
 interface VehicleFormSimpleProps {
   garageId: string;
   onVehicleSelect: (vehicleId: string, immatriculation: string) => void;
   selectedVehicleId?: string | null;
+}
+
+// Convertir une date DD-MM-YYYY en YYYY-MM-DD pour PostgreSQL
+function formatDateForDB(dateStr: string | undefined): string | null {
+  if (!dateStr) return null;
+  
+  // Si déjà au format YYYY-MM-DD, retourner tel quel
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Convertir DD-MM-YYYY en YYYY-MM-DD
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const [day, month, year] = parts;
+    if (day && month && year) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+  
+  return null;
 }
 
 export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId }: VehicleFormSimpleProps) {
@@ -24,12 +44,14 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
   const [loading, setLoading] = useState(false);
   const [fetchingVehicle, setFetchingVehicle] = useState(false);
   const [vehicleData, setVehicleData] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [manualMode, setManualMode] = useState(false);
+  const [manualData, setManualData] = useState({
     immatriculation: "",
     marque: "",
     modele: "",
     vin: ""
   });
+  const [plateInput, setPlateInput] = useState("");
 
   useEffect(() => {
     loadVehicles();
@@ -62,7 +84,7 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
   };
 
   const handleFetchVehicle = async () => {
-    const plateToSearch = formData.immatriculation.trim();
+    const plateToSearch = plateInput.trim();
     if (!plateToSearch) {
       toast({
         title: "Erreur",
@@ -77,28 +99,39 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
       const result = await getVehicleByPlate(plateToSearch);
 
       if (result.success && result.data) {
-        // Stocker l'immatriculation saisie avec les données du véhicule
         const vehicleWithPlate = {
           ...result.data,
           immatriculation: plateToSearch.toUpperCase()
         };
         setVehicleData(vehicleWithPlate);
+        setManualMode(false);
         toast({
           title: "Véhicule trouvé",
           description: `${result.data.marque} ${result.data.modele}`
         });
       } else {
+        // Passer en mode manuel si véhicule non trouvé
+        setManualMode(true);
+        setManualData(prev => ({
+          ...prev,
+          immatriculation: plateToSearch.toUpperCase()
+        }));
         toast({
           title: "Véhicule non trouvé",
-          description: "Vous pouvez remplir les informations manuellement",
+          description: "Veuillez saisir les informations manuellement",
           variant: "destructive"
         });
       }
     } catch (error) {
       console.error("Erreur API:", error);
+      setManualMode(true);
+      setManualData(prev => ({
+        ...prev,
+        immatriculation: plateToSearch.toUpperCase()
+      }));
       toast({
-        title: "Erreur",
-        description: "Impossible de récupérer les données du véhicule",
+        title: "Erreur API",
+        description: "Veuillez saisir les informations manuellement",
         variant: "destructive"
       });
     } finally {
@@ -106,10 +139,8 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
     }
   };
 
-  const handleSubmit = async () => {
-    const plateToSave = vehicleData?.immatriculation || formData.immatriculation.trim();
-    
-    if (!plateToSave) {
+  const handleSubmitAPI = async () => {
+    if (!vehicleData?.immatriculation) {
       toast({
         title: "Erreur",
         description: "L'immatriculation est obligatoire",
@@ -121,20 +152,18 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
     setLoading(true);
 
     try {
-      console.log("Saving vehicle with data:", { plateToSave, vehicleData, garageId });
-      
       const { data, error } = await supabase
         .from('vehicules')
         .insert({
           garage_id: garageId,
-          immatriculation: plateToSave.toUpperCase(),
+          immatriculation: vehicleData.immatriculation.toUpperCase(),
           marque: vehicleData?.marque || null,
           modele: vehicleData?.modele || null,
           energie: vehicleData?.energie || null,
-          puiss_fisc: vehicleData?.puissance_fiscale || null,
-          date_mec: vehicleData?.date_mec || null,
+          puiss_fisc: vehicleData?.puissance_fiscale ? Number(vehicleData.puissance_fiscale) : null,
+          date_mec: formatDateForDB(vehicleData?.date_mec),
           couleur: vehicleData?.couleur || null,
-          co2: vehicleData?.co2 || null
+          co2: vehicleData?.co2 ? Number(vehicleData.co2) : null
         })
         .select()
         .single();
@@ -146,17 +175,10 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
 
       toast({
         title: "Succès",
-        description: "Véhicule enregistré, vous pouvez maintenant télécharger vos documents"
+        description: "Véhicule enregistré"
       });
 
-      setFormData({
-        immatriculation: "",
-        marque: "",
-        modele: "",
-        vin: ""
-      });
-      setVehicleData(null);
-      setShowForm(false);
+      resetForm();
       await loadVehicles();
       
       if (data) {
@@ -172,6 +194,76 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmitManual = async () => {
+    if (!manualData.immatriculation.trim()) {
+      toast({
+        title: "Erreur",
+        description: "L'immatriculation est obligatoire",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!manualData.marque.trim() || !manualData.modele.trim()) {
+      toast({
+        title: "Erreur",
+        description: "La marque et le modèle sont obligatoires",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('vehicules')
+        .insert({
+          garage_id: garageId,
+          immatriculation: manualData.immatriculation.toUpperCase(),
+          marque: manualData.marque.trim(),
+          modele: manualData.modele.trim(),
+          vin: manualData.vin.trim() || null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("DB Error:", error);
+        throw error;
+      }
+
+      toast({
+        title: "Succès",
+        description: "Véhicule enregistré"
+      });
+
+      resetForm();
+      await loadVehicles();
+      
+      if (data) {
+        onVehicleSelect(data.id, data.immatriculation);
+      }
+    } catch (error: any) {
+      console.error("Erreur:", error);
+      toast({
+        title: "Erreur",
+        description: error?.message || "Impossible d'ajouter le véhicule",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setPlateInput("");
+    setVehicleData(null);
+    setManualMode(false);
+    setManualData({ immatriculation: "", marque: "", modele: "", vin: "" });
+    setShowForm(false);
   };
 
   const handleVehicleSelect = (vehicleId: string) => {
@@ -191,7 +283,13 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) {
+                resetForm();
+              } else {
+                setShowForm(true);
+              }
+            }}
             className="ml-2"
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -202,7 +300,8 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
       <CardContent className="space-y-4">
         {showForm ? (
           <div className="space-y-4">
-            {!vehicleData ? (
+            {/* Étape 1: Recherche par immatriculation */}
+            {!vehicleData && !manualMode && (
               <>
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-900">
                   <p className="font-medium mb-1">Formats d'immatriculation acceptés :</p>
@@ -218,15 +317,15 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
                     <Input
                       id="immatriculation"
                       placeholder="AA-123-AA ou 1234 ABC 45"
-                      value={formData.immatriculation}
-                      onChange={(e) => setFormData({ ...formData, immatriculation: e.target.value.toUpperCase() })}
+                      value={plateInput}
+                      onChange={(e) => setPlateInput(e.target.value.toUpperCase())}
                       className="flex-1"
                     />
                     <Button
                       type="button"
                       variant="secondary"
                       onClick={handleFetchVehicle}
-                      disabled={fetchingVehicle || !formData.immatriculation.trim()}
+                      disabled={fetchingVehicle || !plateInput.trim()}
                     >
                       {fetchingVehicle ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -236,12 +335,26 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
                     </Button>
                   </div>
                 </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setManualMode(true)}
+                  className="text-muted-foreground"
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Saisie manuelle
+                </Button>
               </>
-            ) : (
+            )}
+
+            {/* Affichage données API */}
+            {vehicleData && !manualMode && (
               <>
                 <div className="p-4 bg-green-50 border border-green-200 rounded-md">
                   <h4 className="font-semibold text-green-900 mb-2">Informations du véhicule</h4>
-                  <div className="space-y-1 text-sm text-green-800">
+                  <div className="grid grid-cols-2 gap-2 text-sm text-green-800">
                     <p><strong>Immatriculation:</strong> {vehicleData.immatriculation}</p>
                     {vehicleData.marque && <p><strong>Marque:</strong> {vehicleData.marque}</p>}
                     {vehicleData.modele && <p><strong>Modèle:</strong> {vehicleData.modele}</p>}
@@ -259,7 +372,7 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
                     variant="outline"
                     onClick={() => {
                       setVehicleData(null);
-                      setFormData({ immatriculation: "", marque: "", modele: "", vin: "" });
+                      setPlateInput("");
                     }}
                     className="flex-1"
                   >
@@ -267,8 +380,83 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
                   </Button>
                   <Button
                     type="button"
-                    onClick={handleSubmit}
+                    onClick={handleSubmitAPI}
                     disabled={loading}
+                    className="flex-1"
+                  >
+                    {loading ? "Enregistrement..." : "Valider"}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Mode saisie manuelle */}
+            {manualMode && (
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-900">
+                  <p className="font-medium">Saisie manuelle</p>
+                  <p>Renseignez les informations du véhicule.</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-immat">Immatriculation *</Label>
+                    <Input
+                      id="manual-immat"
+                      placeholder="AA-123-AA"
+                      value={manualData.immatriculation}
+                      onChange={(e) => setManualData({ ...manualData, immatriculation: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-marque">Marque *</Label>
+                      <Input
+                        id="manual-marque"
+                        placeholder="RENAULT"
+                        value={manualData.marque}
+                        onChange={(e) => setManualData({ ...manualData, marque: e.target.value.toUpperCase() })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-modele">Modèle *</Label>
+                      <Input
+                        id="manual-modele"
+                        placeholder="CLIO"
+                        value={manualData.modele}
+                        onChange={(e) => setManualData({ ...manualData, modele: e.target.value.toUpperCase() })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="manual-vin">VIN (optionnel)</Label>
+                    <Input
+                      id="manual-vin"
+                      placeholder="VF1ABC123456789"
+                      value={manualData.vin}
+                      onChange={(e) => setManualData({ ...manualData, vin: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setManualMode(false);
+                      setManualData({ immatriculation: "", marque: "", modele: "", vin: "" });
+                    }}
+                    className="flex-1"
+                  >
+                    Retour
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSubmitManual}
+                    disabled={loading || !manualData.immatriculation.trim() || !manualData.marque.trim() || !manualData.modele.trim()}
                     className="flex-1"
                   >
                     {loading ? "Enregistrement..." : "Valider"}
@@ -279,7 +467,7 @@ export function VehicleFormSimple({ garageId, onVehicleSelect, selectedVehicleId
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Barre de recherche améliorée */}
+            {/* Barre de recherche */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
