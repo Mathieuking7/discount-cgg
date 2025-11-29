@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, FileCheck, Plus, Gift, FileText, X } from "lucide-react";
+import { ArrowLeft, FileCheck, Plus, Gift, FileText, X, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +18,8 @@ import { VehicleFormSimple } from "@/components/VehicleFormSimple";
 import { TrackingServiceOption } from "@/components/TrackingServiceOption";
 import { StripePayment } from "@/components/StripePayment";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { formatPrice } from "@/lib/utils";
+import { extractCerfaNumber, getCerfaUrl, cerfaExists } from "@/lib/cerfa-utils";
 
 
 export default function NouvelleDemarche() {
@@ -608,11 +610,62 @@ export default function NouvelleDemarche() {
                       <span className="text-destructive text-base font-bold">*</span> = Document obligatoire
                     </p>
                     
-                    <div className="space-y-3">
+                <div className="space-y-3">
                       {documentsRequis.map((doc, idx) => {
                         const docName = doc.nom_document.toLowerCase();
                         // Vérifier si le document contient "recto/verso" ou "recto verso"
                         const hasRectoVerso = docName.includes('recto/verso') || docName.includes('recto verso');
+                        
+                        // Vérifier si c'est un CERFA téléchargeable
+                        const cerfaNumber = extractCerfaNumber(doc.nom_document);
+                        const hasCerfa = cerfaNumber && cerfaExists(cerfaNumber);
+                        
+                        // Fonction pour rendre le label avec lien CERFA
+                        const renderDocLabel = (labelText: string, isObligatoire: boolean) => {
+                          if (!hasCerfa || !cerfaNumber) {
+                            return (
+                              <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                                {labelText}
+                                {isObligatoire ? (
+                                  <span className="text-destructive text-base font-bold">*</span>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">(optionnel)</span>
+                                )}
+                              </Label>
+                            );
+                          }
+                          
+                          // Séparer le texte pour mettre le CERFA en lien cliquable
+                          const cerfaRegex = /(\(cerfa\s+\d+\*\d+\))/i;
+                          const parts = labelText.split(cerfaRegex);
+                          
+                          return (
+                            <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                              {parts.map((part, index) => {
+                                if (cerfaRegex.test(part)) {
+                                  return (
+                                    <a
+                                      key={index}
+                                      href={getCerfaUrl(cerfaNumber)}
+                                      download
+                                      className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {part}
+                                      <Download className="h-3 w-3" />
+                                    </a>
+                                  );
+                                }
+                                return <span key={index}>{part}</span>;
+                              })}
+                              {isObligatoire ? (
+                                <span className="text-destructive text-base font-bold">*</span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">(optionnel)</span>
+                              )}
+                            </Label>
+                          );
+                        };
                         
                         // Si le document contient "recto/verso", le dédoubler
                         if (hasRectoVerso) {
@@ -625,14 +678,7 @@ export default function NouvelleDemarche() {
                             <div key={doc.id} className="space-y-3">
                               <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                  <Label className="text-sm font-medium flex items-center gap-2">
-                                    {doc.nom_document}
-                                    {doc.obligatoire ? (
-                                      <span className="text-destructive text-base font-bold">*</span>
-                                    ) : (
-                                      <span className="text-muted-foreground text-xs">(optionnel)</span>
-                                    )}
-                                  </Label>
+                                  {renderDocLabel(doc.nom_document, doc.obligatoire)}
                                 </div>
                                 <div className="w-[400px]">
                                   <DocumentUpload
@@ -667,14 +713,7 @@ export default function NouvelleDemarche() {
                         return (
                           <div key={doc.id} className="flex items-center gap-4">
                             <div className="flex-1">
-                              <Label className="text-sm font-medium flex items-center gap-2">
-                                {doc.nom_document}
-                                {doc.obligatoire ? (
-                                  <span className="text-destructive text-base font-bold">*</span>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs">(optionnel)</span>
-                                )}
-                              </Label>
+                              {renderDocLabel(doc.nom_document, doc.obligatoire)}
                             </div>
                             <div className="w-[400px]">
                               <DocumentUpload
@@ -760,7 +799,7 @@ export default function NouvelleDemarche() {
                 disabled={loading || !selectedImmatriculation.trim() || ((formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice === 0)}
                 className={`w-full ${freeTokenAvailable ? 'bg-green-500 hover:bg-green-600' : 'bg-success hover:bg-success/90'}`}
               >
-                {freeTokenAvailable && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${getTotalPrice()}€ HT`}
+                {freeTokenAvailable && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())}€ HT`}
               </Button>
             </form>
 
@@ -777,12 +816,12 @@ export default function NouvelleDemarche() {
                         </span>
                       )}
                       Frais de dossier : {freeTokenAvailable ? (
-                        <><span className="line-through text-muted-foreground">{getOriginalFraisDossier()}€</span> <span className="text-green-600 font-bold">0€ (offert)</span></>
-                      ) : `${getFraisDossier()}€`}
-                      {(formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice > 0 && ` + Prix carte grise : ${carteGrisePrice.toFixed(2)}€`}
-                      {trackingServicePrice > 0 && ` + Service de suivi : ${trackingServicePrice.toFixed(2)}€`}
+                        <><span className="line-through text-muted-foreground">{formatPrice(getOriginalFraisDossier())}€</span> <span className="text-green-600 font-bold">0€ (offert)</span></>
+                      ) : `${formatPrice(getFraisDossier())}€`}
+                      {(formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice > 0 && ` + Prix carte grise : ${formatPrice(carteGrisePrice)}€`}
+                      {trackingServicePrice > 0 && ` + Service de suivi : ${formatPrice(trackingServicePrice)}€`}
                       <br />
-                      Montant total : {getTotalPrice()}€
+                      Montant total : {formatPrice(getTotalPrice())}€
                     </DialogDescription>
                   </DialogHeader>
                   <div className="py-4">

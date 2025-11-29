@@ -13,6 +13,7 @@ import { PayPalButton } from "@/components/PayPalButton";
 import { StripeWalletPayment } from "@/components/StripeWalletPayment";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PaymentDetailsSummary, type PaymentCalculationResult } from "@/components/payment/PaymentDetailsSummary";
+import { formatPrice } from "@/lib/utils";
 
 const StripeCardForm = ({ clientSecret, onSuccess }: { clientSecret: string; onSuccess: () => void }) => {
   const stripe = useStripe();
@@ -351,13 +352,13 @@ const PaiementDemarche = () => {
                         <h3 className="text-xl font-bold">Payez en 4x sans frais</h3>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">{(finalAmount / 4).toFixed(2)} €</p>
+                        <p className="text-2xl font-bold text-primary">{formatPrice(finalAmount / 4)} €</p>
                         <p className="text-sm text-muted-foreground">par mois</p>
                       </div>
                     </div>
                     
                     <p className="text-sm text-muted-foreground">
-                      soit 4 mensualités de <span className="font-semibold text-foreground">{(finalAmount / 4).toFixed(2)} €</span>
+                      soit 4 mensualités de <span className="font-semibold text-foreground">{formatPrice(finalAmount / 4)} €</span>
                     </p>
                     
                     <PayPalButton
@@ -460,7 +461,7 @@ const PaiementDemarche = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-base font-semibold">Total TTC</span>
                     <span className="text-2xl font-bold text-primary">
-                      {finalAmount.toFixed(2)}€
+                      {formatPrice(finalAmount)}€
                     </span>
                   </div>
                 </div>

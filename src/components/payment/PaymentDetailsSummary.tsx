@@ -1,4 +1,5 @@
 import { Separator } from "@/components/ui/separator";
+import { formatPrice } from "@/lib/utils";
 
 // Types pour les services de suivi
 export interface TrackingService {
@@ -104,7 +105,7 @@ export const PaymentDetailsSummary = ({
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Taxe régionale</span>
               <div className="text-right">
-                <span className="font-medium">{prixCarteGrise.toFixed(2)} €</span>
+                <span className="font-medium">{formatPrice(prixCarteGrise)} €</span>
                 <span className="text-xs text-muted-foreground ml-1">(exonéré TVA)</span>
               </div>
             </div>
@@ -124,7 +125,7 @@ export const PaymentDetailsSummary = ({
             {fraisDossierHT > 0 && (
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Frais de dossier</span>
-                <span>{fraisDossierHT.toFixed(2)} €</span>
+                <span>{formatPrice(fraisDossierHT)} €</span>
               </div>
             )}
 
@@ -134,7 +135,7 @@ export const PaymentDetailsSummary = ({
                 <span className="text-muted-foreground">
                   {SERVICE_LABELS[service.service_type] || service.service_type}
                 </span>
-                <span>{service.price.toFixed(2)} €</span>
+                <span>{formatPrice(service.price)} €</span>
               </div>
             ))}
           </div>
@@ -148,18 +149,18 @@ export const PaymentDetailsSummary = ({
             <>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Total HT (services)</span>
-                <span>{totalServicesHT.toFixed(2)} €</span>
+                <span>{formatPrice(totalServicesHT)} €</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">TVA (20%)</span>
-                <span>{tva.toFixed(2)} €</span>
+                <span>{formatPrice(tva)} €</span>
               </div>
               <Separator className="my-2" />
             </>
           )}
           <div className="flex justify-between items-center font-semibold">
             <span>Total TTC</span>
-            <span className="text-lg text-primary">{totalTTC.toFixed(2)} €</span>
+            <span className="text-lg text-primary">{formatPrice(totalTTC)} €</span>
           </div>
         </div>
       </div>
@@ -183,7 +184,7 @@ export const PaymentDetailsSummary = ({
             <span className="text-muted-foreground">
               {actionRapideTitre || "Frais de dossier"}
             </span>
-            <span>{fraisDossierHT.toFixed(2)} €</span>
+            <span>{formatPrice(fraisDossierHT)} €</span>
           </div>
         )}
 
@@ -193,7 +194,7 @@ export const PaymentDetailsSummary = ({
             <span className="text-muted-foreground">
               {SERVICE_LABELS[service.service_type] || service.service_type}
             </span>
-            <span>{service.price.toFixed(2)} €</span>
+            <span>{formatPrice(service.price)} €</span>
           </div>
         ))}
       </div>
@@ -204,16 +205,16 @@ export const PaymentDetailsSummary = ({
       <div className="space-y-2">
         <div className="flex justify-between items-center text-sm">
           <span className="text-muted-foreground">Total HT</span>
-          <span>{totalServicesHT.toFixed(2)} €</span>
+          <span>{formatPrice(totalServicesHT)} €</span>
         </div>
         <div className="flex justify-between items-center text-sm">
           <span className="text-muted-foreground">TVA (20%)</span>
-          <span>{tva.toFixed(2)} €</span>
+          <span>{formatPrice(tva)} €</span>
         </div>
         <Separator className="my-2" />
         <div className="flex justify-between items-center font-semibold">
           <span>Total TTC</span>
-          <span className="text-lg text-primary">{totalTTC.toFixed(2)} €</span>
+          <span className="text-lg text-primary">{formatPrice(totalTTC)} €</span>
         </div>
       </div>
     </div>

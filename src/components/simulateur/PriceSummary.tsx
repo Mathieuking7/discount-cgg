@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Car, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { formatPrice } from "@/lib/utils";
 
 interface VehicleInfo {
   marque?: string;
@@ -111,7 +112,7 @@ export const PriceSummary = ({
           {!isOpen && (
             <div className="flex justify-between items-center text-xl font-bold">
               <span>Total TTC</span>
-              <span className="text-primary">{totalTTC.toFixed(2)} €</span>
+              <span className="text-primary">{formatPrice(totalTTC)} €</span>
             </div>
           )}
 
@@ -146,7 +147,7 @@ export const PriceSummary = ({
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Taxe régionale</span>
-                  <span className="font-medium">{prixCarteGrise.toFixed(2)} €</span>
+                  <span className="font-medium">{formatPrice(prixCarteGrise)} €</span>
                 </div>
               </div>
 
@@ -157,36 +158,36 @@ export const PriceSummary = ({
                 </p>
                 <div className="flex justify-between items-center text-sm">
                   <span>Frais de dossier</span>
-                  <span className="font-medium">{fraisDossier.toFixed(2)} €</span>
+                  <span className="font-medium">{formatPrice(fraisDossier)} €</span>
                 </div>
                 {selectedOptions?.dossierPrioritaire && (
                   <div className="flex justify-between items-center text-sm">
                     <span>Dossier Prioritaire</span>
-                    <span className="font-medium">{dossierPrioritairePrix.toFixed(2)} €</span>
+                    <span className="font-medium">{formatPrice(dossierPrioritairePrix)} €</span>
                   </div>
                 )}
                 {selectedOptions?.certificatNonGage && (
                   <div className="flex justify-between items-center text-sm">
                     <span>Certificat de non-gage</span>
-                    <span className="font-medium">{certificatNonGagePrix.toFixed(2)} €</span>
+                    <span className="font-medium">{formatPrice(certificatNonGagePrix)} €</span>
                   </div>
                 )}
                 {selectedOptions?.packNotifications && (
                   <div className="flex justify-between items-center text-sm">
                     <span>Pack Suivi Complet</span>
-                    <span className="font-medium">{packPrix.toFixed(2)} €</span>
+                    <span className="font-medium">{formatPrice(packPrix)} €</span>
                   </div>
                 )}
                 {!selectedOptions?.packNotifications && selectedOptions?.emailNotifications && (
                   <div className="flex justify-between items-center text-sm">
                     <span>Suivi par email</span>
-                    <span className="font-medium">{emailPrix.toFixed(2)} €</span>
+                    <span className="font-medium">{formatPrice(emailPrix)} €</span>
                   </div>
                 )}
                 {!selectedOptions?.packNotifications && selectedOptions?.smsNotifications && (
                   <div className="flex justify-between items-center text-sm">
                     <span>Suivi par SMS</span>
-                    <span className="font-medium">{smsPrix.toFixed(2)} €</span>
+                    <span className="font-medium">{formatPrice(smsPrix)} €</span>
                   </div>
                 )}
               </div>
@@ -197,15 +198,15 @@ export const PriceSummary = ({
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
                   <span>Carte grise (exonérée)</span>
-                  <span>{prixCarteGrise.toFixed(2)} €</span>
+                  <span>{formatPrice(prixCarteGrise)} €</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span>Total HT (services)</span>
-                  <span>{totalServicesHT.toFixed(2)} €</span>
+                  <span>{formatPrice(totalServicesHT)} €</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span>TVA (20%)</span>
-                  <span>{tva.toFixed(2)} €</span>
+                  <span>{formatPrice(tva)} €</span>
                 </div>
               </div>
 
@@ -214,7 +215,7 @@ export const PriceSummary = ({
               {/* Total TTC - At bottom when expanded */}
               <div className="flex justify-between items-center text-xl font-bold pt-2">
                 <span>Total TTC</span>
-                <span className="text-primary">{totalTTC.toFixed(2)} €</span>
+                <span className="text-primary">{formatPrice(totalTTC)} €</span>
               </div>
 
               {calculation.abattement && (
