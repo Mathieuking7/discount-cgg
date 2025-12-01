@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Building2, FileText, DollarSign, Mail, Calculator, ShoppingCart, UserCog, Wrench } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Building2, FileText, DollarSign, Mail, Calculator, ShoppingCart, UserCog, Wrench, Bell, AlertCircle } from "lucide-react";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -14,7 +15,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalGarages: 0,
     totalDemarches: 0,
-    demarchesEnAttente: 0,
+    demarchesATraiter: 0,
+    demarchesNonVues: 0,
     totalPaiements: 0
   });
   const [loading, setLoading] = useState(true);
@@ -56,16 +58,25 @@ export default function AdminDashboard() {
 
     const { data: demarches } = await supabase
       .from('demarches')
-      .select('status, montant_ttc');
+      .select('status, montant_ttc, is_draft, paye, is_free_token, admin_viewed');
 
     const { data: paiements } = await supabase
       .from('paiements')
       .select('montant, status');
 
+    // Démarches à traiter = finalisées (pas brouillon) ET (payées OU jeton gratuit)
+    const demarchesATraiter = demarches?.filter(d => 
+      d.is_draft === false && (d.paye === true || d.is_free_token === true)
+    ) || [];
+
+    // Démarches non vues par l'admin
+    const demarchesNonVues = demarchesATraiter.filter(d => !d.admin_viewed);
+
     setStats({
       totalGarages: garages?.length || 0,
       totalDemarches: demarches?.length || 0,
-      demarchesEnAttente: demarches?.filter(d => d.status === 'en_attente' || d.status === 'en_saisie').length || 0,
+      demarchesATraiter: demarchesATraiter.length,
+      demarchesNonVues: demarchesNonVues.length,
       totalPaiements: paiements?.filter(p => p.status === 'valide').reduce((sum, p) => sum + Number(p.montant), 0) || 0
     });
 
@@ -106,6 +117,38 @@ export default function AdminDashboard() {
           </p>
         </div>
 
+        {/* Alerte démarches à traiter */}
+        {stats.demarchesNonVues > 0 && (
+          <Card className="mb-6 border-2 border-red-500 bg-red-50 dark:bg-red-950/20 cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors"
+                onClick={() => navigate("/admin/demarches")}>
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <AlertCircle className="h-8 w-8 text-red-500" />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-bold text-red-700 dark:text-red-400">
+                      {stats.demarchesNonVues} nouvelle{stats.demarchesNonVues > 1 ? 's' : ''} démarche{stats.demarchesNonVues > 1 ? 's' : ''} à traiter !
+                    </p>
+                    <p className="text-sm text-red-600 dark:text-red-500">
+                      Cliquez pour voir les démarches en attente
+                    </p>
+                  </div>
+                </div>
+                <Button className="bg-red-500 hover:bg-red-600">
+                  <Bell className="h-4 w-4 mr-2" />
+                  Voir maintenant
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -121,6 +164,31 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
+          <Card 
+            className="cursor-pointer hover:border-primary transition-colors"
+            onClick={() => navigate("/admin/demarches")}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardDescription className="flex items-center gap-2">
+                À traiter
+                {stats.demarchesNonVues > 0 && (
+                  <Badge className="bg-red-500 text-white animate-pulse">
+                    {stats.demarchesNonVues}
+                  </Badge>
+                )}
+              </CardDescription>
+              <FileText className="h-4 w-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-3xl text-primary">
+                {stats.demarchesATraiter}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Démarches payées/jeton
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardDescription>Total Démarches</CardDescription>
@@ -129,22 +197,7 @@ export default function AdminDashboard() {
             <CardContent>
               <CardTitle className="text-3xl">{stats.totalDemarches}</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Démarches créées
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>En attente</CardDescription>
-              <FileText className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <CardTitle className="text-3xl text-orange-600">
-                {stats.demarchesEnAttente}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
-                À traiter
+                Toutes démarches
               </p>
             </CardContent>
           </Card>
@@ -215,9 +268,14 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <Button
                 variant="outline"
-                className="h-24 flex flex-col items-center justify-center gap-2"
+                className={`h-24 flex flex-col items-center justify-center gap-2 relative ${stats.demarchesNonVues > 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''}`}
                 onClick={() => navigate("/admin/demarches")}
               >
+                {stats.demarchesNonVues > 0 && (
+                  <Badge className="absolute -top-2 -right-2 bg-red-500 text-white animate-pulse">
+                    {stats.demarchesNonVues}
+                  </Badge>
+                )}
                 <FileText className="h-6 w-6" />
                 <span className="text-sm font-medium">Toutes les démarches</span>
               </Button>
