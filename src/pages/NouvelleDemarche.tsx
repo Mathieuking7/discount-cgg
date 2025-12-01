@@ -196,7 +196,7 @@ export default function NouvelleDemarche() {
 
   const loadGarage = async () => {
     if (!user) return;
-
+    
     const { data } = await supabase
       .from('garages')
       .select('*')
@@ -205,7 +205,7 @@ export default function NouvelleDemarche() {
 
     if (data) {
       setGarage(data);
-      setFreeTokenAvailable(data.free_token_available === true);
+      setFreeTokenAvailable(data.free_token_available === true || data.unlimited_free_tokens === true);
     }
   };
 
@@ -400,7 +400,8 @@ export default function NouvelleDemarche() {
       .eq('id', demarcheId);
 
     // Si jeton gratuit utilisé (DA/DC uniquement), le marquer comme consommé
-    if (isFreeTokenEligible && garage) {
+    // Sauf si le garage a des jetons illimités
+    if (isFreeTokenEligible && garage && !garage.unlimited_free_tokens) {
       await supabase
         .from('garages')
         .update({ free_token_available: false })

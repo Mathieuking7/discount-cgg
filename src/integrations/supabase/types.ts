@@ -388,6 +388,7 @@ export type Database = {
           reseau: string | null
           siret: string
           telephone: string
+          unlimited_free_tokens: boolean | null
           updated_at: string
           user_id: string
           verification_requested_at: string | null
@@ -406,6 +407,7 @@ export type Database = {
           reseau?: string | null
           siret: string
           telephone: string
+          unlimited_free_tokens?: boolean | null
           updated_at?: string
           user_id: string
           verification_requested_at?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           reseau?: string | null
           siret?: string
           telephone?: string
+          unlimited_free_tokens?: boolean | null
           updated_at?: string
           user_id?: string
           verification_requested_at?: string | null
