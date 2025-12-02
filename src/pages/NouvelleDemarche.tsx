@@ -399,23 +399,26 @@ export default function NouvelleDemarche() {
       })
       .eq('id', demarcheId);
 
-    // Si jeton gratuit utilisé (DA/DC uniquement), le marquer comme consommé
-    // Sauf si le garage a des jetons illimités
-    if (isFreeTokenEligible && garage && !garage.unlimited_free_tokens) {
-      await supabase
-        .from('garages')
-        .update({ free_token_available: false })
-        .eq('id', garage.id);
-      
-      setFreeTokenAvailable(false);
+    // Charger les données de la démarche pour l'envoi des mails
+    const { data: demarche } = await supabase
+      .from('demarches')
+      .select('*, vehicules(*)')
+      .eq('id', demarcheId)
+      .single();
 
-      // Envoyer notification admin pour démarche offerte
-      const { data: demarche } = await supabase
-        .from('demarches')
-        .select('*, vehicules(*)')
-        .eq('id', demarcheId)
-        .single();
+    // Si jeton gratuit utilisé (DA/DC uniquement)
+    if (isFreeTokenEligible && garage) {
+      // Marquer le jeton comme consommé seulement si ce n'est pas un compte avec jetons illimités
+      if (!garage.unlimited_free_tokens) {
+        await supabase
+          .from('garages')
+          .update({ free_token_available: false })
+          .eq('id', garage.id);
+        
+        setFreeTokenAvailable(false);
+      }
 
+      // Toujours envoyer les mails admin pour les démarches avec jeton gratuit
       if (demarche) {
         const adminEmails = ["contact@discountcartegrise.fr", "mathieugaillac4@gmail.com"];
         for (const adminEmail of adminEmails) {
@@ -453,12 +456,6 @@ export default function NouvelleDemarche() {
       }
     } else {
       // Démarche payante - envoyer email de confirmation au garage
-      const { data: demarche } = await supabase
-        .from('demarches')
-        .select('*, vehicules(*)')
-        .eq('id', demarcheId)
-        .single();
-
       if (demarche && garage) {
         await supabase.functions.invoke("send-email", {
           body: {
