@@ -153,7 +153,7 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center gap-3">
             {user?.email === 'test@test.com' && (
-              <div className="bg-white rounded-lg p-2 shadow-sm">
+              <div className="bg-black rounded-lg p-2 shadow-sm">
                 <img 
                   src="/assets/auto-transfert-logo.png" 
                   alt="Auto Transfert" 
