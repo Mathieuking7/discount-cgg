@@ -152,6 +152,13 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex items-center gap-3">
+            {user?.email === 'test@test.com' && (
+              <img 
+                src="/assets/auto-transfert-logo.png" 
+                alt="Auto Transfert" 
+                className="h-16 w-auto"
+              />
+            )}
             <h2 className="text-3xl font-bold mb-2">Tableau de bord</h2>
             {garage?.is_verified && (
               <Badge className="bg-green-500 mb-2">
