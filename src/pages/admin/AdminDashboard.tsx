@@ -65,6 +65,11 @@ export default function AdminDashboard() {
       .from('paiements')
       .select('montant, status');
 
+    // Fetch token purchases (credit purchases)
+    const { data: tokenPurchases } = await supabase
+      .from('token_purchases')
+      .select('amount');
+
     // Démarches à traiter = finalisées (pas brouillon) ET (payées OU jeton gratuit) ET pas encore finalisées
     const demarchesATraiter = demarches?.filter(d => 
       d.is_draft === false && (d.paye === true || d.is_free_token === true) && d.status !== 'finalise'
@@ -78,12 +83,16 @@ export default function AdminDashboard() {
       g.verification_requested_at && !g.is_verified
     ) || [];
 
+    // Calculate total revenue: validated payments + credit purchases
+    const paiementsTotal = paiements?.filter(p => p.status === 'valide').reduce((sum, p) => sum + Number(p.montant), 0) || 0;
+    const creditsTotal = tokenPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+
     setStats({
       totalGarages: garages?.length || 0,
       totalDemarches: demarches?.length || 0,
       demarchesATraiter: demarchesATraiter.length,
       demarchesNonVues: demarchesNonVues.length,
-      totalPaiements: paiements?.filter(p => p.status === 'valide').reduce((sum, p) => sum + Number(p.montant), 0) || 0,
+      totalPaiements: paiementsTotal + creditsTotal,
       garagesAVerifier: garagesAVerifier.length
     });
 
@@ -251,7 +260,7 @@ export default function AdminDashboard() {
                 {stats.totalPaiements.toFixed(2)} €
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Paiements validés
+                Paiements + achats crédits
               </p>
             </CardContent>
           </Card>
