@@ -36,6 +36,9 @@ export default function ManageGarages() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [garages, setGarages] = useState<any[]>([]);
+  const [garagesAVerifier, setGaragesAVerifier] = useState<any[]>([]);
+  const [garagesVerifies, setGaragesVerifies] = useState<any[]>([]);
+  const [garagesEnAttente, setGaragesEnAttente] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGarage, setSelectedGarage] = useState<any>(null);
   const [verificationDocs, setVerificationDocs] = useState<any[]>([]);
@@ -78,7 +81,25 @@ export default function ManageGarages() {
     if (error) {
       console.error('Error loading garages:', error);
     } else {
-      setGarages(data || []);
+      const allGarages = data || [];
+      
+      // À VÉRIFIER: Garages qui ont soumis des documents mais pas encore vérifiés
+      const aVerifier = allGarages.filter(g => 
+        g.verification_requested_at && !g.is_verified
+      );
+      
+      // VÉRIFIÉS: Garages déjà vérifiés
+      const verifies = allGarages.filter(g => g.is_verified);
+      
+      // EN ATTENTE: Garages qui n'ont pas encore soumis de documents
+      const enAttente = allGarages.filter(g => 
+        !g.verification_requested_at && !g.is_verified
+      );
+      
+      setGarages(allGarages);
+      setGaragesAVerifier(aVerifier);
+      setGaragesVerifies(verifies);
+      setGaragesEnAttente(enAttente);
     }
     setLoading(false);
   };
@@ -280,65 +301,149 @@ export default function ManageGarages() {
           Retour
         </Button>
 
-        <Card className="p-6">
-          <h1 className="text-2xl font-bold mb-6">Gestion des garages</h1>
+        {/* Section À VÉRIFIER - Garages avec documents soumis */}
+        <Card className="p-6 mb-8 border-2 border-orange-500/20 bg-orange-50/5">
+          <div className="flex items-center gap-3 mb-6">
+            <Eye className="h-6 w-6 text-orange-600" />
+            <h1 className="text-2xl font-bold text-orange-700 dark:text-orange-500">Garages à vérifier</h1>
+            <Badge variant="outline" className="border-orange-500 text-orange-600">{garagesAVerifier.length}</Badge>
+          </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Raison sociale</TableHead>
-                <TableHead>SIRET</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Téléphone</TableHead>
-                <TableHead>Statut vérification</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {garages.map((garage) => (
-                <TableRow key={garage.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {garage.raison_sociale}
-                      {garage.is_verified && (
+          {garagesAVerifier.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Aucun garage en attente de vérification</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Raison sociale</TableHead>
+                  <TableHead>SIRET</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Date demande</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {garagesAVerifier.map((garage) => (
+                  <TableRow key={garage.id} className="bg-orange-50/50 dark:bg-orange-950/10">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {garage.raison_sociale}
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                          <Eye className="h-3 w-3 mr-1" />
+                          À vérifier
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>{garage.siret}</TableCell>
+                    <TableCell>{garage.email}</TableCell>
+                    <TableCell>{garage.telephone}</TableCell>
+                    <TableCell>
+                      {new Date(garage.verification_requested_at).toLocaleDateString('fr-FR')}
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" onClick={() => handleViewDocs(garage)} className="bg-orange-600 hover:bg-orange-700">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Vérifier
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+
+        {/* Section VÉRIFIÉS */}
+        <Card className="p-6 mb-8 border-2 border-green-500/20 bg-green-50/5">
+          <div className="flex items-center gap-3 mb-6">
+            <ShieldCheck className="h-6 w-6 text-green-600" />
+            <h1 className="text-2xl font-bold text-green-700 dark:text-green-500">Garages vérifiés</h1>
+            <Badge variant="outline" className="border-green-500 text-green-600">{garagesVerifies.length}</Badge>
+          </div>
+
+          {garagesVerifies.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Aucun garage vérifié</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Raison sociale</TableHead>
+                  <TableHead>SIRET</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {garagesVerifies.map((garage) => (
+                  <TableRow key={garage.id} className="bg-green-50/50 dark:bg-green-950/10">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {garage.raison_sociale}
                         <Badge className="bg-green-500">
                           <ShieldCheck className="h-3 w-3 mr-1" />
                           Vérifié
                         </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{garage.siret}</TableCell>
-                  <TableCell>{garage.email}</TableCell>
-                  <TableCell>{garage.telephone}</TableCell>
-                  <TableCell>
-                    {garage.is_verified ? (
-                      <Badge className="bg-green-500">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Vérifié
-                      </Badge>
-                    ) : garage.verification_requested_at ? (
-                      <Badge variant="secondary">
-                        <Eye className="h-3 w-3 mr-1" />
-                        En attente
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">
-                        <XCircle className="h-3 w-3 mr-1" />
-                        Non demandé
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => handleViewDocs(garage)}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Documents
-                    </Button>
-                  </TableCell>
+                      </div>
+                    </TableCell>
+                    <TableCell>{garage.siret}</TableCell>
+                    <TableCell>{garage.email}</TableCell>
+                    <TableCell>{garage.telephone}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => handleViewDocs(garage)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Documents
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+
+        {/* Section EN ATTENTE */}
+        <Card className="p-6 opacity-70">
+          <div className="flex items-center gap-3 mb-6">
+            <XCircle className="h-6 w-6 text-muted-foreground" />
+            <h1 className="text-xl font-bold text-muted-foreground">En attente de documents</h1>
+            <Badge variant="outline">{garagesEnAttente.length}</Badge>
+          </div>
+
+          {garagesEnAttente.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Aucun garage en attente</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Raison sociale</TableHead>
+                  <TableHead>SIRET</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {garagesEnAttente.map((garage) => (
+                  <TableRow key={garage.id}>
+                    <TableCell className="font-medium text-muted-foreground">
+                      {garage.raison_sociale}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{garage.siret}</TableCell>
+                    <TableCell className="text-muted-foreground">{garage.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{garage.telephone}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => handleViewDocs(garage)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Voir
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </Card>
 
         {/* Dialog Documents */}
