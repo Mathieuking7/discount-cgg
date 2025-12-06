@@ -566,14 +566,16 @@ export default function GarageSettings() {
                                 {[1, 2, 3].map((inputIndex) => (
                                   <div key={inputIndex} className="relative">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-sm text-muted-foreground w-20">Fichier {inputIndex}:</span>
+                                      <span className="text-sm text-muted-foreground w-24">
+                                        Fichier {inputIndex} {inputIndex === 1 ? '*' : '(opt.)'}:
+                                      </span>
                                       <Input 
                                         type="file" 
                                         accept=".pdf,.jpg,.jpeg,.png" 
                                         onChange={(e) => {
                                           if (e.target.files && e.target.files.length > 0) {
                                             handleFileUpload(reqDoc.code, e.target.files);
-                                            e.target.value = ''; // Reset input after upload
+                                            e.target.value = '';
                                           }
                                         }} 
                                         disabled={uploadingDoc === reqDoc.code}
