@@ -565,14 +565,19 @@ export default function GarageSettings() {
                                   <p className="text-sm text-muted-foreground">{reqDoc.description}</p>
                                 )}
                                 {reqDoc.code === 'mandat' && (
-                                  <a 
-                                    href="/cerfas/cerfa_13757_03.pdf" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-primary hover:underline"
-                                  >
-                                    Télécharger le CERFA 13757
-                                  </a>
+                                  <div className="flex flex-col gap-1">
+                                    <p className="text-sm text-muted-foreground italic">
+                                      (Remplir uniquement : raison sociale, SIRET, adresse. Tamponner et signer en bas)
+                                    </p>
+                                    <a 
+                                      href="/cerfas/cerfa_13757_03.pdf" 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-primary hover:underline"
+                                    >
+                                      Télécharger le CERFA 13757
+                                    </a>
+                                  </div>
                                 )}
                               </div>
                               {status.badge}
