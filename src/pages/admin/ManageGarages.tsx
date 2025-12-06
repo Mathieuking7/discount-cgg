@@ -124,27 +124,44 @@ export default function ManageGarages() {
 
     if (error) {
       console.error('Error loading garages:', error);
-    } else {
-      const allGarages = data || [];
-      
-      // À VÉRIFIER: Garages qui ont soumis des documents mais pas encore vérifiés
-      const aVerifier = allGarages.filter(g => 
-        g.verification_requested_at && !g.is_verified
-      );
-      
-      // VÉRIFIÉS: Garages déjà vérifiés
-      const verifies = allGarages.filter(g => g.is_verified);
-      
-      // EN ATTENTE: Garages qui n'ont pas encore soumis de documents
-      const enAttente = allGarages.filter(g => 
-        !g.verification_requested_at && !g.is_verified
-      );
-      
-      setGarages(allGarages);
-      setGaragesAVerifier(aVerifier);
-      setGaragesVerifies(verifies);
-      setGaragesEnAttente(enAttente);
+      setLoading(false);
+      return;
     }
+    
+    const allGarages = data || [];
+    
+    // Charger les documents de vérification pour tous les garages
+    const { data: allDocs } = await supabase
+      .from('verification_documents')
+      .select('garage_id');
+    
+    // Set de garages ayant au moins 1 document
+    const garagesWithDocs = new Set((allDocs || []).map(d => d.garage_id));
+    
+    // VÉRIFIÉS: Garages déjà vérifiés
+    const verifies = allGarages.filter(g => g.is_verified);
+    
+    // À VÉRIFIER: Garages avec tous les documents soumis ET pas encore ouverts par admin
+    const aVerifier = allGarages.filter(g => 
+      g.verification_requested_at && 
+      !g.is_verified && 
+      !g.verification_admin_viewed
+    );
+    
+    // EN ATTENTE: Garages qui ont été ouverts par admin OU qui ont au moins 1 document (mais pas tous)
+    const enAttente = allGarages.filter(g => 
+      !g.is_verified && (
+        // Garages ouverts par admin mais pas encore vérifiés
+        (g.verification_admin_viewed === true) ||
+        // OU garages avec au moins 1 document mais pas encore tous les documents requis
+        (garagesWithDocs.has(g.id) && !g.verification_requested_at)
+      )
+    );
+    
+    setGarages(allGarages);
+    setGaragesAVerifier(aVerifier);
+    setGaragesVerifies(verifies);
+    setGaragesEnAttente(enAttente);
     setLoading(false);
   };
 
