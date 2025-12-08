@@ -44,7 +44,7 @@ export default function ResultatCarteGrise() {
 
   const fraisDossier = 30;
 
-  // Calcul du total TTC
+  // Calcul du total TTC (pas de TVA)
   const calculateTotalTTC = () => {
     if (!calculation) return 0;
     const prixCarteGrise = calculation.prixTotal;
@@ -54,8 +54,7 @@ export default function ResultatCarteGrise() {
     if (certificatNonGage) optionsPrix += certificatNonGagePrix;
     
     const totalServicesHT = fraisDossier + optionsPrix;
-    const tva = totalServicesHT * 0.20;
-    return prixCarteGrise + totalServicesHT + tva;
+    return prixCarteGrise + totalServicesHT;
   };
 
   useEffect(() => {
@@ -140,8 +139,7 @@ export default function ResultatCarteGrise() {
       if (certificatNonGage) optionsPrix += certificatNonGagePrix;
       
       const totalServicesHT = fraisDossier + optionsPrix;
-      const tva = totalServicesHT * 0.20;
-      const montantTTC = prixCarteGrise + totalServicesHT + tva;
+      const montantTTC = prixCarteGrise + totalServicesHT;
 
       await supabase
         .from('guest_orders')
