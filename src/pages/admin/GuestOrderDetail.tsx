@@ -977,10 +977,6 @@ export default function GuestOrderDetail() {
                 <span>Total HT (services)</span>
                 <span>{(order.frais_dossier + (order.sms_notifications ? 5 : 0)).toFixed(2)} €</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>TVA (20%)</span>
-                <span>{((order.frais_dossier + (order.sms_notifications ? 5 : 0)) * 0.20).toFixed(2)} €</span>
-              </div>
             </div>
             
             <div className="h-px bg-border" />
