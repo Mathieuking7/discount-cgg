@@ -221,18 +221,33 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log('Regenerating facture:', factureId);
 
-    // Get facture with demarche
+    // Get facture
     const { data: facture, error: factureError } = await supabase
       .from('factures')
-      .select('*, demarches(*)')
+      .select('*')
       .eq('id', factureId)
       .single();
 
     if (factureError || !facture) {
-      throw new Error('Facture not found');
+      console.error('Facture error:', factureError);
+      throw new Error('Facture not found: ' + (factureError?.message || 'Unknown error'));
     }
 
-    const demarche = facture.demarches;
+    console.log('Facture found:', facture.numero);
+
+    // Get demarche separately
+    const { data: demarche, error: demarcheError } = await supabase
+      .from('demarches')
+      .select('*')
+      .eq('id', facture.demarche_id)
+      .single();
+
+    if (demarcheError || !demarche) {
+      console.error('Demarche error:', demarcheError);
+      throw new Error('Demarche not found');
+    }
+
+    console.log('Demarche found:', demarche.numero_demarche);
     
     // Get garage
     const { data: garage } = await supabase
