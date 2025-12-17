@@ -80,7 +80,7 @@ interface EmailRequest {
 
 const getEmailTemplate = (type: string, data: any) => {
   const baseUrl = "https://discountcg.fr";
-  const trackingUrl = data.tracking_number ? `${baseUrl}/suivi/${data.tracking_number}` : "";
+  const trackingUrl = data?.tracking_number ? `${baseUrl}/suivi/${data.tracking_number}` : "";
 
   switch (type) {
     // === GUEST ORDER EMAILS ===
