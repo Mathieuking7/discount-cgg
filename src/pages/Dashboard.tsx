@@ -4,10 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Plus, LogOut, Settings, UserCircle, Clock, CheckCircle, AlertCircle, Receipt, Gift, Coins } from "lucide-react";
+import { FileText, Plus, LogOut, Settings, UserCircle, Clock, CheckCircle, AlertCircle, Receipt, Gift, Coins, Menu, X, HelpCircle, LayoutDashboard } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export default function Dashboard() {
   const {
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [actionsRapides, setActionsRapides] = useState<any[]>([]);
   const [missingDocsCount, setMissingDocsCount] = useState(3);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -127,7 +129,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 DiscountCarteGrise
               </h1>
               <nav className="hidden md:flex items-center gap-2">
@@ -154,7 +156,83 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-2">
               {garage && <NotificationBell garageId={garage.id} />}
-              <Button variant="outline" size="sm" onClick={handleLogout}>
+              
+              {/* Mobile menu button */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild className="md:hidden">
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px]">
+                  <SheetHeader>
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-2 mt-6">
+                    <Button 
+                      variant="default" 
+                      className="w-full justify-start" 
+                      onClick={() => { setMobileMenuOpen(false); }}
+                    >
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Tableau de bord
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      onClick={() => { setMobileMenuOpen(false); navigate("/mes-demarches"); }}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Mes démarches
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      onClick={() => { setMobileMenuOpen(false); navigate("/mes-factures"); }}
+                    >
+                      <Receipt className="mr-2 h-4 w-4" />
+                      Mes factures
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      onClick={() => { setMobileMenuOpen(false); navigate("/support"); }}
+                    >
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Support
+                    </Button>
+                    {isAdmin && (
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start text-primary" 
+                        onClick={() => { setMobileMenuOpen(false); navigate("/admin"); }}
+                      >
+                        <Settings className="mr-2 h-4 w-4" />
+                        Administration
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start" 
+                      onClick={() => { setMobileMenuOpen(false); navigate("/garage-settings"); }}
+                    >
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      Paramètres
+                    </Button>
+                    <div className="border-t my-2" />
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-destructive" 
+                      onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Déconnexion
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              
+              <Button variant="outline" size="sm" onClick={handleLogout} className="hidden md:flex">
                 <LogOut className="mr-2 h-4 w-4" />
                 Déconnexion
               </Button>
