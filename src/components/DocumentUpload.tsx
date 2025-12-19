@@ -46,12 +46,34 @@ export function DocumentUpload({ demarcheId, documentType, label, customName, on
         .eq('type_document', documentType);
 
       if (data && !error) {
-        const files = data.map(doc => ({
-          id: doc.id,
-          fileName: doc.nom_fichier,
-          storagePath: doc.url.split('/').pop() || '',
-          url: doc.url
-        }));
+        const files = data.map(doc => {
+          // Extraire le chemin complet depuis l'URL: demarcheId/type_timestamp.ext
+          let storagePath = '';
+          const url = doc.url;
+          if (url.includes('/demarche-documents/')) {
+            const match = url.match(/\/demarche-documents\/(.+)$/);
+            if (match) {
+              storagePath = decodeURIComponent(match[1]);
+            }
+          }
+          // Fallback: construire le chemin depuis demarcheId + filename
+          if (!storagePath && doc.nom_fichier) {
+            const urlParts = url.split('/');
+            const fileName = urlParts.pop() || '';
+            const possibleDemarcheId = urlParts.pop() || '';
+            if (possibleDemarcheId && fileName) {
+              storagePath = `${possibleDemarcheId}/${fileName}`;
+            } else {
+              storagePath = fileName;
+            }
+          }
+          return {
+            id: doc.id,
+            fileName: doc.nom_fichier,
+            storagePath,
+            url
+          };
+        });
         setUploadedFiles(files);
       }
     };

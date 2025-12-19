@@ -48,70 +48,59 @@ serve(async (req) => {
     }
 
     // Extraire le chemin du fichier depuis l'URL
-    // Format attendu: https://xxx.supabase.co/storage/v1/object/public/factures/path/file.pdf
-    // ou: factures/path/file.pdf (chemin relatif)
     let filePath = facture.pdf_url;
     
-    // Si c'est une URL complète, extraire le chemin
+    // Si c'est une URL complète, extraire le chemin après /factures/
     if (filePath.includes('/storage/v1/object/')) {
       const match = filePath.match(/\/storage\/v1\/object\/(?:public|sign)\/factures\/(.+)/);
       if (match) {
-        filePath = match[1];
+        filePath = decodeURIComponent(match[1]);
+      }
+    } else if (filePath.includes('/factures/')) {
+      const match = filePath.match(/\/factures\/(.+)$/);
+      if (match) {
+        filePath = decodeURIComponent(match[1]);
       }
     } else if (filePath.startsWith('factures/')) {
       filePath = filePath.replace('factures/', '');
     }
 
-    console.log("Téléchargement du fichier:", filePath);
+    console.log("Création d'une URL signée pour:", filePath);
 
-    // Télécharger le fichier depuis le bucket privé
-    const { data: fileData, error: downloadError } = await supabase.storage
+    // Créer une URL signée (valide 60 secondes)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("factures")
-      .download(filePath);
+      .createSignedUrl(filePath, 60);
 
-    if (downloadError || !fileData) {
-      console.error("Erreur téléchargement storage:", downloadError);
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error("Erreur création URL signée:", signedUrlError);
       
       // Essayer avec le chemin original si l'extraction a échoué
       if (facture.pdf_url !== filePath) {
         console.log("Tentative avec chemin original:", facture.pdf_url);
         const { data: retryData, error: retryError } = await supabase.storage
           .from("factures")
-          .download(facture.pdf_url);
+          .createSignedUrl(facture.pdf_url, 60);
         
-        if (retryError || !retryData) {
-          console.error("Erreur téléchargement retry:", retryError);
+        if (!retryError && retryData?.signedUrl) {
           return new Response(
-            JSON.stringify({ error: "Impossible de télécharger le PDF" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ signedUrl: retryData.signedUrl, filename: `facture_${facture.numero}.pdf` }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        
-        const pdfBytes = await retryData.arrayBuffer();
-        return new Response(pdfBytes, {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="facture_${facture.numero}.pdf"`,
-          },
-        });
+        console.error("Erreur retry URL signée:", retryError);
       }
       
       return new Response(
-        JSON.stringify({ error: "Impossible de télécharger le PDF" }),
+        JSON.stringify({ error: "Impossible de générer l'URL de téléchargement" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const pdfBytes = await fileData.arrayBuffer();
-
-    return new Response(pdfBytes, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="facture_${facture.numero}.pdf"`,
-      },
-    });
+    return new Response(
+      JSON.stringify({ signedUrl: signedUrlData.signedUrl, filename: `facture_${facture.numero}.pdf` }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error: any) {
     console.error("Erreur:", error);
     return new Response(
