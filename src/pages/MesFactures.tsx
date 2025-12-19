@@ -80,16 +80,18 @@ export default function MesFactures() {
 
       if (error) throw error;
 
-      // Créer un blob et télécharger
-      const blob = new Blob([data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `facture_${numero}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // L'edge function retourne une URL signée
+      if (data?.signedUrl) {
+        const link = document.createElement('a');
+        link.href = data.signedUrl;
+        link.download = `facture_${numero}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        throw new Error('URL de téléchargement non disponible');
+      }
     } catch (error) {
       console.error('Erreur téléchargement:', error);
       toast({
