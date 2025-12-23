@@ -168,6 +168,7 @@ export type Database = {
           ordre: number
           prix: number
           require_immatriculation: boolean
+          test_only: boolean
           titre: string
           updated_at: string
         }
@@ -181,6 +182,7 @@ export type Database = {
           ordre?: number
           prix?: number
           require_immatriculation?: boolean
+          test_only?: boolean
           titre: string
           updated_at?: string
         }
@@ -194,6 +196,7 @@ export type Database = {
           ordre?: number
           prix?: number
           require_immatriculation?: boolean
+          test_only?: boolean
           titre?: string
           updated_at?: string
         }

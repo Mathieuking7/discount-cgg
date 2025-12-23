@@ -221,7 +221,13 @@ export default function NouvelleDemarche() {
       .order('ordre');
 
     if (data) {
-      setActionsRapides(data);
+      // Filtrer les actions test_only sauf pour test@test.com
+      const userEmail = user?.email?.toLowerCase();
+      const isTestUser = userEmail === 'test@test.com';
+      const filteredActions = data.filter((action: any) => 
+        !action.test_only || isTestUser
+      );
+      setActionsRapides(filteredActions);
     }
   };
 
