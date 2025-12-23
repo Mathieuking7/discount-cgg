@@ -214,6 +214,8 @@ export default function NouvelleDemarche() {
   };
 
   const loadActionsRapides = async () => {
+    if (!user) return;
+    
     const { data } = await supabase
       .from('actions_rapides')
       .select('*')
@@ -222,11 +224,16 @@ export default function NouvelleDemarche() {
 
     if (data) {
       // Filtrer les actions test_only sauf pour test@test.com
-      const userEmail = user?.email?.toLowerCase();
+      const userEmail = user.email?.toLowerCase();
       const isTestUser = userEmail === 'test@test.com';
-      const filteredActions = data.filter((action: any) => 
-        !action.test_only || isTestUser
-      );
+      console.log('User email:', userEmail, 'Is test user:', isTestUser);
+      const filteredActions = data.filter((action: any) => {
+        if (action.test_only) {
+          return isTestUser;
+        }
+        return true;
+      });
+      console.log('Filtered actions:', filteredActions.length, 'Total:', data.length);
       setActionsRapides(filteredActions);
     }
   };
