@@ -78,6 +78,8 @@ export default function NouvelleDemarche() {
   const [vehicleInfoProValid, setVehicleInfoProValid] = useState(false);
   // État pour vérifier si le questionnaire est complété
   const [questionnaireCompleted, setQuestionnaireCompleted] = useState(false);
+  // Ouverture/fermeture du bloc questionnaire (modifiable même après complétion)
+  const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(true);
   // Textes des réponses au questionnaire (pour DocumentsNecessaires)
   const [questionnaireAnswerTexts, setQuestionnaireAnswerTexts] = useState<Record<string, string>>({});
 
@@ -754,28 +756,36 @@ export default function NouvelleDemarche() {
                 />
               </div>
 
-              {/* Questions conditionnelles - Repliable une fois complété */}
+              {/* Questions conditionnelles - Repliable (et modifiable) */}
               {actionDetails?.id && (
-                <Collapsible 
-                  open={!questionnaireCompleted}
+                <Collapsible
+                  open={isQuestionnaireOpen}
+                  onOpenChange={setIsQuestionnaireOpen}
                   className="border rounded-lg"
                 >
                   <CollapsibleTrigger asChild>
-                    <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50">
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50"
+                    >
                       <div className="flex items-center gap-2">
                         <FileQuestion className="h-5 w-5 text-primary" />
                         <span className="font-medium">Questions préalables</span>
                       </div>
-                      {questionnaireCompleted && (
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        {questionnaireCompleted && (
                           <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500">
                             <Check className="h-3 w-3 mr-1" />
                             Complété
                           </Badge>
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
+                        )}
+                        <ChevronDown
+                          className={`h-4 w-4 text-muted-foreground transition-transform ${
+                            isQuestionnaireOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="px-4 pb-4">
@@ -786,8 +796,13 @@ export default function NouvelleDemarche() {
                           setIsQuestionnaireBlocked(isBlocked);
                           setConditionalDocuments(condDocs);
                           setQuestionnaireAnswerTexts(answerTexts);
+
                           // Questionnaire complété = toutes les questions ont une réponse ET pas de blocage
-                          setQuestionnaireCompleted(allAnswered && !isBlocked);
+                          const completed = allAnswered && !isBlocked;
+                          setQuestionnaireCompleted(completed);
+
+                          // Une fois complété, on replie par défaut (mais l’utilisateur peut ré-ouvrir)
+                          if (completed) setIsQuestionnaireOpen(false);
                         }}
                       />
                     </div>
@@ -795,17 +810,37 @@ export default function NouvelleDemarche() {
                 </Collapsible>
               )}
 
-              {/* Documents Nécessaires pour démarches PRO - Affiché après le questionnaire */}
-              {PRO_DEMARCHE_TYPES.includes(formData.type) && demarcheId && questionnaireCompleted && !isQuestionnaireBlocked && (
-                <DocumentsNecessaires
-                  demarcheType={formData.type}
-                  demarcheId={demarcheId}
-                  questionnaireAnswers={questionnaireAnswerTexts}
-                  onDocumentUpload={(docType) => {
-                    setUploadedDocuments(prev => new Set(prev).add(docType));
-                  }}
-                  uploadedDocuments={uploadedDocuments}
-                />
+              {/* Documents Nécessaires pour démarches PRO - toujours visibles (si démarche créée) */}
+              {PRO_DEMARCHE_TYPES.includes(formData.type) && demarcheId && (
+                <div className="space-y-3">
+                  {!questionnaireCompleted && (
+                    <Alert>
+                      <AlertTitle>Répondez au questionnaire</AlertTitle>
+                      <AlertDescription>
+                        Terminez les questions préalables pour afficher la liste complète des documents.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {isQuestionnaireBlocked ? (
+                    <Alert variant="destructive">
+                      <AlertTitle>Démarche impossible</AlertTitle>
+                      <AlertDescription>
+                        Une de vos réponses bloque cette démarche. Modifiez vos réponses dans le questionnaire.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <DocumentsNecessaires
+                      demarcheType={formData.type}
+                      demarcheId={demarcheId}
+                      questionnaireAnswers={questionnaireAnswerTexts}
+                      onDocumentUpload={(docType) => {
+                        setUploadedDocuments((prev) => new Set(prev).add(docType));
+                      }}
+                      uploadedDocuments={uploadedDocuments}
+                    />
+                  )}
+                </div>
               )}
 
               {demarcheId && garage && (

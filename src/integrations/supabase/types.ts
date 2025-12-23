@@ -1396,7 +1396,16 @@ export type Database = {
         | "valide"
         | "finalise"
         | "refuse"
-      demarche_type: "DA" | "DC" | "CG" | "CG_DA" | "DA_DC" | "CG_IMPORT"
+      demarche_type:
+        | "DA"
+        | "DC"
+        | "CG"
+        | "CG_DA"
+        | "DA_DC"
+        | "CG_IMPORT"
+        | "WW_PROVISOIRE_PRO"
+        | "W_GARAGE_PRO"
+        | "QUITUS_FISCAL_PRO"
       paiement_status: "en_attente" | "valide" | "refuse" | "rembourse"
     }
     CompositeTypes: {
@@ -1534,7 +1543,17 @@ export const Constants = {
         "finalise",
         "refuse",
       ],
-      demarche_type: ["DA", "DC", "CG", "CG_DA", "DA_DC", "CG_IMPORT"],
+      demarche_type: [
+        "DA",
+        "DC",
+        "CG",
+        "CG_DA",
+        "DA_DC",
+        "CG_IMPORT",
+        "WW_PROVISOIRE_PRO",
+        "W_GARAGE_PRO",
+        "QUITUS_FISCAL_PRO",
+      ],
       paiement_status: ["en_attente", "valide", "refuse", "rembourse"],
     },
   },
