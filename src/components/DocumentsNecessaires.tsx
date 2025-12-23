@@ -282,7 +282,7 @@ export function DocumentsNecessaires({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Documents nécessaires
+            Pièces justificatives
           </CardTitle>
           {allRequiredUploaded && (
             <div className="flex items-center gap-2 text-green-600">

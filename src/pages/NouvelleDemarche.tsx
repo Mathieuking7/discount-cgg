@@ -20,7 +20,7 @@ import { VehicleFormCG } from "@/components/VehicleFormCG";
 import { VehicleFormSimple } from "@/components/VehicleFormSimple";
 import { VehicleInfoFormPro, VehicleInfoPro } from "@/components/VehicleInfoFormPro";
 import { DocumentsNecessaires } from "@/components/DocumentsNecessaires";
-import { TrackingServiceOption } from "@/components/TrackingServiceOption";
+// TrackingServiceOption supprimé - options SMS retirées
 import { StripePayment } from "@/components/StripePayment";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatPrice } from "@/lib/utils";
@@ -59,7 +59,7 @@ export default function NouvelleDemarche() {
     { id: 5, name: "" }
   ]);
   const [carteGrisePrice, setCarteGrisePrice] = useState<number>(0);
-  const [trackingServicePrice, setTrackingServicePrice] = useState<number>(0);
+  // trackingServicePrice supprimé - options SMS retirées
   const [freeTokenAvailable, setFreeTokenAvailable] = useState<boolean>(false);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [tokenBalance, setTokenBalance] = useState<number>(0);
@@ -169,7 +169,7 @@ export default function NouvelleDemarche() {
         updateDemarcheMontant();
       }
     }
-  }, [carteGrisePrice, trackingServicePrice, demarcheId, actionDetails, formData.type]);
+  }, [carteGrisePrice, demarcheId, actionDetails, formData.type]);
 
   // Jeton gratuit uniquement pour DA et DC
   const isFreeTokenEligible = freeTokenAvailable && (formData.type === 'DA' || formData.type === 'DC');
@@ -183,11 +183,8 @@ export default function NouvelleDemarche() {
     // Prix carte grise (taxe régionale, exonérée TVA) - 0 pour DA/DC
     const prixCarteGrise = (formData.type === 'DA' || formData.type === 'DC') ? 0 : carteGrisePrice;
     
-    // Options
-    const optionsHT = trackingServicePrice;
-    
     // Total des services
-    const totalServicesHT = fraisDossierHT + optionsHT;
+    const totalServicesHT = fraisDossierHT;
     
     // Total TTC = carte grise + services (pas de TVA)
     const totalTTC = prixCarteGrise + totalServicesHT;
@@ -343,13 +340,13 @@ export default function NouvelleDemarche() {
     const basePrice = getFraisDossier();
     // Pour DA, DC et démarches PRO, pas de prix carte grise
     const vehiclePrice = (formData.type === 'DA' || formData.type === 'DC' || PRO_DEMARCHE_TYPES.includes(formData.type)) ? 0 : carteGrisePrice;
-    return basePrice + vehiclePrice + trackingServicePrice;
+    return basePrice + vehiclePrice;
   };
 
   // Calcul du coût en jetons (1 jeton = 5€, arrondi au supérieur)
   const getTokenCost = () => {
     // Pour les CG, le calcul est basé sur les frais de dossier uniquement (pas la carte grise)
-    const fraisToConvert = getFraisDossier() + trackingServicePrice;
+    const fraisToConvert = getFraisDossier();
     return Math.ceil(fraisToConvert / 5);
   };
 
@@ -414,9 +411,7 @@ export default function NouvelleDemarche() {
     }
   };
 
-  const handleTrackingServiceChange = (price: number) => {
-    setTrackingServicePrice(price);
-  };
+  // handleTrackingServiceChange supprimé - options SMS retirées
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -810,242 +805,223 @@ export default function NouvelleDemarche() {
                 </Collapsible>
               )}
 
-              {/* Documents Nécessaires pour démarches PRO - toujours visibles (si démarche créée) */}
-              {PRO_DEMARCHE_TYPES.includes(formData.type) && demarcheId && (
-                <div className="space-y-3">
-                  {!questionnaireCompleted && (
-                    <Alert>
-                      <AlertTitle>Répondez au questionnaire</AlertTitle>
-                      <AlertDescription>
-                        Terminez les questions préalables pour afficher la liste complète des documents.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {isQuestionnaireBlocked ? (
-                    <Alert variant="destructive">
-                      <AlertTitle>Démarche impossible</AlertTitle>
-                      <AlertDescription>
-                        Une de vos réponses bloque cette démarche. Modifiez vos réponses dans le questionnaire.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <DocumentsNecessaires
-                      demarcheType={formData.type}
-                      demarcheId={demarcheId}
-                      questionnaireAnswers={questionnaireAnswerTexts}
-                      onDocumentUpload={(docType) => {
-                        setUploadedDocuments((prev) => new Set(prev).add(docType));
-                      }}
-                      uploadedDocuments={uploadedDocuments}
-                    />
-                  )}
-                </div>
-              )}
-
-              {demarcheId && garage && (
-                <TrackingServiceOption 
-                  demarcheId={demarcheId} 
-                  garageId={garage.id}
-                  onPriceChange={handleTrackingServiceChange}
-                />
-              )}
-
-              {formData.type && demarcheId && documentsRequis.length > 0 && (formData.type === 'CG' ? carteGrisePrice > 0 : true) && (
-                <div className="space-y-6">
-                  {/* Pièces justificatives */}
-                  <div className="bg-muted/50 p-6 rounded-lg space-y-4 border-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-lg">Pièces justificatives</h3>
-                      {allDocsUploaded && (
-                        <FileCheck className="h-5 w-5 text-success" />
-                      )}
+              {/* Pièces justificatives - Bloc unique pour tous les types de démarches */}
+              {formData.type && demarcheId && (
+                <>
+                  {/* Pour les démarches PRO: afficher seulement après questionnaire complété */}
+                  {PRO_DEMARCHE_TYPES.includes(formData.type) ? (
+                    <div className="space-y-3">
+                      {isQuestionnaireBlocked ? (
+                        <Alert variant="destructive">
+                          <AlertTitle>Démarche impossible</AlertTitle>
+                          <AlertDescription>
+                            Une de vos réponses bloque cette démarche. Modifiez vos réponses dans le questionnaire.
+                          </AlertDescription>
+                        </Alert>
+                      ) : questionnaireCompleted ? (
+                        <DocumentsNecessaires
+                          demarcheType={formData.type}
+                          demarcheId={demarcheId}
+                          questionnaireAnswers={questionnaireAnswerTexts}
+                          onDocumentUpload={(docType) => {
+                            setUploadedDocuments((prev) => new Set(prev).add(docType));
+                          }}
+                          uploadedDocuments={uploadedDocuments}
+                        />
+                      ) : null}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="text-destructive text-base font-bold">*</span> = Document obligatoire
-                    </p>
-                    
-                <div className="space-y-3">
-                      {documentsRequis.map((doc, idx) => {
-                        const docName = doc.nom_document.toLowerCase();
-                        // Vérifier si le document contient "recto/verso" ou "recto verso"
-                        const hasRectoVerso = docName.includes('recto/verso') || docName.includes('recto verso');
-                        
-                        // Vérifier si c'est un CERFA téléchargeable
-                        const cerfaNumber = extractCerfaNumber(doc.nom_document);
-                        const hasCerfa = cerfaNumber && cerfaExists(cerfaNumber);
-                        
-                        // Fonction pour rendre le label avec lien CERFA
-                        const renderDocLabel = (labelText: string, isObligatoire: boolean) => {
-                          if (!hasCerfa || !cerfaNumber) {
-                            return (
-                              <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                                {labelText}
-                                {isObligatoire ? (
-                                  <span className="text-destructive text-base font-bold">*</span>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs">(optionnel)</span>
-                                )}
-                              </Label>
-                            );
-                          }
+                  ) : (
+                    /* Pour les démarches classiques */
+                    documentsRequis.length > 0 && (formData.type === 'CG' ? carteGrisePrice > 0 : true) && (
+                      <div className="space-y-6">
+                        {/* Pièces justificatives */}
+                        <div className="bg-muted/50 p-6 rounded-lg space-y-4 border-2">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-lg">Pièces justificatives</h3>
+                            {allDocsUploaded && (
+                              <FileCheck className="h-5 w-5 text-success" />
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="text-destructive text-base font-bold">*</span> = Document obligatoire
+                          </p>
                           
-                          // Séparer le texte pour mettre le CERFA en lien cliquable
-                          const cerfaRegex = /(\(cerfa\s+\d+\*\d+\))/i;
-                          const parts = labelText.split(cerfaRegex);
-                          
-                          return (
-                            <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                              {parts.map((part, index) => {
-                                if (cerfaRegex.test(part)) {
+                          <div className="space-y-3">
+                            {documentsRequis.map((doc, idx) => {
+                              const docName = doc.nom_document.toLowerCase();
+                              const hasRectoVerso = docName.includes('recto/verso') || docName.includes('recto verso');
+                              const cerfaNumber = extractCerfaNumber(doc.nom_document);
+                              const hasCerfa = cerfaNumber && cerfaExists(cerfaNumber);
+                              
+                              const renderDocLabel = (labelText: string, isObligatoire: boolean) => {
+                                if (!hasCerfa || !cerfaNumber) {
                                   return (
-                                    <a
-                                      key={index}
-                                      href={getCerfaUrl(cerfaNumber)}
-                                      download
-                                      className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {part}
-                                      <Download className="h-3 w-3" />
-                                    </a>
+                                    <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                                      {labelText}
+                                      {isObligatoire ? (
+                                        <span className="text-destructive text-base font-bold">*</span>
+                                      ) : (
+                                        <span className="text-muted-foreground text-xs">(optionnel)</span>
+                                      )}
+                                    </Label>
                                   );
                                 }
-                                return <span key={index}>{part}</span>;
-                              })}
-                              {isObligatoire ? (
-                                <span className="text-destructive text-base font-bold">*</span>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">(optionnel)</span>
-                              )}
-                            </Label>
-                          );
-                        };
-                        
-                        // Si le document contient "recto/verso", le dédoubler
-                        if (hasRectoVerso) {
-                          // Créer le nom pour le verso en remplaçant "recto/verso" ou "recto verso" par "verso"
-                          const versoName = doc.nom_document
-                            .replace(/recto\/verso/gi, 'verso')
-                            .replace(/recto verso/gi, 'verso');
-                          
-                          return (
-                            <div key={doc.id} className="space-y-3">
-                              <div className="flex items-center gap-4">
-                                <div className="flex-1">
-                                  {renderDocLabel(doc.nom_document, doc.obligatoire)}
-                                </div>
-                                <div className="w-[400px]">
-                                  <DocumentUpload
-                                    demarcheId={demarcheId}
-                                    documentType={`doc_${idx + 1}`}
-                                    label=""
-                                    onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}`)}
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <div className="flex-1">
-                                  <Label className="text-sm font-medium flex items-center gap-2">
-                                    {versoName}
-                                    <span className="text-muted-foreground text-xs">(Optionnel)</span>
+                                
+                                const cerfaRegex = /(\(cerfa\s+\d+\*\d+\))/i;
+                                const parts = labelText.split(cerfaRegex);
+                                
+                                return (
+                                  <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                                    {parts.map((part, index) => {
+                                      if (cerfaRegex.test(part)) {
+                                        return (
+                                          <a
+                                            key={index}
+                                            href={getCerfaUrl(cerfaNumber)}
+                                            download
+                                            className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {part}
+                                            <Download className="h-3 w-3" />
+                                          </a>
+                                        );
+                                      }
+                                      return <span key={index}>{part}</span>;
+                                    })}
+                                    {isObligatoire ? (
+                                      <span className="text-destructive text-base font-bold">*</span>
+                                    ) : (
+                                      <span className="text-muted-foreground text-xs">(optionnel)</span>
+                                    )}
                                   </Label>
+                                );
+                              };
+                              
+                              if (hasRectoVerso) {
+                                const versoName = doc.nom_document
+                                  .replace(/recto\/verso/gi, 'verso')
+                                  .replace(/recto verso/gi, 'verso');
+                                
+                                return (
+                                  <div key={doc.id} className="space-y-3">
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex-1">
+                                        {renderDocLabel(doc.nom_document, doc.obligatoire)}
+                                      </div>
+                                      <div className="w-[400px]">
+                                        <DocumentUpload
+                                          demarcheId={demarcheId}
+                                          documentType={`doc_${idx + 1}`}
+                                          label=""
+                                          onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}`)}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex-1">
+                                        <Label className="text-sm font-medium flex items-center gap-2">
+                                          {versoName}
+                                          <span className="text-muted-foreground text-xs">(Optionnel)</span>
+                                        </Label>
+                                      </div>
+                                      <div className="w-[400px]">
+                                        <DocumentUpload
+                                          demarcheId={demarcheId}
+                                          documentType={`doc_${idx + 1}_verso`}
+                                          label=""
+                                          onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}_verso`)}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              
+                              return (
+                                <div key={doc.id} className="flex items-center gap-4">
+                                  <div className="flex-1">
+                                    {renderDocLabel(doc.nom_document, doc.obligatoire)}
+                                  </div>
+                                  <div className="w-[400px]">
+                                    <DocumentUpload
+                                      demarcheId={demarcheId}
+                                      documentType={`doc_${idx + 1}`}
+                                      label=""
+                                      onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}`)}
+                                    />
+                                  </div>
                                 </div>
-                                <div className="w-[400px]">
-                                  <DocumentUpload
-                                    demarcheId={demarcheId}
-                                    documentType={`doc_${idx + 1}_verso`}
-                                    label=""
-                                    onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}_verso`)}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        
-                        // Afficher tous les autres documents normalement
-                        return (
-                          <div key={doc.id} className="flex items-center gap-4">
-                            <div className="flex-1">
-                              {renderDocLabel(doc.nom_document, doc.obligatoire)}
-                            </div>
-                            <div className="w-[400px]">
-                              <DocumentUpload
-                                demarcheId={demarcheId}
-                                documentType={`doc_${idx + 1}`}
-                                label=""
-                                onUploadComplete={() => handleDocumentUploadComplete(`doc_${idx + 1}`)}
-                              />
-                            </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        </div>
 
-                  {/* Autres pièces justificatives */}
-                  <div className="bg-muted/30 p-4 rounded-lg border border-dashed border-muted-foreground/30">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Pièces supplémentaires
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded">Optionnel</span>
-                      </h3>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAdditionalDocs([...additionalDocs, { id: Date.now(), name: "" }])}
-                        className="h-8 text-xs"
-                      >
-                        <Plus className="mr-1 h-3 w-3" />
-                        Ajouter
-                      </Button>
-                    </div>
-                    
-                    {additionalDocs.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-2">
-                        Aucune pièce supplémentaire ajoutée
-                      </p>
-                    ) : (
-                      <div className="space-y-2">
-                        {additionalDocs.map((doc, index) => (
-                          <div key={doc.id} className="flex items-start gap-2 p-3 border rounded-md bg-background">
-                            <div className="flex-1 space-y-2">
-                              <Input
-                                placeholder="Nom du document (ex: Procuration, Mandat...)"
-                                value={doc.name}
-                                onChange={(e) => {
-                                  const newDocs = [...additionalDocs];
-                                  newDocs[index] = { ...doc, name: e.target.value };
-                                  setAdditionalDocs(newDocs);
-                                }}
-                                className="h-8 text-sm"
-                              />
-                              <DocumentUpload
-                                demarcheId={demarcheId}
-                                documentType={`autre_piece_${doc.id}`}
-                                customName={doc.name || `Pièce ${index + 1}`}
-                                label=""
-                                onUploadComplete={() => handleDocumentUploadComplete(`autre_piece_${doc.id}`)}
-                              />
-                            </div>
+                        {/* Autres pièces justificatives */}
+                        <div className="bg-muted/30 p-4 rounded-lg border border-dashed border-muted-foreground/30">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Pièces supplémentaires
+                              <span className="text-xs bg-muted px-2 py-0.5 rounded">Optionnel</span>
+                            </h3>
                             <Button
                               type="button"
                               variant="ghost"
-                              size="icon"
-                              onClick={() => setAdditionalDocs(additionalDocs.filter((_, i) => i !== index))}
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                              size="sm"
+                              onClick={() => setAdditionalDocs([...additionalDocs, { id: Date.now(), name: "" }])}
+                              className="h-8 text-xs"
                             >
-                              <X className="h-4 w-4" />
+                              <Plus className="mr-1 h-3 w-3" />
+                              Ajouter
                             </Button>
                           </div>
-                        ))}
+                          
+                          {additionalDocs.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">
+                              Aucune pièce supplémentaire ajoutée
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {additionalDocs.map((doc, index) => (
+                                <div key={doc.id} className="flex items-start gap-2 p-3 border rounded-md bg-background">
+                                  <div className="flex-1 space-y-2">
+                                    <Input
+                                      placeholder="Nom du document (ex: Procuration, Mandat...)"
+                                      value={doc.name}
+                                      onChange={(e) => {
+                                        const newDocs = [...additionalDocs];
+                                        newDocs[index] = { ...doc, name: e.target.value };
+                                        setAdditionalDocs(newDocs);
+                                      }}
+                                      className="h-8 text-sm"
+                                    />
+                                    <DocumentUpload
+                                      demarcheId={demarcheId}
+                                      documentType={`autre_piece_${doc.id}`}
+                                      customName={doc.name || `Pièce ${index + 1}`}
+                                      label=""
+                                      onUploadComplete={() => handleDocumentUploadComplete(`autre_piece_${doc.id}`)}
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setAdditionalDocs(additionalDocs.filter((_, i) => i !== index))}
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    )
+                  )}
+                </>
               )}
 
               <Button 
@@ -1085,7 +1061,6 @@ export default function NouvelleDemarche() {
                         <><span className="line-through text-muted-foreground">{formatPrice(getOriginalFraisDossier())}€</span> <span className="text-green-600 font-bold">0€ (offert)</span></>
                       ) : `${formatPrice(getFraisDossier())}€`}
                       {(formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice > 0 && ` + Prix carte grise : ${formatPrice(carteGrisePrice)}€`}
-                      {trackingServicePrice > 0 && ` + Service de suivi : ${formatPrice(trackingServicePrice)}€`}
                       <br />
                       Montant total : {formatPrice(getTotalPrice())}€
                     </DialogDescription>
