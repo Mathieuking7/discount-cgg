@@ -515,6 +515,41 @@ export default function NouvelleDemarche() {
     // Mark payment as completed to prevent cleanup deletion
     setPaymentCompleted(true);
 
+    // Save questionnaire responses if any
+    if (Object.keys(questionnaireAnswers).length > 0 && actionDetails) {
+      try {
+        // Load questions to get question texts
+        const { data: questionsData } = await supabase
+          .from('action_questions')
+          .select('id, question_text')
+          .eq('action_id', actionDetails.id);
+
+        const questionsMap = new Map(questionsData?.map(q => [q.id, q.question_text]) || []);
+
+        // Save each response
+        for (const [questionId, optionId] of Object.entries(questionnaireAnswers)) {
+          const questionText = questionsMap.get(questionId) || '';
+          const answerText = questionnaireAnswerTexts[questionId] || '';
+          
+          if (questionText && answerText) {
+            await supabase
+              .from('demarche_questionnaire_responses')
+              .upsert({
+                demarche_id: demarcheId,
+                question_id: questionId,
+                option_id: optionId,
+                question_text: questionText,
+                answer_text: answerText,
+              }, {
+                onConflict: 'demarche_id,question_id'
+              });
+          }
+        }
+      } catch (error) {
+        console.error('Error saving questionnaire responses:', error);
+      }
+    }
+
     // Update demarche to mark as not draft
     await supabase
       .from('demarches')

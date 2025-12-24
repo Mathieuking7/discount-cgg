@@ -202,6 +202,58 @@ export type Database = {
         }
         Relationships: []
       }
+      demarche_questionnaire_responses: {
+        Row: {
+          answer_text: string
+          created_at: string
+          demarche_id: string
+          id: string
+          option_id: string
+          question_id: string
+          question_text: string
+        }
+        Insert: {
+          answer_text: string
+          created_at?: string
+          demarche_id: string
+          id?: string
+          option_id: string
+          question_id: string
+          question_text: string
+        }
+        Update: {
+          answer_text?: string
+          created_at?: string
+          demarche_id?: string
+          id?: string
+          option_id?: string
+          question_id?: string
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demarche_questionnaire_responses_demarche_id_fkey"
+            columns: ["demarche_id"]
+            isOneToOne: false
+            referencedRelation: "demarches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demarche_questionnaire_responses_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "action_question_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demarche_questionnaire_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "action_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demarches: {
         Row: {
           admin_viewed: boolean | null
