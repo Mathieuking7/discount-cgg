@@ -104,20 +104,32 @@ const StripeCardForm = ({ clientSecret, onSuccess }: { clientSecret: string; onS
   );
 };
 
+interface CreditPack {
+  id: string;
+  quantity: number;
+  price: number;
+  description: string | null;
+}
+
 export default function PaiementRecharge() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut, loading: authLoading } = useAuth();
   
-  const creditAmount = parseInt(searchParams.get("amount") || "0");
-  const price = parseInt(searchParams.get("price") || "0");
+  // SECURITY FIX: Only use pack ID from URL, price comes from database
+  const packId = searchParams.get("packId");
   
+  const [pack, setPack] = useState<CreditPack | null>(null);
   const [garage, setGarage] = useState<any>(null);
   const [clientSecret, setClientSecret] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [stripePromise, setStripePromise] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Derived values from validated pack
+  const creditAmount = pack?.quantity || 0;
+  const price = pack?.price || 0;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -126,17 +138,39 @@ export default function PaiementRecharge() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (user && creditAmount > 0 && price > 0) {
-      loadData();
-    } else if (!authLoading && (creditAmount <= 0 || price <= 0)) {
+    if (!packId) {
       navigate("/acheter-jetons");
+      return;
     }
-  }, [user, creditAmount, price, authLoading]);
+    if (user) {
+      loadData();
+    }
+  }, [user, packId, authLoading]);
 
   const loadData = async () => {
-    if (!user) return;
+    if (!user || !packId) return;
 
     try {
+      // SECURITY: Load pack details from database to validate price
+      const { data: packData, error: packError } = await supabase
+        .from("token_pricing")
+        .select("*")
+        .eq("id", packId)
+        .eq("active", true)
+        .single();
+
+      if (packError || !packData) {
+        toast({
+          title: "Erreur",
+          description: "Pack de crédits invalide ou inactif",
+          variant: "destructive",
+        });
+        navigate("/acheter-jetons");
+        return;
+      }
+
+      setPack(packData);
+
       // Check admin
       const { data: roleData } = await supabase
         .from('user_roles')
@@ -175,20 +209,19 @@ export default function PaiementRecharge() {
       const stripe = await loadStripe(keyData.publishableKey);
       setStripePromise(stripe);
 
-      // Create payment intent
+      // SECURITY: Create payment intent with pack ID only - server validates price
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
         "create-token-payment-intent",
         {
           body: {
-            amount: Math.round(price * 100),
-            quantity: creditAmount,
+            packId: packId,
             garage_id: garageData.id,
           },
         }
       );
 
       if (paymentError || !paymentData?.clientSecret) {
-        throw new Error("Impossible de créer le paiement");
+        throw new Error(paymentData?.error || "Impossible de créer le paiement");
       }
 
       setClientSecret(paymentData.clientSecret);
