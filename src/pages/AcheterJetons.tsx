@@ -85,8 +85,8 @@ export default function AcheterJetons() {
   };
 
   const handleSelectPack = (pack: CreditPack) => {
-    // Redirect to payment page with pack details
-    navigate(`/paiement-recharge?amount=${pack.quantity}&price=${pack.price}`);
+    // SECURITY: Only pass pack ID, price is validated server-side
+    navigate(`/paiement-recharge?packId=${pack.id}`);
   };
 
   const handleLogout = async () => {
