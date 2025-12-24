@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { QuestionnaireResponses } from "@/components/QuestionnaireResponses";
 import { ArrowLeft, FileText, AlertCircle, CheckCircle, XCircle, Upload, Eye, Mail, Phone, Zap, FileCheck as FileCheckIcon, CreditCard, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FactureButton } from "@/components/FactureButton";
@@ -512,6 +513,9 @@ export default function DemarcheDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Réponses au questionnaire */}
+            <QuestionnaireResponses demarcheId={demarche.id} />
 
             {/* Options souscrites */}
             {trackingServices.length > 0 && (

@@ -12,6 +12,7 @@ import { ArrowLeft, Download, Send, CheckCircle, XCircle, Clock, Eye, Plus, Mail
 import { useToast } from "@/hooks/use-toast";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { QuestionnaireResponses } from "@/components/QuestionnaireResponses";
 import { Badge } from "@/components/ui/badge";
 import { FactureButton } from "@/components/FactureButton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -849,6 +850,9 @@ export default function DemarcheDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Réponses au questionnaire */}
+            <QuestionnaireResponses demarcheId={demarche.id} />
 
             {/* Demarche Info */}
             <Card>
