@@ -82,13 +82,22 @@ export default function MesFactures() {
 
       // L'edge function retourne une URL signée
       if (data?.signedUrl) {
-        const link = document.createElement('a');
-        link.href = data.signedUrl;
-        link.download = `facture_${numero}.pdf`;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Sur mobile Safari, window.open fonctionne mieux que le click programmatique
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          // Ouvrir directement dans un nouvel onglet sur mobile
+          window.open(data.signedUrl, '_blank');
+        } else {
+          // Sur desktop, utiliser la méthode classique
+          const link = document.createElement('a');
+          link.href = data.signedUrl;
+          link.download = `facture_${numero}.pdf`;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
       } else {
         throw new Error('URL de téléchargement non disponible');
       }
