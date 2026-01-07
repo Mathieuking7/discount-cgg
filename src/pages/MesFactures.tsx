@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, FileText, Download, Loader2, Coins, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { downloadFromSignedUrl } from "@/lib/storage-utils";
 
@@ -51,9 +51,12 @@ export default function MesFactures() {
           immatriculation,
           type,
           status
+        ),
+        token_purchases (
+          quantity,
+          amount
         )
       `)
-      .not('garage_id', 'is', null)
       .eq('garage_id', gId)
       .order('created_at', { ascending: false });
 
@@ -149,8 +152,8 @@ export default function MesFactures() {
                     <TableRow>
                       <TableHead>Numéro</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Immatriculation</TableHead>
-                      <TableHead>Type démarche</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Détail</TableHead>
                       <TableHead className="text-right">Montant HT</TableHead>
                       <TableHead className="text-right">TVA</TableHead>
                       <TableHead className="text-right">Montant TTC</TableHead>
@@ -159,52 +162,71 @@ export default function MesFactures() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {factures.map((facture) => (
-                      <TableRow key={facture.id}>
-                        <TableCell className="font-medium">{facture.numero}</TableCell>
-                        <TableCell>
-                          {new Date(facture.created_at).toLocaleDateString('fr-FR')}
-                        </TableCell>
-                        <TableCell>
-                          {facture.demarches?.immatriculation || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {facture.demarches?.type || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {Number(facture.montant_ht).toFixed(2)} €
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {facture.tva}%
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {Number(facture.montant_ttc).toFixed(2)} €
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={facture.demarches?.status === 'validee' ? 'default' : 'secondary'}
-                          >
-                            {facture.demarches?.status || 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownload(facture.id, facture.numero)}
-                            disabled={!facture.pdf_url || downloading === facture.id}
-                          >
-                            {downloading === facture.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                    {factures.map((facture) => {
+                      const isTokenPurchase = !!facture.token_purchase_id;
+                      
+                      return (
+                        <TableRow key={facture.id}>
+                          <TableCell className="font-medium">{facture.numero}</TableCell>
+                          <TableCell>
+                            {new Date(facture.created_at).toLocaleDateString('fr-FR')}
+                          </TableCell>
+                          <TableCell>
+                            {isTokenPurchase ? (
+                              <Badge variant="secondary" className="gap-1">
+                                <Coins className="h-3 w-3" />
+                                Achat crédits
+                              </Badge>
                             ) : (
-                              <Download className="h-4 w-4" />
+                              <Badge variant="outline" className="gap-1">
+                                <Car className="h-3 w-3" />
+                                {facture.demarches?.type || 'Démarche'}
+                              </Badge>
                             )}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            {isTokenPurchase 
+                              ? `${facture.token_purchases?.quantity || 0} crédits`
+                              : facture.demarches?.immatriculation || 'N/A'
+                            }
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {Number(facture.montant_ht).toFixed(2)} €
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {facture.tva}%
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {Number(facture.montant_ttc).toFixed(2)} €
+                          </TableCell>
+                          <TableCell>
+                            {isTokenPurchase ? (
+                              <Badge variant="default">Payé</Badge>
+                            ) : (
+                              <Badge 
+                                variant={facture.demarches?.status === 'validee' ? 'default' : 'secondary'}
+                              >
+                                {facture.demarches?.status || 'N/A'}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownload(facture.id, facture.numero)}
+                              disabled={!facture.pdf_url || downloading === facture.id}
+                            >
+                              {downloading === facture.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
