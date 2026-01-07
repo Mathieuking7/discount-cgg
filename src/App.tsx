@@ -39,6 +39,7 @@ import GuestOrders from "./pages/admin/GuestOrders";
 import GuestOrderDetail from "./pages/admin/GuestOrderDetail";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import HistoriquePaiements from "./pages/admin/HistoriquePaiements";
+import TokenPurchases from "./pages/admin/TokenPurchases";
 import ManageEmailTemplates from "./pages/admin/ManageEmailTemplates";
 import ManagePricingConfig from "./pages/admin/ManagePricingConfig";
 import TestEmail from "./pages/admin/TestEmail";
@@ -96,6 +97,7 @@ const App = () => (
           <Route path="/admin/manage-accounts" element={<ManageAccounts />} />
           <Route path="/admin/notifications" element={<AdminNotifications />} />
           <Route path="/admin/historique-paiements" element={<HistoriquePaiements />} />
+          <Route path="/admin/token-purchases" element={<TokenPurchases />} />
           <Route path="/admin/email-templates" element={<ManageEmailTemplates />} />
           <Route path="/admin/pricing-config" element={<ManagePricingConfig />} />
           <Route path="/admin/test-email" element={<TestEmail />} />
