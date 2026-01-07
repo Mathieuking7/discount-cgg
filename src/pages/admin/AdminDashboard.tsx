@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, FileText, DollarSign, Mail, Calculator, ShoppingCart, UserCog, Wrench, Bell, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, FileText, DollarSign, Mail, Calculator, ShoppingCart, UserCog, Wrench, Bell, AlertCircle, RefreshCw, Loader2, Euro } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RevenueStats from "@/components/admin/RevenueStats";
 export default function AdminDashboard() {
@@ -398,6 +398,14 @@ export default function AdminDashboard() {
               >
                 <DollarSign className="h-6 w-6" />
                 <span className="text-sm font-medium">Historique paiements</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-blue-200 hover:border-blue-300"
+                onClick={() => navigate("/admin/token-purchases")}
+              >
+                <Euro className="h-6 w-6 text-blue-600" />
+                <span className="text-sm font-medium">Achats jetons</span>
               </Button>
               {/* MASQUÉ TEMPORAIREMENT - Actions rapides
               <Button

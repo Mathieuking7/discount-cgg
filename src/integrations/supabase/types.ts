@@ -487,6 +487,7 @@ export type Database = {
           montant_ttc: number
           numero: string
           pdf_url: string | null
+          token_purchase_id: string | null
           tva: number
           updated_at: string
         }
@@ -500,6 +501,7 @@ export type Database = {
           montant_ttc?: number
           numero: string
           pdf_url?: string | null
+          token_purchase_id?: string | null
           tva?: number
           updated_at?: string
         }
@@ -513,6 +515,7 @@ export type Database = {
           montant_ttc?: number
           numero?: string
           pdf_url?: string | null
+          token_purchase_id?: string | null
           tva?: number
           updated_at?: string
         }
@@ -536,6 +539,13 @@ export type Database = {
             columns: ["guest_order_id"]
             isOneToOne: false
             referencedRelation: "guest_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factures_token_purchase_id_fkey"
+            columns: ["token_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "token_purchases"
             referencedColumns: ["id"]
           },
         ]
