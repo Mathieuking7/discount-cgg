@@ -730,6 +730,42 @@ export default function DemarcheDetail() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Ajouter des documents supplémentaires - toujours visible après paiement */}
+            {(demarche.paye || demarche.status === 'paye' || demarche.status === 'valide' || demarche.status === 'en_attente') && !isUploadBlocked && rejectedDocuments.length === 0 && (
+              <Card className="border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5 text-primary" />
+                    Ajouter des documents supplémentaires
+                  </CardTitle>
+                  <CardDescription>
+                    Vous avez oublié un document ? Ajoutez-le ici. L'administration sera notifiée automatiquement.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {uploadSlots.map((slotId, index) => (
+                    <DocumentUpload
+                      key={slotId}
+                      demarcheId={demarche.id}
+                      documentType={`autre_piece_${slotId}`}
+                      label={`Document supplémentaire ${index + 1}`}
+                      customName={`Pièce supplémentaire ${index + 1}`}
+                      onUploadComplete={loadData}
+                    />
+                  ))}
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setUploadSlots(prev => [...prev, Math.max(...prev) + 1])}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter un autre document
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}
