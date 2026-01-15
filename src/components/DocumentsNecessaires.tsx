@@ -44,6 +44,7 @@ const getDocumentsConfig = (
     case "WW_PROVISOIRE_PRO": {
       // Socle commun pour WW Provisoire
       documents = [
+        { id: "ww_mandat", nom: "Mandat signé et tamponné (Cerfa 13757)", obligatoire: true },
         { id: "ww_assurance", nom: "Attestation d'assurance du véhicule", obligatoire: true },
         { id: "ww_coc", nom: "Certificat de conformité (COC)", obligatoire: true, helpText: "Nécessaire si le champ \"K\" de la carte grise est vide, ou pour un véhicule neuf ou très ancien." },
         { id: "ww_cerfa_13750", nom: "Demande d'immatriculation signée et tamponnée (Cerfa 13750)", obligatoire: true },
@@ -102,12 +103,6 @@ const getDocumentsConfig = (
         documents.push({ 
           id: "ww_id_representant", 
           nom: "Pièce d'identité du représentant légal (recto/verso)", 
-          obligatoire: true, 
-          conditionKey: "societe" 
-        });
-        documents.push({ 
-          id: "ww_mandat", 
-          nom: "Mandat signé et tamponné (Cerfa 13757)", 
           obligatoire: true, 
           conditionKey: "societe" 
         });
