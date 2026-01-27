@@ -310,6 +310,13 @@ export default function DemarcheDetail() {
         qf_kbis: "Extrait Kbis < 6 mois",
         qf_justif_siege: "Justificatif de domicile du siège social",
         qf_justif_tva: "Justificatif de paiement de la TVA",
+        // Changement d'adresse PRO
+        ca_id_dirigeant: "Pièce d'identité du dirigeant (recto)",
+        ca_id_dirigeant_verso: "Pièce d'identité du dirigeant (verso)",
+        ca_certificat_immat: "Certificat d'immatriculation",
+        ca_mandat: "Mandat signé et tamponné (Cerfa 13757)",
+        ca_cerfa_13750: "Demande d'immatriculation signée et tamponnée (Cerfa 13750)",
+        ca_kbis: "Extrait Kbis de moins de 6 mois mis à jour",
       };
 
       if (actionData) {
@@ -1098,9 +1105,9 @@ export default function DemarcheDetail() {
                                 <p className="text-xs font-semibold text-primary uppercase mb-2">
                                   {doc.document_type}
                                 </p>
-                              ) : documentLabels[doc.type_document] && (
+                              ) : (
                                 <p className="text-xs font-semibold text-primary uppercase mb-2">
-                                  {documentLabels[doc.type_document]}
+                                  {documentLabels[doc.type_document] || doc.type_document?.replace(/_/g, ' ') || 'Document'}
                                 </p>
                               )}
                               <div className="flex items-center gap-2 mb-1">
