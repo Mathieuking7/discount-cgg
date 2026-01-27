@@ -381,25 +381,48 @@ export function DocumentsNecessaires({
             {documents.map((doc) => {
               // Warning léger si document recommandé non uploadé
               const showRecommendedWarning = doc.recommended && !uploadedDocuments.has(doc.id);
+              // Vérifier si le document nécessite recto/verso
+              const docName = doc.nom.toLowerCase();
+              const hasRectoVerso = docName.includes('recto/verso') || docName.includes('recto verso');
               
               return (
-                <div 
-                  key={doc.id} 
-                  className={`flex items-center gap-4 p-3 rounded-lg ${
-                    showRecommendedWarning 
-                      ? 'bg-amber-50 border border-amber-200' 
-                      : 'bg-muted/30'
-                  }`}
-                >
-                  {renderDocLabel(doc)}
-                  <div className="w-[350px]">
-                    <DocumentUpload
-                      demarcheId={demarcheId}
-                      documentType={doc.id}
-                      label=""
-                      onUploadComplete={() => onDocumentUpload(doc.id)}
-                    />
+                <div key={doc.id} className="space-y-2">
+                  <div 
+                    className={`flex items-center gap-4 p-3 rounded-lg ${
+                      showRecommendedWarning 
+                        ? 'bg-amber-50 border border-amber-200' 
+                        : 'bg-muted/30'
+                    }`}
+                  >
+                    {renderDocLabel(doc)}
+                    <div className="w-[350px]">
+                      <DocumentUpload
+                        demarcheId={demarcheId}
+                        documentType={doc.id}
+                        label=""
+                        onUploadComplete={() => onDocumentUpload(doc.id)}
+                      />
+                    </div>
                   </div>
+                  {/* Verso optionnel pour les documents recto/verso */}
+                  {hasRectoVerso && (
+                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/20 ml-6">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                          {doc.nom.replace(/\(recto\/verso\)/i, '').replace(/recto\/verso/i, '').trim()} (verso)
+                          <span className="text-muted-foreground text-xs">(Optionnel)</span>
+                        </div>
+                      </div>
+                      <div className="w-[350px]">
+                        <DocumentUpload
+                          demarcheId={demarcheId}
+                          documentType={`${doc.id}_verso`}
+                          label=""
+                          onUploadComplete={() => onDocumentUpload(`${doc.id}_verso`)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
