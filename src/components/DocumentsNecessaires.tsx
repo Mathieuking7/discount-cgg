@@ -206,6 +206,42 @@ const getDocumentsConfig = (
       ];
       break;
     }
+
+    case "DUPLICATA_CG_PRO": {
+      // Documents requis pour la demande de duplicata de carte grise (société)
+      documents = [
+        { id: "dup_kbis", nom: "Extrait Kbis de moins de 6 mois", obligatoire: true },
+        { id: "dup_id_dirigeant", nom: "Pièce d'identité du dirigeant (recto/verso)", obligatoire: true },
+        { id: "dup_assurance", nom: "Attestation d'assurance du véhicule", obligatoire: true },
+        { id: "dup_mandat", nom: "Mandat signé et tamponné (Cerfa 13757)", obligatoire: true },
+        { id: "dup_cerfa_13750", nom: "Demande d'immatriculation signée et tamponnée (Cerfa 13750)", obligatoire: true },
+        { id: "dup_cerfa_13753", nom: "Déclaration de perte ou de vol signée et tamponnée (Cerfa 13753)", obligatoire: true, helpText: "En cas de vol : document obligatoirement signé et tamponné par la police." },
+        { id: "dup_ct", nom: "Contrôle technique en cours de validité", obligatoire: true },
+      ];
+
+      const allAnswerValues = Object.values(answers).join(" ").toLowerCase();
+
+      // Documents conditionnels - Si LOA/LLD/Crédit-bail
+      if (allAnswerValues.includes("oui")) {
+        documents.push({ 
+          id: "dup_mandat_location", 
+          nom: "Mandat de la société de location autorisant le locataire à effectuer la démarche", 
+          obligatoire: true, 
+          conditionKey: "loa" 
+        });
+      }
+
+      // Message d'info si CT égaré
+      if (allAnswerValues.includes("égaré")) {
+        // Le document CT reste obligatoire mais on ajoute un helpText
+        const ctDoc = documents.find(d => d.id === "dup_ct");
+        if (ctDoc) {
+          ctDoc.helpText = "Si le PV de contrôle technique est perdu, contactez le centre ayant réalisé le contrôle pour obtenir un duplicata. Exceptionnellement, une photo de la vignette pare-brise peut être fournie.";
+        }
+      }
+
+      break;
+    }
   }
 
   return { documents, blockingMessage };

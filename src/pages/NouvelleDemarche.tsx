@@ -37,7 +37,7 @@ const PRO_DEMARCHE_TYPES = [
 // Types de démarches PRO qui nécessitent les infos véhicule (VIN, marque, modèle)
 const PRO_TYPES_WITH_VEHICLE = ["WW_PROVISOIRE_PRO", "QUITUS_FISCAL_PRO"];
 // Types de démarches PRO qui n'ont pas besoin de bloc véhicule
-const PRO_TYPES_WITHOUT_VEHICLE = ["W_GARAGE_PRO", "CHANGEMENT_ADRESSE_PRO", "DUPLICATA_CG_PRO"];
+const PRO_TYPES_WITHOUT_VEHICLE = ["W_GARAGE_PRO", "CHANGEMENT_ADRESSE_PRO"];
 
 
 export default function NouvelleDemarche() {
