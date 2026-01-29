@@ -795,14 +795,14 @@ export default function NouvelleDemarche() {
               {garage && (
                 <>
                   {/* Formulaires véhicule classiques */}
-                  {formData.type === 'CG' || PRO_TYPES_WITH_PLATE.includes(formData.type) ? (
+                  {formData.type === 'CG' ? (
                     <VehicleFormCG
                       garageId={garage.id}
                       onVehicleSelect={handleVehicleSelect}
                       selectedVehicleId={selectedVehicleId}
-                      onPriceCalculated={PRO_TYPES_WITH_PLATE.includes(formData.type) ? undefined : handlePriceCalculated}
+                      onPriceCalculated={handlePriceCalculated}
                     />
-                  ) : (formData.type === 'DA' || formData.type === 'DC') ? (
+                  ) : (formData.type === 'DA' || formData.type === 'DC' || PRO_TYPES_WITH_PLATE.includes(formData.type)) ? (
                     <VehicleFormSimple
                       garageId={garage.id}
                       onVehicleSelect={handleVehicleSelect}
