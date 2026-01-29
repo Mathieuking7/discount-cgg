@@ -134,6 +134,10 @@ export function ActionQuestionnaire({ actionId, onAnswersChange }: ActionQuestio
           setConditionalDocs(docsByOption);
         }
       }
+    } else {
+      // Pas de questions - notifier le parent immédiatement que le questionnaire est complété
+      setQuestions([]);
+      onAnswersChange({}, false, [], true, {});
     }
 
     setLoading(false);
