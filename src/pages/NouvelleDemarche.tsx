@@ -34,8 +34,10 @@ const PRO_DEMARCHE_TYPES = [
   "CHANGEMENT_ADRESSE_PRO",
   "DUPLICATA_CG_PRO",
 ];
-// Types de démarches PRO qui nécessitent les infos véhicule (VIN, marque, modèle)
-const PRO_TYPES_WITH_VEHICLE = ["WW_PROVISOIRE_PRO", "QUITUS_FISCAL_PRO", "DUPLICATA_CG_PRO"];
+// Types de démarches PRO qui nécessitent les infos véhicule manuelles (VIN, marque, modèle)
+const PRO_TYPES_WITH_VEHICLE = ["WW_PROVISOIRE_PRO", "QUITUS_FISCAL_PRO"];
+// Types de démarches PRO qui utilisent la plaque d'immatriculation (lookup API)
+const PRO_TYPES_WITH_PLATE = ["DUPLICATA_CG_PRO"];
 // Types de démarches PRO qui n'ont pas besoin de bloc véhicule
 const PRO_TYPES_WITHOUT_VEHICLE = ["W_GARAGE_PRO", "CHANGEMENT_ADRESSE_PRO"];
 
@@ -793,12 +795,12 @@ export default function NouvelleDemarche() {
               {garage && (
                 <>
                   {/* Formulaires véhicule classiques */}
-                  {formData.type === 'CG' ? (
+                  {formData.type === 'CG' || PRO_TYPES_WITH_PLATE.includes(formData.type) ? (
                     <VehicleFormCG
                       garageId={garage.id}
                       onVehicleSelect={handleVehicleSelect}
                       selectedVehicleId={selectedVehicleId}
-                      onPriceCalculated={handlePriceCalculated}
+                      onPriceCalculated={PRO_TYPES_WITH_PLATE.includes(formData.type) ? undefined : handlePriceCalculated}
                     />
                   ) : (formData.type === 'DA' || formData.type === 'DC') ? (
                     <VehicleFormSimple
@@ -818,7 +820,7 @@ export default function NouvelleDemarche() {
                         }
                       }}
                       requireVin={PRO_TYPES_WITH_VEHICLE.includes(formData.type)}
-                      requireDateMec={formData.type === 'WW_PROVISOIRE_PRO' || formData.type === 'DUPLICATA_CG_PRO'}
+                      requireDateMec={formData.type === 'WW_PROVISOIRE_PRO'}
                     />
                   ) : PRO_TYPES_WITHOUT_VEHICLE.includes(formData.type) ? (
                     /* W_GARAGE_PRO - Pas de bloc véhicule */
