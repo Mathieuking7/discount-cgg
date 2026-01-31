@@ -479,7 +479,7 @@ const ManagePricingConfig = () => {
                               </div>
                               <p className="text-sm text-muted-foreground mt-1">{type.description}</p>
                               <div className="flex items-center gap-4 mt-2 text-sm">
-                                <span className="font-semibold text-primary">{type.prix_base.toFixed(2)} € HT</span>
+                                <span className="font-semibold text-primary">{type.prix_base.toFixed(2)} €</span>
                                 {type.require_carte_grise_price && (
                                   <Badge variant="secondary">+ Prix carte grise</Badge>
                                 )}
@@ -703,7 +703,7 @@ const ManagePricingConfig = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="prix">Prix de base (€ HT) *</Label>
+                  <Label htmlFor="prix">Prix de base (€) *</Label>
                   <Input
                     id="prix"
                     type="number"

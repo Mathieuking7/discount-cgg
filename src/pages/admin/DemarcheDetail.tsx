@@ -1041,7 +1041,7 @@ export default function DemarcheDetail() {
                               {service.service_type === 'suivi_sms' && 'Suivi par SMS'}
                               {service.service_type === 'suivi_complet' && 'Suivi complet'}
                             </span>
-                            <span className="font-medium">{service.price.toFixed(2)} € HT</span>
+                            <span className="font-medium">{service.price.toFixed(2)} €</span>
                           </div>
                         ))}
                       </>

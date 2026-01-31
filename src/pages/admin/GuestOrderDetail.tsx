@@ -947,7 +947,7 @@ export default function GuestOrderDetail() {
             
             {/* Services (soumis à TVA) */}
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Services (HT)</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Services</p>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Frais de dossier</span>
                 <span className="font-medium">{order.frais_dossier.toFixed(2)} €</span>
