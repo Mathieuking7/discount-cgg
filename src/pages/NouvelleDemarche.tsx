@@ -1164,7 +1164,7 @@ export default function NouvelleDemarche() {
                 }
                 className={`w-full ${isFreeTokenEligible ? 'bg-green-500 hover:bg-green-600' : 'bg-success hover:bg-success/90'}`}
               >
-                {isQuestionnaireBlocked ? 'Démarche impossible' : (isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())}€ HT`)}
+                {isQuestionnaireBlocked ? 'Démarche impossible' : (isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())}€`)}
               </Button>
             </form>
 
