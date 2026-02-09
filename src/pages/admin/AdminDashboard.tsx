@@ -301,10 +301,21 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Revenue Stats Section */}
-        <div className="mb-8">
-          <RevenueStats />
-        </div>
+        {/* Revenue Stats Section - Link to full page */}
+        <Card className="mb-8 cursor-pointer hover:border-primary transition-colors" onClick={() => navigate("/admin/revenus")}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                <CardTitle>Revenus</CardTitle>
+              </div>
+              <Button variant="outline" size="sm">
+                Voir les statistiques détaillées →
+              </Button>
+            </div>
+            <CardDescription>Revenu total: {stats.totalPaiements.toFixed(2)} €</CardDescription>
+          </CardHeader>
+        </Card>
 
         {/* Section Particuliers */}
         <Card>

@@ -43,6 +43,7 @@ import TokenPurchases from "./pages/admin/TokenPurchases";
 import ManageEmailTemplates from "./pages/admin/ManageEmailTemplates";
 import ManagePricingConfig from "./pages/admin/ManagePricingConfig";
 import TestEmail from "./pages/admin/TestEmail";
+import AdminRevenus from "./pages/admin/AdminRevenus";
 import AcheterJetons from "./pages/AcheterJetons";
 import PaiementRecharge from "./pages/PaiementRecharge";
 import PaiementRechargeSucces from "./pages/PaiementRechargeSucces";
@@ -101,6 +102,7 @@ const App = () => (
           <Route path="/admin/email-templates" element={<ManageEmailTemplates />} />
           <Route path="/admin/pricing-config" element={<ManagePricingConfig />} />
           <Route path="/admin/test-email" element={<TestEmail />} />
+          <Route path="/admin/revenus" element={<AdminRevenus />} />
           <Route path="/admin/guest-orders" element={<GuestOrders />} />
           <Route path="/admin/guest-order/:id" element={<GuestOrderDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
