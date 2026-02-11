@@ -308,6 +308,20 @@ export const getDocumentsConfig = (
       ];
       break;
     }
+
+    case "ANNULATION_CPI_WW_PRO": {
+      // Documents requis pour annulation CPI WW (sociétés)
+      documents = [
+        { id: "ann_attestation", nom: "Attestation d'annulation de vente manuscrite (signée par vendeur et acquéreur, cachet + signature si pro)", obligatoire: true, helpText: "L'ANTS préfère une version manuscrite. Doit reprendre l'identité des deux parties, du véhicule, les dates/lieux de vente et d'annulation, et la raison de l'annulation." },
+        { id: "ann_id_parties", nom: "Pièce d'identité des deux parties : acheteur et vendeur (Kbis + ID dirigeant pour les pros)", obligatoire: true },
+        { id: "ann_assurance", nom: "Attestation d'assurance", obligatoire: true },
+        { id: "ann_mandat", nom: "Mandat signé et tamponné (Cerfa 13757)", obligatoire: true },
+        { id: "ann_ci_etranger", nom: "Certificat d'immatriculation étranger", obligatoire: true },
+        { id: "ann_coc", nom: "Certificat de conformité COC", obligatoire: false, helpText: "Nécessaire si le champ \"K\" de la carte grise est vide, ou pour un véhicule neuf ou très ancien" },
+        { id: "ann_facture_cession", nom: "Facture d'achat ou Certificat de cession", obligatoire: true, helpText: "Si nécessaire, retracer toute la chaîne de propriété" },
+      ];
+      break;
+    }
   }
 
   return { documents, blockingMessage };
