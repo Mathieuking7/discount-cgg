@@ -1509,6 +1509,7 @@ export type Database = {
         | "FIV_PRO"
         | "CG_NEUF_PRO"
         | "MODIF_CG_PRO"
+        | "ANNULATION_CPI_WW_PRO"
       paiement_status: "en_attente" | "valide" | "refuse" | "rembourse"
     }
     CompositeTypes: {
@@ -1661,6 +1662,7 @@ export const Constants = {
         "FIV_PRO",
         "CG_NEUF_PRO",
         "MODIF_CG_PRO",
+        "ANNULATION_CPI_WW_PRO",
       ],
       paiement_status: ["en_attente", "valide", "refuse", "rembourse"],
     },
