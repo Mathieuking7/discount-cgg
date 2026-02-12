@@ -428,6 +428,37 @@ export const getDocumentsConfig = (
 
       break;
     }
+
+    case "ANNULER_CORRIGER_DC_DA_PRO": {
+      // Documents de base communs (annuler ou corriger)
+      documents = [
+        { id: "acd_id_parties", nom: "Justificatif d'identité et permis de conduire des deux parties – acheteur et vendeur (Kbis + ID gérant si pro)", obligatoire: true },
+        { id: "acd_justif_domicile", nom: "Justificatif de domicile de moins de 6 mois du mandant", obligatoire: true, helpText: "Si le justificatif n'est pas au nom du titulaire : fournir une attestation d'hébergement + pièce d'identité de l'hébergeur" },
+        { id: "acd_cg_barree", nom: "Carte grise barrée", obligatoire: true },
+        { id: "acd_mandat", nom: "Mandat signé (Cerfa 13757)", obligatoire: true },
+        { id: "acd_cerfa_cession", nom: "Certificat de cession signé (Cerfa 15776)", obligatoire: true },
+      ];
+
+      const allAnswerValues = Object.values(answers).join(" ").toLowerCase();
+
+      // Cas "Annuler"
+      if (allAnswerValues.includes("annuler")) {
+        documents.push(
+          { id: "acd_attestation_annulation", nom: "Attestation manuscrite d'annulation de vente signée par les deux parties", obligatoire: true, conditionKey: "annuler", helpText: "En cas d'annulation, la carte grise barrée est considérée comme détériorée. Un duplicata sera nécessaire pour le vendeur." },
+        );
+      }
+
+      // Cas "Corriger"
+      if (allAnswerValues.includes("corriger")) {
+        documents.push(
+          { id: "acd_cession_corrigee", nom: "Certificat de cession corrigé (Cerfa 15776) – ancienne version et nouvelle version corrigée", obligatoire: true, conditionKey: "corriger" },
+          { id: "acd_id_nouveau_tit", nom: "Si erreur sur l'identité : pièce d'identité du nouveau titulaire", obligatoire: false, conditionKey: "corriger" },
+          { id: "acd_domicile_nouveau_tit", nom: "Si erreur sur l'adresse : justificatif de domicile de moins de 6 mois du nouveau titulaire", obligatoire: false, conditionKey: "corriger" },
+        );
+      }
+
+      break;
+    }
   }
 
   return { documents, blockingMessage };
