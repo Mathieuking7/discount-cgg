@@ -459,6 +459,19 @@ export const getDocumentsConfig = (
 
       break;
     }
+
+    case "CYCLO_ANCIEN_PRO": {
+      documents = [
+        { id: "cyc_kbis_id", nom: "Extrait Kbis de moins de 6 mois + Pièce d'identité du dirigeant (recto/verso)", obligatoire: true },
+        { id: "cyc_facture_cession", nom: "Facture d'achat ou certificat de cession signé et tamponné", obligatoire: true },
+        { id: "cyc_mandat", nom: "Mandat signé et tamponné (Cerfa 13757)", obligatoire: true },
+        { id: "cyc_cerfa_13750", nom: "Demande d'immatriculation signée et tamponnée (Cerfa 13750)", obligatoire: true },
+        { id: "cyc_photos", nom: "Photos du cyclomoteur : plaques constructeur, numéro de série, cadre, véhicule en intégralité", obligatoire: true },
+        { id: "cyc_attestation_id", nom: "Attestation d'identification du véhicule délivrée par le constructeur ou son représentant (ou Attestation FFVE)", obligatoire: true },
+        { id: "cyc_assurance", nom: "Attestation d'assurance", obligatoire: true },
+      ];
+      break;
+    }
   }
 
   return { documents, blockingMessage };

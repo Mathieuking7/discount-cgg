@@ -1514,6 +1514,7 @@ export type Database = {
         | "SUCCESSION_HERITAGE_PRO"
         | "COTITULAIRE_PRO"
         | "ANNULER_CORRIGER_DC_DA_PRO"
+        | "CYCLO_ANCIEN_PRO"
       paiement_status: "en_attente" | "valide" | "refuse" | "rembourse"
     }
     CompositeTypes: {
@@ -1671,6 +1672,7 @@ export const Constants = {
         "SUCCESSION_HERITAGE_PRO",
         "COTITULAIRE_PRO",
         "ANNULER_CORRIGER_DC_DA_PRO",
+        "CYCLO_ANCIEN_PRO",
       ],
       paiement_status: ["en_attente", "valide", "refuse", "rembourse"],
     },
