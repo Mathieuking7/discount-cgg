@@ -1513,6 +1513,7 @@ export type Database = {
         | "CHANGEMENT_ADRESSE_LOCATAIRE_PRO"
         | "SUCCESSION_HERITAGE_PRO"
         | "COTITULAIRE_PRO"
+        | "ANNULER_CORRIGER_DC_DA_PRO"
       paiement_status: "en_attente" | "valide" | "refuse" | "rembourse"
     }
     CompositeTypes: {
@@ -1669,6 +1670,7 @@ export const Constants = {
         "CHANGEMENT_ADRESSE_LOCATAIRE_PRO",
         "SUCCESSION_HERITAGE_PRO",
         "COTITULAIRE_PRO",
+        "ANNULER_CORRIGER_DC_DA_PRO",
       ],
       paiement_status: ["en_attente", "valide", "refuse", "rembourse"],
     },
