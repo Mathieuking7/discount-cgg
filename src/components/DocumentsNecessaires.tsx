@@ -335,6 +335,67 @@ export const getDocumentsConfig = (
       ];
       break;
     }
+
+    case "SUCCESSION_HERITAGE_PRO": {
+      // Documents de base communs aux deux cas (héritier garde ou vend)
+      documents = [
+        { id: "sh_id_heritier", nom: "Pièce d'identité de l'héritier (recto/verso)", obligatoire: true },
+        { id: "sh_permis", nom: "Permis de conduire de l'héritier (recto/verso)", obligatoire: true },
+        { id: "sh_justif_domicile", nom: "Justificatif de domicile de moins de 6 mois de l'héritier", obligatoire: true, helpText: "Si le justificatif n'est pas au nom du titulaire : fournir une attestation d'hébergement + pièce d'identité de l'hébergeur" },
+        { id: "sh_ancien_ci", nom: "Ancien certificat d'immatriculation", obligatoire: true },
+        { id: "sh_mandat", nom: "Mandat Cerfa 13757 signé", obligatoire: true },
+        { id: "sh_certificat_deces", nom: "Certificat de décès", obligatoire: true },
+        { id: "sh_acte_notarie", nom: "Acte notarié mentionnant le véhicule ou justificatif de la qualité d'héritier", obligatoire: true },
+        { id: "sh_ct", nom: "Contrôle technique en cours de validité (pour les véhicules de plus de 4 ans)", obligatoire: true },
+      ];
+
+      const allAnswerValues = Object.values(answers).join(" ").toLowerCase();
+
+      // Si l'héritier garde le véhicule → Cerfa 13750
+      if (allAnswerValues.includes("garder")) {
+        documents.push({
+          id: "sh_cerfa_13750",
+          nom: "Demande d'immatriculation Cerfa 13750 signée",
+          obligatoire: true,
+          conditionKey: "garder"
+        });
+      }
+
+      // Si plusieurs héritiers → Lettre de désistement
+      if (allAnswerValues.includes("plusieurs héritiers")) {
+        documents.push({
+          id: "sh_desistement",
+          nom: "Lettre de désistement signée de tous les héritiers avec leurs pièces d'identité",
+          obligatoire: true,
+          conditionKey: "plusieurs_heritiers"
+        });
+      }
+
+      // Si l'héritier vend et décès < 3 mois → docs acquéreur
+      if (allAnswerValues.includes("vendre") && allAnswerValues.includes("moins de 3 mois")) {
+        documents.push(
+          { id: "sh_cni_acquereur", nom: "CNI de l'acquéreur (recto/verso)", obligatoire: true, conditionKey: "vente_3mois" },
+          { id: "sh_permis_acquereur", nom: "Permis de conduire de l'acquéreur", obligatoire: true, conditionKey: "vente_3mois" },
+          { id: "sh_domicile_acquereur", nom: "Justificatif de domicile de l'acquéreur", obligatoire: true, conditionKey: "vente_3mois" },
+          { id: "sh_certificat_cession", nom: "Certificat de cession", obligatoire: true, conditionKey: "vente_3mois" },
+          { id: "sh_immat_acquereur", nom: "Demande d'immatriculation au nom de l'acquéreur", obligatoire: true, conditionKey: "vente_3mois" },
+          { id: "sh_attestation_non_circ", nom: "Attestation de non-circulation du véhicule depuis le décès signée par l'héritier", obligatoire: true, conditionKey: "vente_3mois", helpText: "Permet dans certains cas d'être exonéré de la taxe d'immatriculation" },
+        );
+      }
+
+      // Si l'héritier vend et décès > 3 mois → Cerfa 13750 au nom héritier
+      if (allAnswerValues.includes("vendre") && allAnswerValues.includes("plus de 3 mois")) {
+        documents.push({
+          id: "sh_cerfa_13750_heritier",
+          nom: "Demande d'immatriculation Cerfa 13750 au nom de l'héritier",
+          obligatoire: true,
+          conditionKey: "vente_plus3mois",
+          helpText: "L'héritier doit d'abord mettre la carte grise à son nom avant de pouvoir vendre"
+        });
+      }
+
+      break;
+    }
   }
 
   return { documents, blockingMessage };
