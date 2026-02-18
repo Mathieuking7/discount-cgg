@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, MessageCircle, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Support() {
   const navigate = useNavigate();
@@ -24,15 +25,33 @@ export default function Support() {
     e.preventDefault();
     setSending(true);
 
-    // Simuler l'envoi (à remplacer par une vraie fonction d'envoi d'email)
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.functions.invoke("send-contact-email", {
+        body: {
+          name: formData.name,
+          email: formData.email,
+          phone: "",
+          message: formData.subject ? `[${formData.subject}]\n\n${formData.message}` : formData.message
+        }
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Message envoyé",
         description: "Nous vous répondrons dans les plus brefs délais"
       });
       setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error: any) {
+      console.error("Error sending support email:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'envoi. Veuillez réessayer.",
+        variant: "destructive"
+      });
+    } finally {
       setSending(false);
-    }, 1000);
+    }
   };
 
   return (
