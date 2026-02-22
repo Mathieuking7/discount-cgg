@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
             <strong>Raison :</strong> ${orderData.rejectionReason || 'Document illisible ou incomplet'}
           </div>
           <p>Veuillez télécharger un nouveau document via votre page de suivi :</p>
-          <p><a href="https://discountcg.fr/suivi/${orderData.tracking_number}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Accéder à mon suivi</a></p>
+          <p><a href="https://discountcartegrise.fr/suivi/${orderData.tracking_number}" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 16px 0;">Accéder à mon suivi</a></p>
           <p>Numéro de suivi : <strong>${orderData.tracking_number}</strong></p>
           <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
           <p style="color: #666; font-size: 12px;">Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
