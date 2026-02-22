@@ -79,7 +79,7 @@ interface EmailRequest {
 }
 
 const getEmailTemplate = (type: string, data: any) => {
-  const baseUrl = "https://discountcg.fr";
+  const baseUrl = "https://discountcartegrise.fr";
   const trackingUrl = data?.tracking_number ? `${baseUrl}/suivi/${data.tracking_number}` : "";
 
   switch (type) {
@@ -366,7 +366,7 @@ const getEmailTemplate = (type: string, data: any) => {
               ${data.is_free_token ? '<p style="margin: 8px 0; color: #22c55e;"><strong>🎁 Démarche offerte (jeton gratuit)</strong></p>' : ''}
             </div>
 
-            <a href="https://discountcg.fr/admin/demarches" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+            <a href="https://discountcartegrise.fr/admin/demarches" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Accéder au tableau admin
             </a>
 
@@ -395,7 +395,7 @@ const getEmailTemplate = (type: string, data: any) => {
 
             <p>Vous pouvez suivre l'avancement de votre démarche depuis votre espace garage.</p>
 
-            <a href="https://discountcg.fr/mes-demarches" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+            <a href="https://discountcartegrise.fr/mes-demarches" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Voir mes démarches
             </a>
 
@@ -479,7 +479,7 @@ const getEmailTemplate = (type: string, data: any) => {
 
             <p>Vous pouvez utiliser ce solde pour payer vos prochaines démarches.</p>
 
-            <a href="https://discountcg.fr/dashboard" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+            <a href="https://discountcartegrise.fr/dashboard" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Accéder au tableau de bord
             </a>
 
@@ -511,7 +511,7 @@ const getEmailTemplate = (type: string, data: any) => {
 
             <p>Le traitement de votre démarche va commencer.</p>
 
-            <a href="https://discountcg.fr/mes-demarches" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+            <a href="https://discountcartegrise.fr/mes-demarches" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Voir mes démarches
             </a>
 
@@ -561,7 +561,7 @@ const getEmailTemplate = (type: string, data: any) => {
 
             <p>Veuillez vérifier les documents soumis dans l'interface d'administration.</p>
 
-            <a href="https://discountcg.fr/admin/manage-garages" style="display: inline-block; background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+            <a href="https://discountcartegrise.fr/admin/manage-garages" style="display: inline-block; background-color: #f59e0b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Vérifier le garage
             </a>
 
@@ -615,7 +615,7 @@ const getEmailTemplate = (type: string, data: any) => {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://discountcg.fr/register" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold;">
+              <a href="https://discountcartegrise.fr/register" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold;">
                 Créer mon compte et profiter de l'offre
               </a>
             </div>
