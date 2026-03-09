@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 const RechercheSuivi = () => {
   const navigate = useNavigate();
@@ -20,6 +21,11 @@ const RechercheSuivi = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Suivi de Commande Carte Grise | Suivre Mon Dossier - SIVFlow"
+        description="Suivez l'avancement de votre démarche de carte grise en temps réel. Entrez votre numéro de suivi pour consulter l'état de votre dossier."
+        canonicalUrl="https://sivflow.fr/recherche-suivi"
+      />
       <Navbar />
 
       <div className="container mx-auto px-4 py-16">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SEOHead from "@/components/SEOHead";
 import { Label } from "@/components/ui/label";
 import { DepartmentSelect } from "@/components/simulateur/DepartmentSelect";
 import { PlateInput } from "@/components/simulateur/PlateInput";
@@ -148,8 +149,13 @@ export default function Simulateur() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Simulateur Prix Carte Grise Pro | Calculez le Coût en Ligne - SIVFlow"
+        description="Calculez instantanément le prix de votre carte grise professionnelle. Simulateur gratuit, tarifs taxes par département, frais de service inclus."
+        canonicalUrl="https://sivflow.fr/simulateur"
+      />
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
           <Card>

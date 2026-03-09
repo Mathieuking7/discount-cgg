@@ -49,6 +49,7 @@ import AcheterJetons from "./pages/AcheterJetons";
 import PaiementRecharge from "./pages/PaiementRecharge";
 import PaiementRechargeSucces from "./pages/PaiementRechargeSucces";
 import PaiementSoldeSucces from "./pages/PaiementSoldeSucces";
+import SIVFlowLanding from "./pages/SIVFlowLanding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -107,6 +108,7 @@ const App = () => (
           <Route path="/admin/guest-orders" element={<GuestOrders />} />
            <Route path="/admin/guest-order/:id" element={<GuestOrderDetail />} />
            <Route path="/admin/guest-actions" element={<ManageGuestActions />} />
+            <Route path="/sivflow" element={<SIVFlowLanding />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

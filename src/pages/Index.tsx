@@ -9,10 +9,28 @@ import Services from "@/components/Services";
 import { GoogleReviewsCarousel } from "@/components/GoogleReviewsCarousel";
 import { SimulateurSection } from "@/components/SimulateurSection";
 import { TrustSection } from "@/components/TrustSection";
+import SEOHead from "@/components/SEOHead";
+import SchemaOrg, {
+  sivflowSoftwareSchema,
+  sivflowOrganizationSchema,
+  sivflowFAQSchema,
+} from "@/components/SchemaOrg";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="SIVFlow - Logiciel Carte Grise Pro | Démarches SIV en Ligne pour Garages"
+        description="Plateforme SIV pour professionnels automobile. Carte grise, déclaration d'achat et de cession en quelques clics. Traitement 24h. Tarifs négociant dès 10€."
+        canonicalUrl="https://sivflow.fr/"
+      />
+      <SchemaOrg
+        schema={[
+          sivflowSoftwareSchema,
+          sivflowOrganizationSchema,
+          sivflowFAQSchema,
+        ]}
+      />
       <Navbar />
       <Hero />
       <SimulateurSection />
