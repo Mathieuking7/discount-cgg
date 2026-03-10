@@ -1,114 +1,119 @@
-import { Menu, X, LogIn, Star } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Menu, X, LogIn } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { siteConfig } from "@/config/site.config";
+
+const navLinks = [
+  { href: "#fonctionnement", label: "Comment ca marche" },
+  { href: "#features", label: "Avantages" },
+  { href: "#tarifs", label: "Tarifs" },
+  { href: "#avis", label: "Avis" },
+];
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [statsCount, setStatsCount] = useState(0);
   const navigate = useNavigate();
-  useEffect(() => {
-    const startDate = new Date('2017-01-01');
-    const today = new Date();
-    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const averagePerDay = 45;
-    const baseCount = daysSinceStart * averagePerDay;
-    const todayProgress = Math.floor(Math.random() * averagePerDay);
-    setStatsCount(baseCount + todayProgress);
-  }, []);
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth"
-      });
-      setIsOpen(false);
-    }
-  };
-  return <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border shadow-md">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo officiel */}
-          <div className="flex items-center gap-3">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Flag_of_France.svg/1200px-Flag_of_France.svg.png" alt="Drapeau français" className="w-10 h-6 rounded-sm border border-border object-cover" />
-            <div className="text-sm leading-tight hidden sm:block">
-              <div className="font-semibold text-foreground">Discount Carte Grise </div>
-              <div className="text-xs text-muted-foreground">Service Carte Grise habilité</div>
-            </div>
-          </div>
 
-          {/* Stats centrées - Desktop */}
-          <div className="hidden lg:flex items-center gap-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-0.5 text-yellow-500">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
-              </div>
-              <div className="text-[11px] text-muted-foreground">5.0 / 5 avis clients</div>
-            </div>
-            <div className="text-center">
-              <div className="text-primary font-extrabold text-lg tracking-wide">
-                {statsCount.toLocaleString('fr-FR')}+
-              </div>
-              <div className="text-[11px] text-muted-foreground">Démarches réalisées</div>
-            </div>
-          </div>
+  return (
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center justify-between">
+        {/* Logo */}
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-1.5"
+        >
+          <span className="font-serif font-bold text-xl text-bleu-france tracking-tight">
+            {siteConfig.siteName}
+          </span>
+        </button>
 
-          {/* Navigation - Desktop */}
-          <div className="hidden md:flex items-center gap-4">
-            <button onClick={() => navigate("/")} className="px-3 py-2 text-sm font-medium text-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all duration-200">
-              Accueil
-            </button>
-            <button onClick={() => navigate("/recherche-suivi")} className="px-3 py-2 text-sm font-medium text-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all duration-200">
-              Suivi
-            </button>
-            <Button onClick={() => navigate("/login")} variant="default" size="default" className="flex items-center gap-2 font-semibold shadow-md">
-              <LogIn className="h-4 w-4" />
-              Espace Pro
-            </Button>
-          </div>
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
 
-          {/* Mobile menu button */}
-          <button className="md:hidden text-foreground hover:text-primary transition-colors" onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
+        {/* Desktop actions */}
+        <div className="hidden md:flex items-center gap-4">
+          <button
+            onClick={() => navigate("/recherche-suivi")}
+            className="text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors"
+          >
+            Suivi
+          </button>
+          <button
+            onClick={() => navigate("/login")}
+            className="text-xs uppercase tracking-widest font-sans bg-bleu-france text-white px-5 py-2.5 hover:bg-bleu-france/90 transition-colors flex items-center gap-2"
+          >
+            <LogIn size={13} />
+            Espace Pro
           </button>
         </div>
 
-        {/* Mobile Navigation */}
-        {isOpen && <div className="md:hidden py-4 space-y-4 border-t border-border">
-            {/* Stats mobile */}
-            <div className="flex items-center justify-around py-3 border-b border-border">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-0.5 text-yellow-500">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
-                </div>
-                <div className="text-[10px] text-muted-foreground">5.0 / 5</div>
-              </div>
-              <div className="text-center">
-                <div className="text-primary font-bold text-sm">{statsCount.toLocaleString('fr-FR')}+</div>
-                <div className="text-[10px] text-muted-foreground">Démarches</div>
-              </div>
-            </div>
-            
-            <button onClick={() => {
-          setIsOpen(false);
-          navigate("/");
-        }} className="block w-full text-left text-foreground hover:text-primary transition-colors py-2">
-              Accueil
-            </button>
-            <button onClick={() => {
-          setIsOpen(false);
-          navigate("/recherche-suivi");
-        }} className="block w-full text-left text-foreground hover:text-primary transition-colors py-2">
-              Suivi
-            </button>
-            <Button onClick={() => {
-          setIsOpen(false);
-          navigate("/login");
-        }} variant="default" size="lg" className="w-full flex items-center justify-center gap-2">
-              <LogIn className="h-4 w-4" />
-              Espace Professionnel
-            </Button>
-          </div>}
+        {/* Mobile toggle */}
+        <button
+          className="md:hidden p-2 text-encre"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Menu"
+        >
+          {isOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
-    </nav>;
+
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden overflow-hidden border-t border-gray-200 bg-white"
+          >
+            <div className="px-4 py-4 flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="py-2.5 text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </a>
+              ))}
+              <hr className="border-gray-200 my-2" />
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate("/recherche-suivi");
+                }}
+                className="py-2.5 text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors text-left"
+              >
+                Suivi de commande
+              </button>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate("/login");
+                }}
+                className="mt-2 text-xs uppercase tracking-widest font-sans bg-bleu-france text-white text-center py-3 flex items-center justify-center gap-2 hover:bg-bleu-france/90 transition-colors"
+              >
+                <LogIn size={13} />
+                Espace Pro
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
 };
+
 export default Navbar;

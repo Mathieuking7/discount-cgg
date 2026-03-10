@@ -22,10 +22,10 @@
     --font-family-mono: "JetBrains Mono", ui-monospace, monospace;
 
     /* ── Border radius (global) ───────────────────────────── */
-    --radius: 0.75rem;
+    --radius: 1rem;  /* extra rounded for warm friendly feel */
 
     /* ── Background & Surface ─────────────────────────────── */
-    --background: 40 6% 97%;            /* #FAFAF9 */
+    --background: 36 33% 97%;            /* #FDF8F0 warm cream */
     --foreground: 20 14% 10%;           /* #1C1917 */
 
     --card: 0 0% 100%;                  /* #FFFFFF */

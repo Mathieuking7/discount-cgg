@@ -225,7 +225,7 @@ export default function Support() {
                   <strong>Temps de réponse moyen :</strong> 24h ouvrées
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Vous pouvez aussi nous contacter par email : <strong>contact@discountcartegrise.fr</strong>
+                  Vous pouvez aussi nous contacter par email : <strong>contact@sivflow.fr</strong>
                 </p>
               </div>
             </CardContent>

@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import SEOHead from "@/components/SEOHead";
-import { Label } from "@/components/ui/label";
 import { DepartmentSelect } from "@/components/simulateur/DepartmentSelect";
 import { PlateInput } from "@/components/simulateur/PlateInput";
 import { Loader2, Calculator, FileText, ArrowRightLeft, Car } from "lucide-react";
@@ -13,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getVehicleByPlate } from "@/lib/vehicle-api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { siteConfig } from "@/config/site.config";
 
 type DemarcheType = "CG" | "DA" | "DC";
 
@@ -22,6 +20,7 @@ interface DemarcheTypeInfo {
   icon: React.ReactNode;
   prix: number;
   needsVehicleApi: boolean;
+  color: string;
 }
 
 const demarcheTypes: Record<DemarcheType, DemarcheTypeInfo> = {
@@ -31,20 +30,23 @@ const demarcheTypes: Record<DemarcheType, DemarcheTypeInfo> = {
     icon: <Car className="w-5 h-5" />,
     prix: 30,
     needsVehicleApi: true,
+    color: "bg-blue-100 text-blue-600 border-blue-200",
   },
   DA: {
-    label: "Déclaration d'achat",
-    description: "Pour les professionnels qui achètent un véhicule",
+    label: "Declaration d'achat",
+    description: "Pour les professionnels qui achetent un vehicule",
     icon: <FileText className="w-5 h-5" />,
     prix: 10,
     needsVehicleApi: false,
+    color: "bg-amber-100 text-amber-600 border-amber-200",
   },
   DC: {
-    label: "Déclaration de cession",
-    description: "Pour déclarer la vente de votre véhicule",
+    label: "Declaration de cession",
+    description: "Pour declarer la vente de votre vehicule",
     icon: <ArrowRightLeft className="w-5 h-5" />,
     prix: 10,
     needsVehicleApi: false,
+    color: "bg-purple-100 text-purple-600 border-purple-200",
   },
 };
 
@@ -64,7 +66,6 @@ export default function Simulateur() {
 
   const currentDemarche = demarcheTypes[demarcheType];
   const needsDepartement = demarcheType === "CG";
-  
   const isFormValid = plaque && validatePlate(plaque) && (needsDepartement ? departement : true);
 
   const handleCalculate = async () => {
@@ -74,25 +75,23 @@ export default function Simulateur() {
     try {
       let vehicleData = null;
 
-      // Pour carte grise, on a besoin des données véhicule
       if (currentDemarche.needsVehicleApi) {
         const apiResponse = await getVehicleByPlate(plaque);
 
         if (!apiResponse.success || !apiResponse.data) {
-          throw new Error(apiResponse.error || 'Impossible de récupérer les informations du véhicule');
+          throw new Error(apiResponse.error || 'Impossible de recuperer les informations du vehicule');
         }
 
         vehicleData = {
           dateMiseEnCirculation: apiResponse.data.date_mec,
           chevauxFiscaux: Number(apiResponse.data.puissance_fiscale) || 0,
         };
-        
+
         if (!vehicleData.dateMiseEnCirculation || !vehicleData.chevauxFiscaux) {
-          throw new Error('Données du véhicule incomplètes');
+          throw new Error('Donnees du vehicule incompletes');
         }
       }
 
-      // Créer une commande dans la base de données
       const { data: order, error } = await supabase
         .from('guest_orders')
         .insert({
@@ -106,7 +105,7 @@ export default function Simulateur() {
           code_postal: '',
           ville: '',
           montant_ht: 0,
-          montant_ttc: currentDemarche.prix, // Prix sans TVA pour DA/DC
+          montant_ttc: currentDemarche.prix,
           frais_dossier: currentDemarche.prix,
           status: 'en_attente',
           paye: false,
@@ -117,22 +116,13 @@ export default function Simulateur() {
 
       if (error) throw error;
 
-      // Rediriger vers la page appropriée
       if (demarcheType === "CG") {
         navigate(`/resultat-carte-grise?orderId=${order.id}&departement=${departement}&plaque=${plaque}`, {
-          state: {
-            vehicleData,
-            departement,
-            plaque,
-          },
+          state: { vehicleData, departement, plaque },
         });
       } else {
-        // Pour DA et DC, rediriger vers une page dédiée
         navigate(`/demarche-simple?orderId=${order.id}&type=${demarcheType}&plaque=${plaque}`, {
-          state: {
-            demarcheType,
-            plaque,
-          },
+          state: { demarcheType, plaque },
         });
       }
     } catch (error) {
@@ -148,108 +138,123 @@ export default function Simulateur() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <SEOHead
-        title="Simulateur Prix Carte Grise Pro | Calculez le Coût en Ligne - SIVFlow"
-        description="Calculez instantanément le prix de votre carte grise professionnelle. Simulateur gratuit, tarifs taxes par département, frais de service inclus."
-        canonicalUrl="https://sivflow.fr/simulateur"
+        title={`Simulateur Prix Carte Grise | Calculez le Cout en Ligne - ${siteConfig.siteName}`}
+        description="Calculez instantanement le prix de votre carte grise. Simulateur gratuit, tarifs taxes par departement, frais de service inclus."
+        canonicalUrl={`${siteConfig.baseUrl}/simulateur`}
       />
       <Navbar />
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-12 md:py-20">
         <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-3xl flex items-center justify-center gap-2">
-                <Calculator className="w-8 h-8" />
-                Simulateur de Prix
-              </CardTitle>
-              <CardDescription>
-                Sélectionnez votre démarche et calculez le prix
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Sélecteur de type de démarche */}
-              <div className="space-y-2">
-                <Label htmlFor="demarche-type">Type de démarche</Label>
-                <Select 
-                  value={demarcheType} 
-                  onValueChange={(value) => setDemarcheType(value as DemarcheType)}
-                >
-                  <SelectTrigger id="demarche-type" className="w-full">
-                    <SelectValue placeholder="Sélectionnez une démarche" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border z-50">
-                    {Object.entries(demarcheTypes).map(([key, info]) => (
-                      <SelectItem key={key} value={key} className="cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          {info.icon}
-                          <span>{info.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  {currentDemarche.description}
-                </p>
+          {/* Header */}
+          <div className="mb-10">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#002395] mb-3">Simulateur</p>
+            <h1 className="font-serif text-3xl md:text-4xl font-bold text-[#1A1A1A] mb-2">
+              Simulateur de Prix
+            </h1>
+            <p className="text-gray-500 text-lg">
+              Selectionnez votre demarche et calculez le prix
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="border-t border-gray-200 pt-8">
+            <div className="space-y-8">
+              {/* Demarche type */}
+              <div className="space-y-3">
+                <label className="text-xs font-semibold uppercase tracking-widest text-gray-500">Type de demarche</label>
+                <div className="space-y-3">
+                  {(Object.entries(demarcheTypes) as [DemarcheType, DemarcheTypeInfo][]).map(([key, info]) => (
+                    <button
+                      key={key}
+                      onClick={() => setDemarcheType(key)}
+                      className={`flex items-center gap-4 p-4 rounded-md border transition-all text-left w-full min-h-[48px] ${
+                        demarcheType === key
+                          ? "border-[#002395] bg-blue-50/50"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-md flex items-center justify-center ${
+                        demarcheType === key ? "bg-[#002395] text-white" : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {info.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`font-semibold text-sm ${demarcheType === key ? "text-[#1A1A1A]" : "text-gray-600"}`}>
+                          {info.label}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">{info.description}</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        demarcheType === key ? "border-[#002395] bg-[#002395]" : "border-gray-300"
+                      }`}>
+                        {demarcheType === key && <div className="w-2 h-2 bg-white rounded-full" />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Département (uniquement pour carte grise) */}
+              {/* Departement */}
               {needsDepartement && (
-                <DepartmentSelect
-                  value={departement}
-                  onChange={setDepartement}
-                />
+                <div className="border-t border-gray-100 pt-6">
+                  <DepartmentSelect
+                    value={departement}
+                    onChange={setDepartement}
+                  />
+                </div>
               )}
 
-              <PlateInput
-                value={plaque}
-                onChange={setPlaque}
-              />
+              <div className="border-t border-gray-100 pt-6">
+                <PlateInput
+                  value={plaque}
+                  onChange={setPlaque}
+                />
+              </div>
 
-              {/* Affichage du prix */}
-              <div className="p-4 bg-muted/50 rounded-lg">
+              {/* Price display */}
+              <div className="border-l-4 border-[#002395] pl-4 py-3 bg-gray-50">
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">Prix de la démarche :</span>
-                  <span className="text-lg font-bold text-primary">
-                    {demarcheType === "CG" 
-                      ? "Calcul après validation" 
-                      : `${currentDemarche.prix}€`
+                  <span className="font-medium text-gray-700">Prix de la demarche :</span>
+                  <span className="text-lg font-bold text-[#1A1A1A]">
+                    {demarcheType === "CG"
+                      ? "Calcul apres validation"
+                      : `${currentDemarche.prix} EUR`
                     }
                   </span>
                 </div>
               </div>
 
-              <Button
+              <button
                 onClick={handleCalculate}
                 disabled={!isFormValid || loading}
-                className="w-full"
-                size="lg"
+                className="w-full min-h-[48px] h-14 bg-[#002395] hover:bg-[#001a75] disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-lg rounded-md transition-all duration-200 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    {demarcheType === "CG" ? "Calcul en cours..." : "Création en cours..."}
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    {demarcheType === "CG" ? "Calcul en cours..." : "Creation en cours..."}
                   </>
                 ) : (
                   <>
                     {currentDemarche.icon}
-                    <span className="ml-2">
-                      {demarcheType === "CG" ? "Calculer le prix" : "Commencer la démarche"}
+                    <span>
+                      {demarcheType === "CG" ? "Calculer le prix" : "Commencer la demarche"}
                     </span>
                   </>
                 )}
-              </Button>
+              </button>
 
-              <p className="text-xs text-muted-foreground text-center">
-                {demarcheType === "CG" 
-                  ? "Le calcul est basé sur les tarifs officiels en vigueur"
-                  : "Vous pourrez déposer vos documents après le paiement"
+              <p className="text-xs text-gray-400 text-center">
+                {demarcheType === "CG"
+                  ? "Le calcul est base sur les tarifs officiels en vigueur"
+                  : "Vous pourrez deposer vos documents apres le paiement"
                 }
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 

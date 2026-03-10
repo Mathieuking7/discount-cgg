@@ -400,21 +400,21 @@ const ManagePricingConfig = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-8">
+      <div className="min-h-screen bg-[#FDF8F0] p-8">
         <div className="max-w-6xl mx-auto">
-          <p className="text-center">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-8">
+    <div className="min-h-screen bg-[#FDF8F0] p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate("/admin")}
-          className="mb-4"
+          className="mb-4 rounded-full hover:bg-white/80"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour au dashboard

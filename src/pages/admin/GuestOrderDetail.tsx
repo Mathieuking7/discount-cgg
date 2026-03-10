@@ -723,9 +723,9 @@ export default function GuestOrderDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-8">
+    <div className="min-h-screen bg-[#FDF8F0] p-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate("/admin/guest-orders")} className="mb-4">
+        <Button variant="ghost" onClick={() => navigate("/admin/guest-orders")} className="mb-4 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour aux commandes particuliers
         </Button>

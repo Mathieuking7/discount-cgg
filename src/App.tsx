@@ -50,6 +50,12 @@ import PaiementRecharge from "./pages/PaiementRecharge";
 import PaiementRechargeSucces from "./pages/PaiementRechargeSucces";
 import PaiementSoldeSucces from "./pages/PaiementSoldeSucces";
 import SIVFlowLanding from "./pages/SIVFlowLanding";
+import DesignV1 from "./pages/DesignV1";
+import DesignV2 from "./pages/DesignV2";
+import DesignV3 from "./pages/DesignV3";
+import DesignV4 from "./pages/DesignV4";
+import DesignV5 from "./pages/DesignV5";
+import DemarcheParticulier from "./pages/DemarcheParticulier";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +75,7 @@ const App = () => (
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
           <Route path="/devis/:orderId" element={<DevisCarteGrise />} />
+          <Route path="/demarches/:slug" element={<DemarcheParticulier />} />
           <Route path="/simulateur" element={<Simulateur />} />
           <Route path="/resultat-carte-grise" element={<ResultatCarteGrise />} />
           <Route path="/demarche-simple" element={<DemarcheSimple />} />
@@ -109,6 +116,11 @@ const App = () => (
            <Route path="/admin/guest-order/:id" element={<GuestOrderDetail />} />
            <Route path="/admin/guest-actions" element={<ManageGuestActions />} />
             <Route path="/sivflow" element={<SIVFlowLanding />} />
+            <Route path="/design-v1" element={<DesignV1 />} />
+            <Route path="/design-v2" element={<DesignV2 />} />
+            <Route path="/design-v3" element={<DesignV3 />} />
+            <Route path="/design-v4" element={<DesignV4 />} />
+            <Route path="/design-v5" element={<DesignV5 />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

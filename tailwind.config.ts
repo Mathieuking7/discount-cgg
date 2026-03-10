@@ -29,6 +29,7 @@ export default {
       /* ── Font Family ──────────────────────────────────── */
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ["Georgia", "ui-serif", "serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
 
@@ -43,6 +44,9 @@ export default {
         "3xl": ["1.875rem", { lineHeight: "1.25" }],     // 30px
         "4xl": ["2.25rem", { lineHeight: "1.15" }],      // 36px
         "5xl": ["3rem", { lineHeight: "1.1" }],           // 48px
+        "6xl": ["3.75rem", { lineHeight: "1" }],          // 60px
+        "7xl": ["4.5rem", { lineHeight: "1" }],           // 72px
+        "8xl": ["6rem", { lineHeight: "1" }],             // 96px
       },
 
       /* ── Colors (HSL via CSS vars for shadcn) ─────────── */
@@ -101,6 +105,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Editorial Tricolore tokens */
+        "bleu-france": "#002395",
+        "rouge-france": "#ED2939",
+        cream: "#F7F4EF",
+        encre: "#1A1A1A",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

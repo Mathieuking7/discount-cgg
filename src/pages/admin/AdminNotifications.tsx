@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Bell, Eye } from "lucide-react";
 
@@ -74,71 +72,79 @@ export default function AdminNotifications() {
   };
 
   if (authLoading || loading) {
-    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+    return (
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    );
   }
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6">
+    <div className="min-h-screen bg-[#FDF8F0]">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Notifications</h1>
-            <p className="text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} notification(s) non lue(s)` : 'Toutes les notifications ont été lues'}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Bell className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+              <p className="text-sm text-gray-500">
+                {unreadCount > 0 ? `${unreadCount} notification(s) non lue(s)` : 'Toutes les notifications ont ete lues'}
+              </p>
+            </div>
           </div>
-          <Bell className="h-8 w-8 text-primary" />
         </div>
 
-        <Card className="p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Statut</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Message</TableHead>
-                <TableHead>Garage</TableHead>
-                <TableHead>Démarche</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableRow className="border-gray-100">
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Statut</TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Type</TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Message</TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Garage</TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Demarche</TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Date</TableHead>
+                <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {notifications.map((notification) => (
-                <TableRow 
+                <TableRow
                   key={notification.id}
-                  className={!notification.is_read ? "bg-muted/50" : ""}
+                  className={`border-gray-50 ${!notification.is_read ? "bg-blue-50/50" : ""}`}
                 >
                   <TableCell>
                     {!notification.is_read && (
-                      <Badge variant="default">Nouveau</Badge>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Nouveau</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{notification.type}</Badge>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{notification.type}</span>
                   </TableCell>
-                  <TableCell className="max-w-md">
+                  <TableCell className="max-w-md text-gray-700 text-sm">
                     {notification.message}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-gray-600 text-sm">
                     {notification.garages?.raison_sociale || '-'}
                   </TableCell>
                   <TableCell>
-                    {notification.demarches?.numero_demarche || '-'}
+                    <span className="text-gray-700 text-sm">{notification.demarches?.numero_demarche || '-'}</span>
                     {notification.demarches?.immatriculation && (
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-xs text-gray-400">
                         {notification.demarches.immatriculation}
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-gray-500 text-sm">
                     {new Date(notification.created_at).toLocaleDateString('fr-FR', {
                       day: '2-digit',
                       month: '2-digit',
@@ -154,8 +160,9 @@ export default function AdminNotifications() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleViewDemarche(notification.demarche_id)}
+                          className="rounded-full text-xs"
                         >
-                          <Eye className="h-4 w-4 mr-2" />
+                          <Eye className="h-3 w-3 mr-1" />
                           Voir
                         </Button>
                       )}
@@ -164,6 +171,7 @@ export default function AdminNotifications() {
                           size="sm"
                           variant="ghost"
                           onClick={() => markAsRead(notification.id)}
+                          className="rounded-full text-xs"
                         >
                           Marquer lu
                         </Button>
@@ -176,11 +184,11 @@ export default function AdminNotifications() {
           </Table>
 
           {notifications.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-gray-400">
               Aucune notification
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

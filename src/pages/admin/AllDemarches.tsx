@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Bell, CheckCircle, Clock, Gift, CreditCard, XCircle, FileText } from "lucide-react";
@@ -54,20 +53,13 @@ export default function AllDemarches() {
       .order('created_at', { ascending: false });
 
     if (data) {
-      // À TRAITER: Non-brouillon ET (payé OU jeton gratuit utilisé) MAIS pas encore finalisé ET pas refusé
-      const aTraiter = data.filter(d => 
+      const aTraiter = data.filter(d =>
         d.is_draft === false && (d.paye === true || d.is_free_token === true) && d.status !== 'finalise' && d.status !== 'refuse'
       );
-      
-      // TERMINÉES: Toutes les démarches avec status "finalisé"
       const terminees = data.filter(d => d.status === 'finalise');
-      
-      // REFUSÉES: Toutes les démarches avec status "refuse"
       const refusees = data.filter(d => d.status === 'refuse');
-      
-      // EN SAISIE: Tous les brouillons (non finalisés)
       const enSaisie = data.filter(d => d.is_draft === true);
-      
+
       setDemarchesATraiter(aTraiter);
       setDemarchesTerminees(terminees);
       setDemarchesRefusees(refusees);
@@ -78,300 +70,195 @@ export default function AllDemarches() {
   };
 
   const handleViewDemarche = async (demarche: any) => {
-    // Marquer comme vue si pas encore vue
     if (!demarche.admin_viewed) {
       await supabase
         .from('demarches')
         .update({ admin_viewed: true })
         .eq('id', demarche.id);
-      
-      // Mettre à jour localement
-      setDemarchesATraiter(prev => 
+
+      setDemarchesATraiter(prev =>
         prev.map(d => d.id === demarche.id ? { ...d, admin_viewed: true } : d)
       );
     }
-    
+
     navigate(`/admin/demarche/${demarche.id}`);
   };
 
   const getPaymentStatusBadge = (demarche: any) => {
     if (demarche.is_free_token) {
       return (
-        <Badge className="bg-green-500 text-white">
-          <Gift className="h-3 w-3 mr-1" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700">
+          <Gift className="h-3 w-3" />
           Jeton gratuit
-        </Badge>
+        </span>
       );
     }
     if (demarche.paye) {
       return (
-        <Badge className="bg-blue-500 text-white">
-          <CreditCard className="h-3 w-3 mr-1" />
-          Payé
-        </Badge>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
+          <CreditCard className="h-3 w-3" />
+          Paye
+        </span>
       );
     }
-    return <Badge variant="outline" className="text-muted-foreground">Non payé</Badge>;
+    return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Non paye</span>;
   };
 
   const unviewedCount = demarchesATraiter.filter(d => !d.admin_viewed).length;
 
   if (authLoading || loading || !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
+  const renderTable = (items: any[], options?: { showUnviewed?: boolean; rowBgClass?: string }) => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-gray-200">
+            {options?.showUnviewed && <TableHead className="w-10"></TableHead>}
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">N Demarche</TableHead>
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">Immatriculation</TableHead>
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">Garage</TableHead>
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">Type</TableHead>
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">Paiement</TableHead>
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">Montant</TableHead>
+            <TableHead className="text-xs uppercase tracking-widest text-gray-500 font-medium">Date</TableHead>
+            <TableHead></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((d: any) => (
+            <TableRow
+              key={d.id}
+              className={`border-gray-100 hover:bg-gray-50 ${options?.showUnviewed && !d.admin_viewed ? "bg-red-50/60" : (options?.rowBgClass || "")}`}
+            >
+              {options?.showUnviewed && (
+                <TableCell>
+                  {!d.admin_viewed && (
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                  )}
+                </TableCell>
+              )}
+              <TableCell className="font-mono text-xs font-semibold text-gray-900">{d.numero_demarche}</TableCell>
+              <TableCell className="font-medium text-gray-700">{d.immatriculation}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-700">{d.garages?.raison_sociale}</span>
+                  {d.garages?.is_verified && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-green-100 text-green-700">Verifie</span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">{d.type}</span>
+              </TableCell>
+              <TableCell>{getPaymentStatusBadge(d)}</TableCell>
+              <TableCell className="font-medium text-gray-700">{formatPrice(d.montant_ttc || 0)}&euro;</TableCell>
+              <TableCell className="text-gray-500 text-sm">{new Date(d.created_at).toLocaleDateString('fr-FR')}</TableCell>
+              <TableCell>
+                <Link
+                  to={`/admin/demarche/${d.id}`}
+                  onClick={() => options?.showUnviewed && handleViewDemarche(d)}
+                >
+                  <Button
+                    size="sm"
+                    className={`rounded-md text-xs ${options?.showUnviewed && !d.admin_viewed ? "bg-red-600 hover:bg-red-700 text-white" : "bg-gray-900 hover:bg-gray-800 text-white"}`}
+                  >
+                    {options?.showUnviewed && !d.admin_viewed ? "A traiter" : "Voir"}
+                  </Button>
+                </Link>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-md hover:bg-gray-50">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
-        {/* Section À TRAITER - Finalisées (payées ou jeton gratuit) */}
-        <Card className="p-6 mb-8 border-2 border-primary/20">
-          <div className="flex items-center gap-3 mb-6">
-            <CheckCircle className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Démarches à traiter</h1>
-            <Badge variant="outline">{demarchesATraiter.length}</Badge>
+        {/* Section A TRAITER */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-xl font-serif font-bold text-gray-900">Demarches a traiter</h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700">{demarchesATraiter.length}</span>
             {unviewedCount > 0 && (
-              <Badge className="bg-red-500 text-white animate-pulse">
-                <Bell className="h-3 w-3 mr-1" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-red-100 text-red-700 animate-pulse">
+                <Bell className="h-3 w-3" />
                 {unviewedCount} nouvelle{unviewedCount > 1 ? 's' : ''}
-              </Badge>
+              </span>
             )}
           </div>
-          
+
           {demarchesATraiter.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Aucune démarche à traiter</p>
+            <p className="text-gray-400 text-center py-8 border border-gray-200 rounded-md">Aucune demarche a traiter</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>N° Démarche</TableHead>
-                  <TableHead>Immatriculation</TableHead>
-                  <TableHead>Garage</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Paiement</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {demarchesATraiter.map((d: any) => (
-                  <TableRow 
-                    key={d.id} 
-                    className={!d.admin_viewed ? "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500" : ""}
-                  >
-                    <TableCell>
-                      {!d.admin_viewed && (
-                        <span className="relative flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs font-semibold text-primary">{d.numero_demarche}</TableCell>
-                    <TableCell className="font-medium">{d.immatriculation}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {d.garages?.raison_sociale}
-                        {d.garages?.is_verified && (
-                          <Badge className="bg-green-500 text-xs">
-                            Vérifié
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{d.type}</TableCell>
-                    <TableCell>{getPaymentStatusBadge(d)}</TableCell>
-                    <TableCell>{formatPrice(d.montant_ttc || 0)}€</TableCell>
-                    <TableCell>{new Date(d.created_at).toLocaleDateString('fr-FR')}</TableCell>
-                    <TableCell>
-                      <Link 
-                        to={`/admin/demarche/${d.id}`}
-                        onClick={() => handleViewDemarche(d)}
-                      >
-                        <Button 
-                          size="sm" 
-                          className={!d.admin_viewed ? "bg-red-500 hover:bg-red-600" : ""}
-                        >
-                          {!d.admin_viewed ? "À traiter" : "Voir"}
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              {renderTable(demarchesATraiter, { showUnviewed: true })}
+            </div>
           )}
-        </Card>
+        </div>
 
-        {/* Section REFUSÉES - Démarches refusées */}
-        <Card className="p-6 mb-8 border-2 border-red-500/20 bg-red-50/5">
-          <div className="flex items-center gap-3 mb-6">
-            <XCircle className="h-6 w-6 text-red-600" />
-            <h1 className="text-2xl font-bold text-red-700 dark:text-red-500">Démarches refusées</h1>
-            <Badge variant="outline" className="border-red-500 text-red-600">{demarchesRefusees.length}</Badge>
+        {/* Section REFUSEES */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-xl font-serif font-bold text-gray-900">Demarches refusees</h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-700">{demarchesRefusees.length}</span>
           </div>
-          
+
           {demarchesRefusees.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Aucune démarche refusée</p>
+            <p className="text-gray-400 text-center py-8 border border-gray-200 rounded-md">Aucune demarche refusee</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>N° Démarche</TableHead>
-                  <TableHead>Immatriculation</TableHead>
-                  <TableHead>Garage</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Paiement</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {demarchesRefusees.map((d: any) => (
-                  <TableRow key={d.id} className="bg-red-50/50 dark:bg-red-950/10">
-                    <TableCell className="font-mono text-xs font-semibold text-red-700">{d.numero_demarche}</TableCell>
-                    <TableCell className="font-medium">{d.immatriculation}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {d.garages?.raison_sociale}
-                        {d.garages?.is_verified && (
-                          <Badge className="bg-green-500 text-xs">
-                            Vérifié
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{d.type}</TableCell>
-                    <TableCell>{getPaymentStatusBadge(d)}</TableCell>
-                    <TableCell>{formatPrice(d.montant_ttc || 0)}€</TableCell>
-                    <TableCell>{new Date(d.created_at).toLocaleDateString('fr-FR')}</TableCell>
-                    <TableCell>
-                      <Link to={`/admin/demarche/${d.id}`}>
-                        <Button variant="outline" size="sm">
-                          Voir
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              {renderTable(demarchesRefusees)}
+            </div>
           )}
-        </Card>
+        </div>
 
-        {/* Section TERMINÉES - Démarches finalisées */}
-        <Card className="p-6 mb-8 border-2 border-green-500/20 bg-green-50/5">
-          <div className="flex items-center gap-3 mb-6">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-            <h1 className="text-2xl font-bold text-green-700 dark:text-green-500">Démarches terminées</h1>
-            <Badge variant="outline" className="border-green-500 text-green-600">{demarchesTerminees.length}</Badge>
+        {/* Section TERMINEES */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-xl font-serif font-bold text-gray-900">Demarches terminees</h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">{demarchesTerminees.length}</span>
           </div>
-          
+
           {demarchesTerminees.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Aucune démarche terminée</p>
+            <p className="text-gray-400 text-center py-8 border border-gray-200 rounded-md">Aucune demarche terminee</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>N° Démarche</TableHead>
-                  <TableHead>Immatriculation</TableHead>
-                  <TableHead>Garage</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Paiement</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {demarchesTerminees.map((d: any) => (
-                  <TableRow key={d.id} className="bg-green-50/50 dark:bg-green-950/10">
-                    <TableCell className="font-mono text-xs font-semibold text-green-700">{d.numero_demarche}</TableCell>
-                    <TableCell className="font-medium">{d.immatriculation}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {d.garages?.raison_sociale}
-                        {d.garages?.is_verified && (
-                          <Badge className="bg-green-500 text-xs">
-                            Vérifié
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{d.type}</TableCell>
-                    <TableCell>{getPaymentStatusBadge(d)}</TableCell>
-                    <TableCell>{formatPrice(d.montant_ttc || 0)}€</TableCell>
-                    <TableCell>{new Date(d.created_at).toLocaleDateString('fr-FR')}</TableCell>
-                    <TableCell>
-                      <Link to={`/admin/demarche/${d.id}`}>
-                        <Button variant="outline" size="sm">
-                          Voir
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              {renderTable(demarchesTerminees)}
+            </div>
           )}
-        </Card>
+        </div>
 
-        {/* Section EN SAISIE - Brouillons non finalisés */}
-        <Card className="p-6 opacity-70">
-          <div className="flex items-center gap-3 mb-6">
-            <Clock className="h-6 w-6 text-muted-foreground" />
-            <h1 className="text-xl font-bold text-muted-foreground">Brouillons en cours de saisie</h1>
-            <Badge variant="outline">{demarchesEnSaisie.length}</Badge>
+        {/* Section EN SAISIE */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-lg font-serif font-bold text-gray-500">Brouillons en cours de saisie</h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">{demarchesEnSaisie.length}</span>
           </div>
-          
+
           {demarchesEnSaisie.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">Aucun brouillon</p>
+            <p className="text-gray-400 text-center py-4 border border-gray-200 rounded-md">Aucun brouillon</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>N° Démarche</TableHead>
-                  <TableHead>Immatriculation</TableHead>
-                  <TableHead>Garage</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Montant</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {demarchesEnSaisie.map((d: any) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{d.numero_demarche}</TableCell>
-                    <TableCell className="text-muted-foreground">{d.immatriculation}</TableCell>
-                    <TableCell className="text-muted-foreground">{d.garages?.raison_sociale}</TableCell>
-                    <TableCell className="text-muted-foreground">{d.type}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatPrice(d.montant_ttc || 0)}€</TableCell>
-                    <TableCell className="text-muted-foreground">{new Date(d.created_at).toLocaleDateString('fr-FR')}</TableCell>
-                    <TableCell>
-                      <Link to={`/admin/demarche/${d.id}`}>
-                        <Button variant="outline" size="sm">
-                          Voir
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="border border-gray-200 rounded-md overflow-hidden">
+              {renderTable(demarchesEnSaisie)}
+            </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

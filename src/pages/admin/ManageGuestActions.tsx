@@ -3,15 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Save, X, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 
 type GuestDemarcheType = {
   id: string;
@@ -153,7 +151,6 @@ export default function ManageGuestActions() {
 
     try {
       if (editingAction.id) {
-        // Update existing
         const { error } = await supabase
           .from('guest_demarche_types')
           .update({
@@ -169,9 +166,8 @@ export default function ManageGuestActions() {
 
         if (error) throw error;
 
-        toast({ title: "Démarche mise à jour", description: "La démarche a été mise à jour avec succès" });
+        toast({ title: "Demarche mise a jour", description: "La demarche a ete mise a jour avec succes" });
       } else {
-        // Create new
         const { error } = await supabase
           .from('guest_demarche_types')
           .insert({
@@ -187,7 +183,6 @@ export default function ManageGuestActions() {
 
         if (error) throw error;
 
-        // Insert documents
         const docsToInsert = newDocuments
           .filter(d => d.nom.trim())
           .map((doc, idx) => ({
@@ -204,7 +199,7 @@ export default function ManageGuestActions() {
             .insert(docsToInsert);
         }
 
-        toast({ title: "Démarche créée", description: "La démarche a été créée avec succès" });
+        toast({ title: "Demarche creee", description: "La demarche a ete creee avec succes" });
       }
 
       setShowDialog(false);
@@ -223,11 +218,10 @@ export default function ManageGuestActions() {
   };
 
   const handleDeleteAction = async (actionId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette démarche ?")) return;
+    if (!confirm("Etes-vous sur de vouloir supprimer cette demarche ?")) return;
 
     setLoading(true);
 
-    // Find the code to delete associated documents
     const action = actions.find(a => a.id === actionId);
     if (action) {
       await supabase
@@ -244,13 +238,13 @@ export default function ManageGuestActions() {
     if (error) {
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer la démarche",
+        description: "Impossible de supprimer la demarche",
         variant: "destructive"
       });
     } else {
       toast({
-        title: "Démarche supprimée",
-        description: "La démarche a été supprimée avec succès"
+        title: "Demarche supprimee",
+        description: "La demarche a ete supprimee avec succes"
       });
       await loadData();
     }
@@ -278,10 +272,10 @@ export default function ManageGuestActions() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Chargement...</p>
         </div>
       </div>
     );
@@ -290,74 +284,69 @@ export default function ManageGuestActions() {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6">
+    <div className="min-h-screen bg-[#FDF8F0]">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour à l'administration
+          Retour a l'administration
         </Button>
 
         <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Actions rapides Particuliers</h1>
-            <p className="text-muted-foreground">
-              Configurer les types de démarches particuliers, leurs prix et documents requis
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+              <ClipboardList className="h-5 w-5 text-orange-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Actions rapides Particuliers</h1>
+              <p className="text-gray-500 text-sm">
+                Configurer les types de demarches particuliers, leurs prix et documents requis
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {actions.map((action) => (
-            <Card key={action.id} className={!action.actif ? 'opacity-60' : ''}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      {action.titre}
-                      {!action.actif && <Badge variant="secondary">Inactif</Badge>}
-                    </CardTitle>
-                    <CardDescription className="mt-2">
-                      Code: <span className="font-mono font-bold">{action.code}</span>
-                    </CardDescription>
-                    <CardDescription className="text-2xl font-bold text-primary mt-2">
-                      {action.prix_base}€
-                    </CardDescription>
-                    <div className="flex gap-1 mt-2">
-                      {action.require_vehicle_info && <Badge variant="outline" className="text-xs">Véhicule requis</Badge>}
-                      {action.require_carte_grise_price && <Badge variant="outline" className="text-xs">Prix régional</Badge>}
-                    </div>
+            <div key={action.id} className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-5 ${!action.actif ? 'opacity-60' : ''}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-gray-900">{action.titre}</h3>
+                    {!action.actif && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500">Inactif</span>}
+                  </div>
+                  <p className="text-xs text-gray-400">Code: <span className="font-mono font-bold">{action.code}</span></p>
+                  <p className="text-xl font-bold text-orange-600 mt-2">{action.prix_base}&euro;</p>
+                  <div className="flex gap-1 mt-2">
+                    {action.require_vehicle_info && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Vehicule requis</span>}
+                    {action.require_carte_grise_price && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 text-purple-600">Prix regional</span>}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {action.description && (
-                  <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
-                )}
-                
-                {/* Section documents masquée pour le moment */}
+              </div>
+              {action.description && (
+                <p className="text-sm text-gray-500 mb-3">{action.description}</p>
+              )}
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEditAction(action)} className="flex-1">
-                    <Edit className="mr-2 h-4 w-4" />
-                    Modifier
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteAction(action.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleEditAction(action)} className="flex-1 rounded-full text-xs">
+                  <Edit className="mr-1.5 h-3 w-3" />
+                  Modifier
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleDeleteAction(action.id)} className="rounded-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200">
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader>
-              <DialogTitle>
-                {editingAction?.id ? 'Modifier la démarche' : 'Nouvelle démarche'}
+              <DialogTitle className="text-gray-900">
+                {editingAction?.id ? 'Modifier la demarche' : 'Nouvelle demarche'}
               </DialogTitle>
               <DialogDescription>
-                Configurez les détails de la démarche particulier
+                Configurez les details de la demarche particulier
               </DialogDescription>
             </DialogHeader>
 
@@ -365,54 +354,59 @@ export default function ManageGuestActions() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="code">Code *</Label>
+                    <Label htmlFor="code" className="text-gray-700">Code *</Label>
                     <Input
                       id="code"
                       value={editingAction.code}
                       onChange={(e) => setEditingAction({ ...editingAction, code: e.target.value.toUpperCase() })}
                       placeholder="CHGT_ADRESSE..."
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="prix">Prix base (€) *</Label>
+                    <Label htmlFor="prix" className="text-gray-700">Prix base (&euro;) *</Label>
                     <Input
                       id="prix"
                       type="number"
                       step="0.01"
                       value={editingAction.prix_base}
                       onChange={(e) => setEditingAction({ ...editingAction, prix_base: parseFloat(e.target.value) || 0 })}
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="titre">Titre *</Label>
+                  <Label htmlFor="titre" className="text-gray-700">Titre *</Label>
                   <Input
                     id="titre"
                     value={editingAction.titre}
                     onChange={(e) => setEditingAction({ ...editingAction, titre: e.target.value })}
                     placeholder="Changement d'adresse"
+                    className="rounded-xl border-gray-200"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description" className="text-gray-700">Description</Label>
                   <Textarea
                     id="description"
                     value={editingAction.description || ''}
                     onChange={(e) => setEditingAction({ ...editingAction, description: e.target.value })}
                     rows={2}
+                    className="rounded-xl border-gray-200"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="ordre">Ordre d'affichage</Label>
+                    <Label htmlFor="ordre" className="text-gray-700">Ordre d'affichage</Label>
                     <Input
                       id="ordre"
                       type="number"
                       value={editingAction.ordre}
                       onChange={(e) => setEditingAction({ ...editingAction, ordre: parseInt(e.target.value) || 0 })}
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
                 </div>
@@ -424,7 +418,7 @@ export default function ManageGuestActions() {
                       checked={editingAction.actif}
                       onCheckedChange={(checked) => setEditingAction({ ...editingAction, actif: checked })}
                     />
-                    <Label htmlFor="actif">Active</Label>
+                    <Label htmlFor="actif" className="text-gray-700">Active</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -432,7 +426,7 @@ export default function ManageGuestActions() {
                       checked={editingAction.require_vehicle_info}
                       onCheckedChange={(checked) => setEditingAction({ ...editingAction, require_vehicle_info: checked })}
                     />
-                    <Label htmlFor="require_vehicle">Infos véhicule requises</Label>
+                    <Label htmlFor="require_vehicle" className="text-gray-700">Infos vehicule requises</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -440,19 +434,17 @@ export default function ManageGuestActions() {
                       checked={editingAction.require_carte_grise_price}
                       onCheckedChange={(checked) => setEditingAction({ ...editingAction, require_carte_grise_price: checked })}
                     />
-                    <Label htmlFor="require_cg_price">Prix régional (taxe)</Label>
+                    <Label htmlFor="require_cg_price" className="text-gray-700">Prix regional (taxe)</Label>
                   </div>
                 </div>
-
-                {/* Section documents masquée pour le moment */}
               </div>
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDialog(false)}>
+              <Button variant="outline" onClick={() => setShowDialog(false)} className="rounded-full">
                 Annuler
               </Button>
-              <Button onClick={handleSaveAction} disabled={loading}>
+              <Button onClick={handleSaveAction} disabled={loading} className="rounded-full">
                 <Save className="mr-2 h-4 w-4" />
                 {loading ? "Enregistrement..." : "Enregistrer"}
               </Button>

@@ -123,7 +123,7 @@ export default function CompleteProfile() {
 
       toast({
         title: "Profil complété",
-        description: "Bienvenue sur DiscountCG !"
+        description: "Bienvenue sur SIVFlow !"
       });
       
       navigate("/dashboard");

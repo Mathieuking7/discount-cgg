@@ -1,28 +1,144 @@
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  Car,
+  FileText,
+  CreditCard,
+  Truck,
+  ShieldCheck,
+  Clock,
+  Zap,
+  HeadphonesIcon,
+  ChevronRight,
+  Star,
+  ArrowRight,
+  FileCheck,
+  FilePen,
+  MapPin,
+  Copy,
+  Import,
+  Briefcase,
+  Users,
+  BarChart3,
+  Upload,
+  Bell,
+  Lock,
+  Quote,
+  BadgeCheck,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Hero from "@/components/Hero";
-import Process from "@/components/Process";
-import WhyUs from "@/components/WhyUs";
-import FAQ from "@/components/FAQ";
-import ContactForm from "@/components/ContactForm";
 import Footer from "@/components/Footer";
-import Services from "@/components/Services";
-import { GoogleReviewsCarousel } from "@/components/GoogleReviewsCarousel";
+import FAQ from "@/components/FAQ";
 import { SimulateurSection } from "@/components/SimulateurSection";
-import { TrustSection } from "@/components/TrustSection";
 import SEOHead from "@/components/SEOHead";
 import SchemaOrg, {
   sivflowSoftwareSchema,
   sivflowOrganizationSchema,
   sivflowFAQSchema,
 } from "@/components/SchemaOrg";
+import { siteConfig } from "@/config/site.config";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" },
+  }),
+};
+
+const steps = [
+  {
+    icon: FileText,
+    title: "Remplissez le formulaire",
+    desc: "Quelques infos sur votre vehicule et c'est parti.",
+  },
+  {
+    icon: CreditCard,
+    title: "Payez en ligne",
+    desc: "Paiement securise par carte bancaire.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "On s'occupe de tout",
+    desc: "Notre equipe traite votre dossier sous 24h.",
+  },
+  {
+    icon: Truck,
+    title: "Recevez chez vous",
+    desc: "Votre carte grise arrive par courrier.",
+  },
+];
+
+const demarchesParticulier = [
+  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire suite a un achat de vehicule.", slug: "carte-grise" },
+  { icon: FilePen, title: "Declaration de cession", desc: "Declarez la vente de votre vehicule en quelques clics.", slug: "declaration-cession" },
+  { icon: MapPin, title: "Changement d'adresse", desc: "Mettez a jour l'adresse sur votre carte grise.", slug: "changement-adresse" },
+  { icon: Copy, title: "Duplicata", desc: "Obtenez un duplicata en cas de perte ou vol.", slug: "duplicata" },
+  { icon: Import, title: "Carte grise import", desc: "Immatriculation d'un vehicule importe de l'etranger.", slug: "carte-grise-import" },
+  { icon: Car, title: "Vehicule neuf", desc: "Premiere immatriculation d'un vehicule neuf.", slug: "vehicule-neuf" },
+];
+
+const demarchesPro = [
+  { icon: FileCheck, title: "Declaration d'achat (DA)", desc: "Declarez l'achat d'un vehicule pour votre garage." },
+  { icon: FilePen, title: "Declaration de cession (DC)", desc: "Declarez la cession d'un vehicule a un client." },
+  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire pour vos clients." },
+  { icon: Car, title: "WW Provisoire", desc: "Immatriculation provisoire pour vos vehicules." },
+  { icon: Briefcase, title: "W Garage", desc: "Plaque W pour vehicules en transit dans votre garage." },
+  { icon: ShieldCheck, title: "Quitus fiscal", desc: "Obtenez le quitus fiscal pour vos imports." },
+  { icon: Copy, title: "Duplicata CG", desc: "Duplicata de carte grise pour vos clients." },
+  { icon: MapPin, title: "Changement d'adresse", desc: "Mise a jour d'adresse pour vos clients." },
+  { icon: Import, title: "Carte grise import", desc: "Immatriculation vehicules importes." },
+];
+
+const featuresParticulier = [
+  { icon: Zap, title: "Traitement rapide", desc: "Votre demarche traitee en moins de 24h ouvrees." },
+  { icon: ShieldCheck, title: "100% conforme", desc: "Agree par le Ministere de l'Interieur et l'ANTS." },
+  { icon: HeadphonesIcon, title: "Support humain", desc: "Une vraie personne vous repond, pas un robot." },
+  { icon: CreditCard, title: "Paiement securise", desc: "Payez uniquement pour la demarche demandee." },
+  { icon: Clock, title: "Disponible 24/7", desc: "Faites vos demarches quand ca vous arrange." },
+  { icon: Truck, title: "Livraison a domicile", desc: "Recevez votre carte grise directement chez vous." },
+];
+
+const featuresPro = [
+  { icon: BarChart3, title: "Dashboard centralise", desc: "Suivez tous vos dossiers depuis un seul tableau de bord." },
+  { icon: Upload, title: "Upload securise", desc: "Vos clients envoient leurs documents en ligne." },
+  { icon: CreditCard, title: "Paiement integre", desc: "Encaissez directement, fini les relances." },
+  { icon: Bell, title: "Notifications", desc: "Alertes en temps reel pour chaque action client." },
+  { icon: Users, title: "Multi-demarches", desc: "Gerez DA, DC, CG et plus depuis un seul espace." },
+  { icon: Lock, title: "Conforme ANTS", desc: "Plateforme agreee, conformite garantie." },
+];
+
+const testimonials = [
+  {
+    name: "Marie D.",
+    role: "Particulier",
+    text: "J'avais peur de faire ma carte grise en ligne. Finalement c'etait plus simple qu'a la prefecture !",
+    rating: 5,
+  },
+  {
+    name: "Jean-Pierre L.",
+    role: "Garage automobile",
+    text: "Tres rapide, j'ai recu ma carte grise en 3 jours. Le support m'a aide quand j'avais une question.",
+    rating: 5,
+  },
+  {
+    name: "Sophie M.",
+    role: "Particulier",
+    text: "Demarche rapide et efficace. J'ai fait mon changement d'adresse en 5 minutes, tout etait clair.",
+    rating: 5,
+  },
+];
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen font-sans bg-white">
       <SEOHead
-        title="SIVFlow - Logiciel Carte Grise Pro | Démarches SIV en Ligne pour Garages"
-        description="Plateforme SIV pour professionnels automobile. Carte grise, déclaration d'achat et de cession en quelques clics. Traitement 24h. Tarifs négociant dès 10€."
-        canonicalUrl="https://sivflow.fr/"
+        title={siteConfig.seo.defaultTitle}
+        description={siteConfig.seo.defaultDescription}
+        canonicalUrl={`${siteConfig.baseUrl}/`}
       />
       <SchemaOrg
         schema={[
@@ -31,16 +147,400 @@ const Index = () => {
           sivflowFAQSchema,
         ]}
       />
+
+      {/* Tricolor bar */}
+      <div className="h-1.5 flex">
+        <div className="flex-1 bg-bleu-france" />
+        <div className="flex-1 bg-white" />
+        <div className="flex-1 bg-rouge-france" />
+      </div>
+
       <Navbar />
-      <Hero />
-      <SimulateurSection />
-      <Services />
-      <TrustSection />
-      <GoogleReviewsCarousel />
-      <Process />
-      <WhyUs />
+
+      {/* Trust Bar */}
+      <div className="bg-[#1B2A4A] text-white/80 py-2.5 px-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-center gap-6 text-xs">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck size={14} /> Habilite par le Ministere de l'Interieur
+          </span>
+          <span className="hidden sm:inline text-white/30">|</span>
+          <span className="hidden sm:flex items-center gap-1.5">
+            <BadgeCheck size={14} /> Agree Tresor Public
+          </span>
+          <span className="hidden sm:inline text-white/30">|</span>
+          <span className="hidden sm:flex items-center gap-1.5">
+            <Star size={14} className="fill-amber-400 text-amber-400" /> 4.8/5 sur 4 839 avis
+          </span>
+        </div>
+      </div>
+
+      {/* ── 01. HERO ── Simulateur-first approach */}
+      <section className="px-4 pt-12 pb-20 bg-gradient-to-b from-[#F0F4F8] to-white">
+        <div className="max-w-6xl mx-auto text-center mb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-encre leading-[1.1] mb-4"
+          >
+            Votre <span className="text-bleu-france">carte grise</span> en ligne
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-encre/60 text-lg max-w-xl mx-auto"
+          >
+            Service agree et habilite par le Ministere de l'Interieur. Calculez le prix de votre carte grise instantanement.
+          </motion.p>
+        </div>
+
+        <SimulateurSection />
+
+        {/* Social proof counters */}
+        <motion.div
+          className="max-w-xl mx-auto mt-8 flex items-center justify-center gap-8 text-sm text-encre/50"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <div className="text-center">
+            <div className="text-2xl font-bold text-encre">12 847</div>
+            <div>demarches traitees</div>
+          </div>
+          <div className="w-px h-8 bg-encre/10" />
+          <div className="text-center">
+            <div className="text-2xl font-bold text-encre">4.8/5</div>
+            <div>satisfaction client</div>
+          </div>
+          <div className="w-px h-8 bg-encre/10" />
+          <div className="text-center">
+            <div className="text-2xl font-bold text-encre">24h</div>
+            <div>traitement moyen</div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ── 02. DEMARCHES PARTICULIER ── Clickable cards grid */}
+      <section id="demarches-particulier" className="px-4 py-20 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              className="text-2xl md:text-4xl font-serif font-bold text-encre"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={0}
+            >
+              Toutes nos demarches
+            </motion.h2>
+            <motion.p
+              className="text-encre/60 mt-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={1}
+            >
+              Choisissez votre demarche et laissez-vous guider
+            </motion.p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {demarchesParticulier.map((d, i) => (
+              <motion.button
+                key={i}
+                onClick={() => navigate(`/demarches/${d.slug}`)}
+                className="group p-6 bg-white border border-gray-200 rounded-2xl hover:border-bleu-france/30 hover:shadow-lg transition-all text-left"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+              >
+                <div className="w-12 h-12 rounded-xl bg-bleu-france/10 flex items-center justify-center mb-4">
+                  <d.icon size={22} className="text-bleu-france" />
+                </div>
+                <h3 className="font-semibold text-encre mb-1 flex items-center gap-2">
+                  {d.title}
+                  <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition text-bleu-france" />
+                </h3>
+                <p className="text-sm text-encre/60">{d.desc}</p>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 03. COMMENT CA MARCHE ── Horizontal cards */}
+      <section id="fonctionnement" className="px-4 py-20 bg-cream">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              className="text-2xl md:text-4xl font-serif font-bold text-encre"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={0}
+            >
+              Comment ca marche ?
+            </motion.h2>
+            <motion.p
+              className="text-encre/60 mt-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={1}
+            >
+              4 etapes simples pour obtenir votre carte grise
+            </motion.p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {steps.map((step, i) => (
+              <motion.div
+                key={i}
+                className="relative p-6 bg-white rounded-2xl border border-gray-200"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+              >
+                <div className="w-10 h-10 rounded-full bg-bleu-france text-white flex items-center justify-center font-bold text-sm mb-4">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+                <step.icon size={24} className="text-bleu-france mb-3" />
+                <h3 className="font-semibold text-encre mb-1">{step.title}</h3>
+                <p className="text-sm text-encre/60">{step.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 04. AVANTAGES ── bleu-france dark bg with icon cards */}
+      <section id="features" className="px-4 py-20 bg-bleu-france">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              className="text-2xl md:text-4xl font-serif font-bold text-white"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={0}
+            >
+              Pourquoi {siteConfig.siteName} ?
+            </motion.h2>
+            <motion.p
+              className="text-white/60 mt-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={1}
+            >
+              Un service fiable, rapide et conforme
+            </motion.p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {featuresParticulier.map((f, i) => (
+              <motion.div
+                key={i}
+                className="p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+              >
+                <f.icon size={24} className="text-white/80 mb-4" />
+                <h3 className="font-semibold text-white mb-2">{f.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed">{f.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 05. ESPACE PRO ── Editorial layout */}
+      <section id="espace-pro" className="px-4 py-20 bg-neutral-50">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="mb-16"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <motion.h2 variants={fadeUp} custom={0} className="text-2xl md:text-4xl font-serif font-bold text-encre">
+              La plateforme SIV des pros de l'auto
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={1} className="text-encre/60 mt-3 max-w-xl">
+              Gerez toutes vos demarches SIV depuis un seul espace. Dashboard, paiements, documents — tout est centralise.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+            <div className="md:col-span-6">
+              <h3 className="text-sm font-semibold text-encre/40 uppercase tracking-wider mb-6">Demarches disponibles</h3>
+              <div className="divide-y divide-encre/10">
+                {demarchesPro.map((d, i) => (
+                  <motion.div
+                    key={i}
+                    className="flex items-start gap-4 py-4"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    custom={i * 0.5}
+                    variants={fadeUp}
+                  >
+                    <d.icon size={18} className="text-bleu-france mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-encre">{d.title}</h4>
+                      <p className="text-xs text-encre/50 mt-0.5">{d.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div className="md:col-span-6">
+              <h3 className="text-sm font-semibold text-encre/40 uppercase tracking-wider mb-6">Vos outils</h3>
+              <div className="divide-y divide-encre/10">
+                {featuresPro.map((f, i) => (
+                  <motion.div
+                    key={i}
+                    className="flex items-start gap-4 py-4"
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    custom={i * 0.5}
+                    variants={fadeUp}
+                  >
+                    <f.icon size={18} className="text-bleu-france mt-0.5 shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-encre">{f.title}</h4>
+                      <p className="text-xs text-encre/50 mt-0.5">{f.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-encre/10 pt-10 flex flex-col sm:flex-row items-center gap-4">
+            <button
+              onClick={() => navigate("/register")}
+              className="bg-encre text-white px-8 py-4 font-medium hover:bg-encre/90 transition inline-flex items-center gap-2 rounded-xl"
+            >
+              Creer mon espace pro <ArrowRight size={16} />
+            </button>
+            <p className="text-xs text-encre/40">
+              Paiement a la demarche. Pas d'abonnement, pas d'engagement.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 06. TEMOIGNAGES ── Serif blockquotes with star ratings */}
+      <section id="avis" className="px-4 py-20 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <motion.h2
+              className="text-2xl md:text-4xl font-serif font-bold text-encre"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={0}
+            >
+              Ce que disent nos utilisateurs
+            </motion.h2>
+            <motion.div
+              className="flex items-center justify-center gap-1 mt-4"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={1}
+            >
+              {Array.from({ length: 5 }).map((_, j) => (
+                <Star key={j} size={20} className="fill-amber-400 text-amber-400" />
+              ))}
+              <span className="ml-2 text-sm text-encre/60 font-medium">4.8/5 sur 4 839 avis</span>
+            </motion.div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={i}
+                className="p-6 bg-neutral-50 rounded-2xl border border-gray-200"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+              >
+                <div className="flex gap-0.5 mb-4">
+                  {Array.from({ length: t.rating }).map((_, j) => (
+                    <Star key={j} size={16} className="fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <Quote size={20} className="text-bleu-france/20 mb-3" />
+                <blockquote className="font-serif text-lg text-encre leading-relaxed mb-6">
+                  "{t.text}"
+                </blockquote>
+                <div className="border-t border-encre/10 pt-4">
+                  <span className="text-sm font-semibold text-encre block">{t.name}</span>
+                  <span className="text-xs text-encre/40">{t.role}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── 07. FAQ ── */}
       <FAQ />
-      <ContactForm />
+
+      {/* ── 08. CTA FINAL ── encre dark bg */}
+      <section className="px-4 py-20 bg-encre">
+        <motion.div
+          className="mx-auto max-w-4xl text-center"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <motion.h2 variants={fadeUp} custom={0} className="text-2xl md:text-4xl font-serif font-bold text-white mb-4">
+            Pret a simplifier vos demarches ?
+          </motion.h2>
+          <motion.p variants={fadeUp} custom={1} className="text-white/50 mb-10 max-w-md mx-auto">
+            Particulier ou professionnel, commencez votre demarche en quelques clics.
+          </motion.p>
+          <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate("/simulateur")}
+              className="bg-white text-encre px-8 py-4 font-medium hover:bg-white/90 transition inline-flex items-center justify-center gap-2 rounded-xl"
+            >
+              Commencer ma demarche <ArrowRight size={16} />
+            </button>
+            <button
+              onClick={() => navigate("/register")}
+              className="bg-transparent text-white px-8 py-4 font-medium hover:bg-white/10 transition border border-white/20 inline-flex items-center justify-center gap-2 rounded-xl"
+            >
+              <Briefcase size={16} /> Espace professionnel
+            </button>
+          </motion.div>
+          <div className="mt-16 h-0.5 flex max-w-xs mx-auto">
+            <div className="flex-1 bg-bleu-france" />
+            <div className="flex-1 bg-white/20" />
+            <div className="flex-1 bg-rouge-france" />
+          </div>
+        </motion.div>
+      </section>
+
       <Footer />
     </div>
   );

@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Search, Eye, Package } from "lucide-react";
@@ -31,6 +29,13 @@ interface GuestOrder {
   created_at: string;
   demarche_type?: string;
 }
+
+const statusConfig: Record<string, { label: string; color: string }> = {
+  en_attente: { label: "En attente", color: "bg-amber-100 text-amber-700" },
+  valide: { label: "Valide", color: "bg-blue-100 text-blue-700" },
+  finalise: { label: "Finalise", color: "bg-green-100 text-green-700" },
+  refuse: { label: "Refuse", color: "bg-red-100 text-red-700" },
+};
 
 export default function GuestOrders() {
   const { user } = useAuth();
@@ -101,116 +106,111 @@ export default function GuestOrders() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
-      en_attente: { variant: "secondary", label: "En attente" },
-      valide: { variant: "default", label: "Validé" },
-      finalise: { variant: "default", label: "Finalisé" },
-      refuse: { variant: "destructive", label: "Refusé" },
-    };
-    const config = variants[status] || { variant: "secondary", label: status };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Chargement...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-4">
+    <div className="min-h-screen bg-[#FDF8F0]">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour au dashboard
         </Button>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Package className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle>Commandes Particuliers</CardTitle>
-                <CardDescription>
-                  Gérer les commandes des clients sans compte ({orders.length} commande{orders.length > 1 ? "s" : ""})
-                </CardDescription>
-              </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+              <Package className="h-5 w-5 text-orange-600" />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher par numéro, immatriculation, nom, email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Commandes Particuliers</h1>
+              <p className="text-sm text-gray-500">
+                Gerer les commandes des clients sans compte ({orders.length} commande{orders.length > 1 ? "s" : ""})
+              </p>
             </div>
+          </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Rechercher par numero, immatriculation, nom, email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 rounded-xl border-gray-200"
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-100">
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">N Commande</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Client</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Immatriculation</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Montant</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Statut</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Paiement</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Documents</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Date</TableHead>
+                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableHead>N° Commande</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Immatriculation</TableHead>
-                    <TableHead>Montant</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Paiement</TableHead>
-                    <TableHead>Documents</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableCell colSpan={10} className="text-center text-gray-400 py-8">
+                      Aucune commande trouvee
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center text-muted-foreground">
-                        Aucune commande trouvée
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-mono font-medium">
+                ) : (
+                  filteredOrders.map((order) => {
+                    const status = statusConfig[order.status] || { label: order.status, color: "bg-gray-100 text-gray-700" };
+                    return (
+                      <TableRow key={order.id} className="border-gray-50">
+                        <TableCell className="font-mono font-medium text-gray-700 text-sm">
                           {order.tracking_number}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {order.demarche_type === 'DA' ? "DA" : 
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                            {order.demarche_type === 'DA' ? "DA" :
                              order.demarche_type === 'DC' ? "DC" : "CG"}
-                          </Badge>
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{order.prenom} {order.nom}</p>
-                            <p className="text-sm text-muted-foreground">{order.email}</p>
+                            <p className="font-medium text-gray-700 text-sm">{order.prenom} {order.nom}</p>
+                            <p className="text-xs text-gray-400">{order.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono">{order.immatriculation}</TableCell>
-                        <TableCell>{order.montant_ttc.toFixed(2)} €</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell className="font-mono text-sm text-gray-600">{order.immatriculation}</TableCell>
+                        <TableCell className="font-medium text-gray-900">{order.montant_ttc.toFixed(2)} &euro;</TableCell>
                         <TableCell>
-                          <Badge variant={order.paye ? "default" : "secondary"}>
-                            {order.paye ? "Payé" : "Non payé"}
-                          </Badge>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                            {status.label}
+                          </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={order.documents_complets ? "default" : "secondary"}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.paye ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {order.paye ? "Paye" : "Non paye"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.documents_complets ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                             {order.documents_complets ? "Complets" : "Incomplets"}
-                          </Badge>
+                          </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-gray-500 text-sm">
                           {new Date(order.created_at).toLocaleDateString("fr-FR")}
                         </TableCell>
                         <TableCell>
@@ -218,18 +218,19 @@ export default function GuestOrders() {
                             variant="ghost"
                             size="sm"
                             onClick={() => navigate(`/admin/guest-order/${order.id}`)}
+                            className="rounded-full hover:bg-gray-100"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4 text-gray-500" />
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -437,9 +437,9 @@ export default function AdminRevenus() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
+    <div className="min-h-screen bg-[#FDF8F0]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" /> Retour
         </Button>
 

@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Download, FileText, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, FileText, Loader2, RefreshCw, Euro } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 
@@ -60,7 +58,6 @@ export default function TokenPurchases() {
   };
 
   const loadPurchases = async () => {
-    // Load purchases with their garages
     const { data: purchasesData, error: purchasesError } = await supabase
       .from('token_purchases')
       .select(`
@@ -75,13 +72,11 @@ export default function TokenPurchases() {
       return;
     }
 
-    // Load factures for token purchases
     const { data: factures } = await supabase
       .from('factures')
       .select('id, numero, pdf_url, token_purchase_id')
       .not('token_purchase_id', 'is', null);
 
-    // Map factures to purchases
     const facturesMap = new Map(
       (factures || []).map(f => [f.token_purchase_id, f])
     );
@@ -105,8 +100,8 @@ export default function TokenPurchases() {
       if (error) throw error;
 
       toast({
-        title: "Facture générée",
-        description: `Facture ${data.facture.numero} créée avec succès`
+        title: "Facture generee",
+        description: `Facture ${data.facture.numero} creee avec succes`
       });
 
       loadPurchases();
@@ -114,7 +109,7 @@ export default function TokenPurchases() {
       console.error('Error generating facture:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Erreur lors de la génération",
+        description: error.message || "Erreur lors de la generation",
         variant: "destructive"
       });
     } finally {
@@ -132,8 +127,8 @@ export default function TokenPurchases() {
       if (error) throw error;
 
       toast({
-        title: "Génération terminée",
-        description: `${data.successCount} factures générées, ${data.errorCount} erreurs`
+        title: "Generation terminee",
+        description: `${data.successCount} factures generees, ${data.errorCount} erreurs`
       });
 
       loadPurchases();
@@ -141,7 +136,7 @@ export default function TokenPurchases() {
       console.error('Error generating all factures:', error);
       toast({
         title: "Erreur",
-        description: error.message || "Erreur lors de la génération",
+        description: error.message || "Erreur lors de la generation",
         variant: "destructive"
       });
     } finally {
@@ -154,26 +149,23 @@ export default function TokenPurchases() {
 
     setDownloadingId(purchase.id);
     try {
-      // Import dynamically to avoid circular deps
       const { downloadFacture, extractPathFromUrl } = await import("@/lib/storage-utils");
-      
-      // Extract clean path from pdf_url
+
       const path = extractPathFromUrl(purchase.facture.pdf_url);
-      
-      console.log(`📄 TokenPurchases: Downloading facture, path="${path}"`);
-      
-      // Use the UNIQUE download function
+
+      console.log(`TokenPurchases: Downloading facture, path="${path}"`);
+
       await downloadFacture(path);
-      
+
       toast({
-        title: "Facture téléchargée",
+        title: "Facture telechargee",
         description: `Facture ${purchase.facture.numero}`
       });
     } catch (error: any) {
       console.error('Error downloading facture:', error);
       toast({
         title: "Erreur",
-        description: error?.message || "Impossible de télécharger la facture",
+        description: error?.message || "Impossible de telecharger la facture",
         variant: "destructive"
       });
     } finally {
@@ -185,42 +177,48 @@ export default function TokenPurchases() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6">
+    <div className="min-h-screen bg-[#FDF8F0]">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
-        <Card className="p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">Achats de jetons</h1>
-              <p className="text-muted-foreground">
-                {purchases.length} achats • {purchasesWithoutFacture.length} sans facture
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Euro className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Achats de jetons</h1>
+                <p className="text-sm text-gray-500">
+                  {purchases.length} achats - {purchasesWithoutFacture.length} sans facture
+                </p>
+              </div>
             </div>
             {purchasesWithoutFacture.length > 0 && (
               <Button
                 onClick={generateAllFactures}
                 disabled={generatingAll}
+                className="rounded-full"
               >
                 {generatingAll ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Génération en cours...
+                    Generation en cours...
                   </>
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Générer {purchasesWithoutFacture.length} factures
+                    Generer {purchasesWithoutFacture.length} factures
                   </>
                 )}
               </Button>
@@ -228,54 +226,54 @@ export default function TokenPurchases() {
           </div>
 
           {purchases.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Aucun achat de jetons</p>
+            <p className="text-center text-gray-400 py-8">Aucun achat de jetons</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Garage</TableHead>
-                    <TableHead>Crédits</TableHead>
-                    <TableHead>Montant</TableHead>
-                    <TableHead>Bonus</TableHead>
-                    <TableHead>Facture</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
+                  <TableRow className="border-gray-100">
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Garage</TableHead>
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Credits</TableHead>
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Montant</TableHead>
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Bonus</TableHead>
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Facture</TableHead>
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Date</TableHead>
+                    <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {purchases.map((purchase) => {
                     const bonus = purchase.quantity - purchase.amount;
                     return (
-                      <TableRow key={purchase.id}>
-                        <TableCell className="font-medium">
+                      <TableRow key={purchase.id} className="border-gray-50">
+                        <TableCell className="font-medium text-gray-700">
                           {purchase.garages?.raison_sociale || 'N/A'}
                         </TableCell>
-                        <TableCell className="font-bold text-primary">
-                          {formatPrice(purchase.quantity)}€
+                        <TableCell className="font-bold text-blue-700">
+                          {formatPrice(purchase.quantity)}&euro;
                         </TableCell>
-                        <TableCell>
-                          {formatPrice(purchase.amount)}€
+                        <TableCell className="text-gray-700">
+                          {formatPrice(purchase.amount)}&euro;
                         </TableCell>
                         <TableCell>
                           {bonus > 0 && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700">
-                              +{formatPrice(bonus)}€
-                            </Badge>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                              +{formatPrice(bonus)}&euro;
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
                           {purchase.facture ? (
-                            <Badge className="bg-blue-500">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                               {purchase.facture.numero}
-                            </Badge>
+                            </span>
                           ) : (
-                            <Badge variant="outline" className="text-orange-600 border-orange-300">
-                              Non générée
-                            </Badge>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                              Non generee
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-gray-500 text-sm">
                           {new Date(purchase.created_at).toLocaleDateString('fr-FR', {
                             year: 'numeric',
                             month: 'short',
@@ -289,6 +287,7 @@ export default function TokenPurchases() {
                               variant="outline"
                               onClick={() => handleDownloadFacture(purchase)}
                               disabled={downloadingId === purchase.id}
+                              className="rounded-full"
                             >
                               {downloadingId === purchase.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -302,6 +301,7 @@ export default function TokenPurchases() {
                               variant="outline"
                               onClick={() => generateFacture(purchase.id)}
                               disabled={generatingId === purchase.id}
+                              className="rounded-full"
                             >
                               {generatingId === purchase.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -318,7 +318,7 @@ export default function TokenPurchases() {
               </Table>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );
