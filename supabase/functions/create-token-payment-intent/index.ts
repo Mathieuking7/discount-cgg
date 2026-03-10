@@ -60,7 +60,12 @@ serve(async (req) => {
       );
     }
 
-    console.log("Pack validated from DB - ID:", pack.id, "Price:", pack.price, "Quantity:", pack.quantity);
+    // Apply +20% bonus credits
+    const bonusMultiplier = 1.20;
+    const totalCredits = Math.ceil(pack.quantity * bonusMultiplier);
+    const bonusCredits = totalCredits - pack.quantity;
+
+    console.log("Pack validated from DB - ID:", pack.id, "Price:", pack.price, "Base Quantity:", pack.quantity, "Bonus:", bonusCredits, "Total:", totalCredits);
 
     // Get garage information for metadata
     let garageName = "Unknown";
@@ -86,7 +91,9 @@ serve(async (req) => {
       metadata: {
         type: 'token_purchase',
         pack_id: pack.id,
-        quantity: pack.quantity.toString(),
+        quantity: totalCredits.toString(),
+        base_quantity: pack.quantity.toString(),
+        bonus_credits: bonusCredits.toString(),
         price: pack.price.toString(),
         garage_id: garage_id,
         garage_name: garageName,
@@ -100,7 +107,9 @@ serve(async (req) => {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         amount: pack.price,
-        quantity: pack.quantity,
+        quantity: totalCredits,
+        baseQuantity: pack.quantity,
+        bonusCredits: bonusCredits,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

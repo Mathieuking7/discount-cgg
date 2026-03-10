@@ -82,10 +82,10 @@ const ContactForm = () => {
                   <div>
                     <p className="font-semibold mb-1">Email</p>
                     <a 
-                      href="mailto:contact@discountcartegrise.fr" 
+                      href="mailto:contact@sivflow.fr"
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
-                      contact@discountcartegrise.fr
+                      contact@sivflow.fr
                     </a>
                   </div>
                 </div>

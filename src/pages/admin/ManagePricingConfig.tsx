@@ -6,13 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, Calculator, Plus, Trash2, Edit, GripVertical, FileText, Package, MapPin, Search } from "lucide-react";
+import { ArrowLeft, Save, Calculator, Plus, Trash2, Edit, FileText, MapPin, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface DemarcheType {
   id: string;
@@ -42,10 +49,16 @@ interface DepartmentTariff {
   tarif: number;
 }
 
+// Local editable state for inline price editing
+interface EditableDemarcheType extends DemarcheType {
+  _editedPrix?: number;
+  _dirty?: boolean;
+}
+
 const ManagePricingConfig = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [demarcheTypes, setDemarcheTypes] = useState<DemarcheType[]>([]);
+  const [demarcheTypes, setDemarcheTypes] = useState<EditableDemarcheType[]>([]);
   const [documents, setDocuments] = useState<RequiredDocument[]>([]);
   const [departmentTariffs, setDepartmentTariffs] = useState<DepartmentTariff[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +67,9 @@ const ManagePricingConfig = () => {
   const [editingType, setEditingType] = useState<DemarcheType | null>(null);
   const [showDocDialog, setShowDocDialog] = useState(false);
   const [showTypeDialog, setShowTypeDialog] = useState(false);
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("all");
   const [departmentSearch, setDepartmentSearch] = useState("");
+  const [expandedType, setExpandedType] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"types" | "tarifs">("types");
 
   useEffect(() => {
     loadData();
@@ -66,7 +80,7 @@ const ManagePricingConfig = () => {
       const [typesRes, docsRes, tariffsRes] = await Promise.all([
         supabase.from("guest_demarche_types").select("*").order("ordre"),
         supabase.from("guest_order_required_documents").select("*").order("ordre"),
-        supabase.from("department_tariffs").select("*").order("code")
+        supabase.from("department_tariffs").select("*").order("code"),
       ]);
 
       if (typesRes.error) throw typesRes.error;
@@ -87,60 +101,65 @@ const ManagePricingConfig = () => {
     }
   };
 
-  // === DEPARTMENT TARIFFS ===
-  const handleTariffChange = (id: string, value: number) => {
-    setDepartmentTariffs(
-      departmentTariffs.map((t) =>
-        t.id === id ? { ...t, tarif: value } : t
+  // === INLINE PRICE EDITING ===
+  const handleInlinePriceChange = (id: string, value: number) => {
+    setDemarcheTypes((prev) =>
+      prev.map((t) =>
+        t.id === id ? { ...t, _editedPrix: value, _dirty: true } : t
       )
     );
   };
 
-  const handleSaveTariffs = async () => {
+  const handleToggleTypeActive = async (type: EditableDemarcheType) => {
+    const { error } = await supabase
+      .from("guest_demarche_types")
+      .update({ actif: !type.actif })
+      .eq("id", type.id);
+
+    if (error) {
+      toast({ title: "Erreur", description: "Impossible de modifier le statut", variant: "destructive" });
+    } else {
+      await loadData();
+    }
+  };
+
+  const handleSaveAllPrices = async () => {
+    const dirtyTypes = demarcheTypes.filter((t) => t._dirty);
+    if (dirtyTypes.length === 0) {
+      toast({ title: "Info", description: "Aucune modification" });
+      return;
+    }
+
     setSaving(true);
     try {
-      for (const tariff of departmentTariffs) {
+      for (const type of dirtyTypes) {
         const { error } = await supabase
-          .from("department_tariffs")
-          .update({ tarif: tariff.tarif })
-          .eq("id", tariff.id);
-
+          .from("guest_demarche_types")
+          .update({ prix_base: type._editedPrix ?? type.prix_base })
+          .eq("id", type.id);
         if (error) throw error;
       }
-
-      toast({
-        title: "Succès",
-        description: "Les tarifs départementaux ont été mis à jour",
-      });
+      toast({ title: "Succes", description: `${dirtyTypes.length} prix mis a jour` });
+      await loadData();
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder les tarifs",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: "Impossible de sauvegarder", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  const filteredTariffs = departmentTariffs.filter(t => 
-    t.code.toLowerCase().includes(departmentSearch.toLowerCase()) ||
-    t.label.toLowerCase().includes(departmentSearch.toLowerCase())
-  );
-
-  // === DEMARCHE TYPES ===
+  // === DEMARCHE TYPE CRUD (dialog) ===
   const handleCreateType = () => {
     setEditingType({
-      id: '',
-      code: '',
-      titre: '',
-      description: '',
+      id: "",
+      code: "",
+      titre: "",
+      description: "",
       prix_base: 0,
       actif: true,
       ordre: demarcheTypes.length + 1,
       require_vehicle_info: true,
-      require_carte_grise_price: false
+      require_carte_grise_price: false,
     });
     setShowTypeDialog(true);
   };
@@ -152,129 +171,62 @@ const ManagePricingConfig = () => {
 
   const handleSaveType = async () => {
     if (!editingType) return;
-
     if (!editingType.code.trim() || !editingType.titre.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Le code et le titre sont obligatoires",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: "Le code et le titre sont obligatoires", variant: "destructive" });
       return;
     }
-
     setSaving(true);
-
     try {
+      const payload = {
+        code: editingType.code,
+        titre: editingType.titre,
+        description: editingType.description,
+        prix_base: editingType.prix_base,
+        actif: editingType.actif,
+        ordre: editingType.ordre,
+        require_vehicle_info: editingType.require_vehicle_info,
+        require_carte_grise_price: editingType.require_carte_grise_price,
+      };
+
       if (editingType.id) {
-        const { error } = await supabase
-          .from('guest_demarche_types')
-          .update({
-            code: editingType.code,
-            titre: editingType.titre,
-            description: editingType.description,
-            prix_base: editingType.prix_base,
-            actif: editingType.actif,
-            ordre: editingType.ordre,
-            require_vehicle_info: editingType.require_vehicle_info,
-            require_carte_grise_price: editingType.require_carte_grise_price
-          })
-          .eq('id', editingType.id);
-
+        const { error } = await supabase.from("guest_demarche_types").update(payload).eq("id", editingType.id);
         if (error) throw error;
-
-        toast({
-          title: "Type mis à jour",
-          description: "Le type de démarche a été mis à jour"
-        });
+        toast({ title: "Type mis a jour" });
       } else {
-        const { error } = await supabase
-          .from('guest_demarche_types')
-          .insert({
-            code: editingType.code,
-            titre: editingType.titre,
-            description: editingType.description,
-            prix_base: editingType.prix_base,
-            actif: editingType.actif,
-            ordre: editingType.ordre,
-            require_vehicle_info: editingType.require_vehicle_info,
-            require_carte_grise_price: editingType.require_carte_grise_price
-          });
-
+        const { error } = await supabase.from("guest_demarche_types").insert(payload);
         if (error) throw error;
-
-        toast({
-          title: "Type créé",
-          description: "Le type de démarche a été créé"
-        });
+        toast({ title: "Type cree" });
       }
-
       setShowTypeDialog(false);
       setEditingType(null);
       await loadData();
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteType = async (typeId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce type de démarche ?")) return;
-
-    setSaving(true);
-
-    const { error } = await supabase
-      .from('guest_demarche_types')
-      .delete()
-      .eq('id', typeId);
-
+    if (!confirm("Supprimer ce type de demarche ?")) return;
+    const { error } = await supabase.from("guest_demarche_types").delete().eq("id", typeId);
     if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le type",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: "Impossible de supprimer", variant: "destructive" });
     } else {
-      toast({
-        title: "Type supprimé",
-        description: "Le type de démarche a été supprimé"
-      });
-      await loadData();
-    }
-
-    setSaving(false);
-  };
-
-  const handleToggleTypeActive = async (type: DemarcheType) => {
-    const { error } = await supabase
-      .from('guest_demarche_types')
-      .update({ actif: !type.actif })
-      .eq('id', type.id);
-
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier le statut",
-        variant: "destructive"
-      });
-    } else {
+      toast({ title: "Type supprime" });
       await loadData();
     }
   };
 
   // === DOCUMENTS ===
-  const handleCreateDocument = () => {
+  const handleCreateDocForType = (typeCode: string) => {
     setEditingDoc({
-      id: '',
-      nom_document: '',
-      ordre: documents.length + 1,
+      id: "",
+      nom_document: "",
+      ordre: documents.filter((d) => d.demarche_type_code === typeCode).length + 1,
       obligatoire: true,
       actif: true,
-      demarche_type_code: selectedTypeFilter !== 'all' ? selectedTypeFilter : 'CG'
+      demarche_type_code: typeCode,
     });
     setShowDocDialog(true);
   };
@@ -286,361 +238,385 @@ const ManagePricingConfig = () => {
 
   const handleSaveDocument = async () => {
     if (!editingDoc) return;
-
     if (!editingDoc.nom_document.trim()) {
-      toast({
-        title: "Erreur",
-        description: "Le nom du document est obligatoire",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: "Le nom du document est obligatoire", variant: "destructive" });
       return;
     }
-
     setSaving(true);
-
     try {
+      const payload = {
+        nom_document: editingDoc.nom_document,
+        ordre: editingDoc.ordre,
+        obligatoire: editingDoc.obligatoire,
+        actif: editingDoc.actif,
+        demarche_type_code: editingDoc.demarche_type_code,
+      };
+
       if (editingDoc.id) {
-        const { error } = await supabase
-          .from('guest_order_required_documents')
-          .update({
-            nom_document: editingDoc.nom_document,
-            ordre: editingDoc.ordre,
-            obligatoire: editingDoc.obligatoire,
-            actif: editingDoc.actif,
-            demarche_type_code: editingDoc.demarche_type_code
-          })
-          .eq('id', editingDoc.id);
-
+        const { error } = await supabase.from("guest_order_required_documents").update(payload).eq("id", editingDoc.id);
         if (error) throw error;
-
-        toast({
-          title: "Document mis à jour",
-          description: "Le document requis a été mis à jour"
-        });
+        toast({ title: "Document mis a jour" });
       } else {
-        const { error } = await supabase
-          .from('guest_order_required_documents')
-          .insert({
-            nom_document: editingDoc.nom_document,
-            ordre: editingDoc.ordre,
-            obligatoire: editingDoc.obligatoire,
-            actif: editingDoc.actif,
-            demarche_type_code: editingDoc.demarche_type_code
-          });
-
+        const { error } = await supabase.from("guest_order_required_documents").insert(payload);
         if (error) throw error;
-
-        toast({
-          title: "Document créé",
-          description: "Le document requis a été créé"
-        });
+        toast({ title: "Document cree" });
       }
-
       setShowDocDialog(false);
       setEditingDoc(null);
       await loadData();
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce document ?")) return;
-
-    setSaving(true);
-
-    const { error } = await supabase
-      .from('guest_order_required_documents')
-      .delete()
-      .eq('id', docId);
-
+    if (!confirm("Supprimer ce document ?")) return;
+    const { error } = await supabase.from("guest_order_required_documents").delete().eq("id", docId);
     if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le document",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: "Impossible de supprimer", variant: "destructive" });
     } else {
-      toast({
-        title: "Document supprimé",
-        description: "Le document requis a été supprimé"
-      });
+      toast({ title: "Document supprime" });
       await loadData();
     }
-
-    setSaving(false);
   };
 
   const handleToggleDocActive = async (doc: RequiredDocument) => {
     const { error } = await supabase
-      .from('guest_order_required_documents')
+      .from("guest_order_required_documents")
       .update({ actif: !doc.actif })
-      .eq('id', doc.id);
-
+      .eq("id", doc.id);
     if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier le statut",
-        variant: "destructive"
-      });
+      toast({ title: "Erreur", description: "Impossible de modifier le statut", variant: "destructive" });
     } else {
       await loadData();
     }
   };
 
-  const filteredDocuments = selectedTypeFilter === 'all' 
-    ? documents 
-    : documents.filter(d => d.demarche_type_code === selectedTypeFilter);
+  // === DEPARTMENT TARIFFS ===
+  const handleTariffChange = (id: string, value: number) => {
+    setDepartmentTariffs((prev) => prev.map((t) => (t.id === id ? { ...t, tarif: value } : t)));
+  };
+
+  const handleSaveTariffs = async () => {
+    setSaving(true);
+    try {
+      for (const tariff of departmentTariffs) {
+        const { error } = await supabase.from("department_tariffs").update({ tarif: tariff.tarif }).eq("id", tariff.id);
+        if (error) throw error;
+      }
+      toast({ title: "Succes", description: "Tarifs departementaux mis a jour" });
+    } catch (error) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filteredTariffs = departmentTariffs.filter(
+    (t) =>
+      t.code.toLowerCase().includes(departmentSearch.toLowerCase()) ||
+      t.label.toLowerCase().includes(departmentSearch.toLowerCase())
+  );
+
+  const getDocsForType = (code: string) => documents.filter((d) => d.demarche_type_code === code);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-8">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-center">Chargement...</p>
-        </div>
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1B2A4A]"></div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/admin")}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au dashboard
-        </Button>
+  const hasDirtyPrices = demarcheTypes.some((t) => t._dirty);
 
-        <div className="flex items-center gap-3 mb-6">
-          <Calculator className="h-8 w-8 text-primary" />
+  return (
+    <div className="min-h-screen bg-[#FDF8F0] p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/dashboard")}
+            className="rounded-full hover:bg-white/80"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div>
-            <h1 className="text-2xl font-bold">Simulateur Particulier</h1>
-            <p className="text-muted-foreground">
-              Gérez les types de démarches, tarifs et documents requis pour les particuliers
+            <h1 className="text-2xl font-bold text-[#1B2A4A]">Configuration</h1>
+            <p className="text-sm text-muted-foreground">
+              Demarches, documents requis et tarifs departementaux
             </p>
           </div>
         </div>
 
-        <Tabs defaultValue="types" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="types" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Types de démarches
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Documents requis
-            </TabsTrigger>
-            <TabsTrigger value="tarifs" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Tarifs départementaux
-            </TabsTrigger>
-          </TabsList>
+        {/* Section nav */}
+        <div className="flex gap-2">
+          <Button
+            variant={activeSection === "types" ? "default" : "outline"}
+            onClick={() => setActiveSection("types")}
+            className={activeSection === "types" ? "bg-[#1B2A4A] hover:bg-[#1B2A4A]/90" : ""}
+          >
+            <Calculator className="mr-2 h-4 w-4" />
+            Demarches et prix
+          </Button>
+          <Button
+            variant={activeSection === "tarifs" ? "default" : "outline"}
+            onClick={() => setActiveSection("tarifs")}
+            className={activeSection === "tarifs" ? "bg-[#1B2A4A] hover:bg-[#1B2A4A]/90" : ""}
+          >
+            <MapPin className="mr-2 h-4 w-4" />
+            Tarifs departementaux
+          </Button>
+        </div>
 
-          {/* TYPES DE DEMARCHES */}
-          <TabsContent value="types" className="space-y-4">
-            <Card>
-              <CardHeader>
+        {/* === SECTION: DEMARCHES === */}
+        {activeSection === "types" && (
+          <div className="space-y-6">
+            {/* Pricing table card */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="bg-[#1B2A4A] text-white rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Types de démarches particuliers</CardTitle>
-                    <CardDescription>
-                      Configurez les différents types de démarches disponibles (CG, DA, DC) avec leurs prix
-                    </CardDescription>
-                  </div>
-                  <Button onClick={handleCreateType} disabled={saving}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nouveau type
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {demarcheTypes.map((type) => (
-                    <Card key={type.id} className={!type.actif ? 'opacity-60' : ''}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1">
-                            <GripVertical className="w-5 h-5 text-muted-foreground" />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="font-mono">{type.code}</Badge>
-                                <p className="font-medium">{type.titre}</p>
-                                {!type.actif && <Badge variant="secondary">Inactif</Badge>}
-                              </div>
-                              <p className="text-sm text-muted-foreground mt-1">{type.description}</p>
-                              <div className="flex items-center gap-4 mt-2 text-sm">
-                                <span className="font-semibold text-primary">{type.prix_base.toFixed(2)} €</span>
-                                {type.require_carte_grise_price && (
-                                  <Badge variant="secondary">+ Prix carte grise</Badge>
-                                )}
-                                <span className="text-muted-foreground">
-                                  {documents.filter(d => d.demarche_type_code === type.code && d.actif).length} documents
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={type.actif}
-                              onCheckedChange={() => handleToggleTypeActive(type)}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditType(type)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteType(type.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* DOCUMENTS REQUIS */}
-          <TabsContent value="documents" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <CardTitle>Documents requis par type de démarche</CardTitle>
-                    <CardDescription>
-                      Configurez les documents à demander pour chaque type de démarche
+                    <CardTitle className="text-white">Types de demarches</CardTitle>
+                    <CardDescription className="text-white/70">
+                      Prix, statut et configuration de chaque demarche
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={selectedTypeFilter} onValueChange={setSelectedTypeFilter}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Filtrer par type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les types</SelectItem>
-                        {demarcheTypes.map(type => (
-                          <SelectItem key={type.code} value={type.code}>
-                            {type.code} - {type.titre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button onClick={handleCreateDocument} disabled={saving}>
+                    {hasDirtyPrices && (
+                      <Button
+                        onClick={handleSaveAllPrices}
+                        disabled={saving}
+                        size="sm"
+                        className="bg-white text-[#1B2A4A] hover:bg-white/90"
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        Sauvegarder les prix
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handleCreateType}
+                      disabled={saving}
+                      size="sm"
+                      variant="outline"
+                      className="border-white/30 text-white hover:bg-white/10"
+                    >
                       <Plus className="mr-2 h-4 w-4" />
-                      Nouveau document
+                      Nouveau
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {filteredDocuments.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Aucun document configuré pour ce type de démarche
-                    </p>
-                  ) : (
-                    filteredDocuments.map((doc) => (
-                      <Card key={doc.id} className={!doc.actif ? 'opacity-60' : ''}>
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-4 flex-1">
-                              <GripVertical className="w-5 h-5 text-muted-foreground" />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-medium">{doc.nom_document}</p>
-                                  {!doc.actif && <Badge variant="secondary">Inactif</Badge>}
-                                  {doc.obligatoire && <Badge variant="destructive">Obligatoire</Badge>}
-                                  {doc.demarche_type_code && (
-                                    <Badge variant="outline">{doc.demarche_type_code}</Badge>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Nom</TableHead>
+                      <TableHead className="text-right">Prix (euros)</TableHead>
+                      <TableHead className="text-center">Actif</TableHead>
+                      <TableHead className="text-center">Docs</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {demarcheTypes.map((type) => {
+                      const typeDocs = getDocsForType(type.code);
+                      const isExpanded = expandedType === type.id;
+
+                      return (
+                        <>
+                          <TableRow
+                            key={type.id}
+                            className={`${!type.actif ? "opacity-50" : ""} ${isExpanded ? "bg-blue-50/50" : "hover:bg-gray-50"} cursor-pointer`}
+                            onClick={() => setExpandedType(isExpanded ? null : type.id)}
+                          >
+                            <TableCell className="w-10 px-3">
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-mono">
+                                {type.code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-sm">{type.titre}</p>
+                                {type.description && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                    {type.description}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={type._editedPrix ?? type.prix_base}
+                                onChange={(e) => handleInlinePriceChange(type.id, parseFloat(e.target.value) || 0)}
+                                className={`w-24 text-right inline-block ${type._dirty ? "border-orange-400 bg-orange-50" : ""}`}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                              <Switch
+                                checked={type.actif}
+                                onCheckedChange={() => handleToggleTypeActive(type)}
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary" className="text-xs">
+                                {typeDocs.filter((d) => d.actif).length}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditType(type)}>
+                                  <Edit className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDeleteType(type.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+
+                          {/* Expandable documents section */}
+                          {isExpanded && (
+                            <TableRow key={`${type.id}-docs`}>
+                              <TableCell colSpan={7} className="bg-blue-50/30 p-0">
+                                <div className="px-6 py-4 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-[#1B2A4A]" />
+                                      <span className="font-semibold text-sm text-[#1B2A4A]">
+                                        Documents requis pour {type.code}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCreateDocForType(type.code)}
+                                      className="h-7 text-xs"
+                                    >
+                                      <Plus className="mr-1 h-3 w-3" />
+                                      Ajouter
+                                    </Button>
+                                  </div>
+
+                                  {typeDocs.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground italic py-2">
+                                      Aucun document configure
+                                    </p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {typeDocs.map((doc) => (
+                                        <div
+                                          key={doc.id}
+                                          className={`flex items-center justify-between gap-3 p-2.5 rounded-md bg-white border ${!doc.actif ? "opacity-50" : ""}`}
+                                        >
+                                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <span className="text-sm font-medium truncate">{doc.nom_document}</span>
+                                            {doc.obligatoire && (
+                                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">
+                                                Obligatoire
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-2 shrink-0">
+                                            <Switch
+                                              checked={doc.actif}
+                                              onCheckedChange={() => handleToggleDocActive(doc)}
+                                              className="scale-90"
+                                            />
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditDocument(doc)}>
+                                              <Edit className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-red-500 hover:text-red-700"
+                                              onClick={() => handleDeleteDocument(doc.id)}
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground">Ordre: {doc.ordre}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={doc.actif}
-                                onCheckedChange={() => handleToggleDocActive(doc)}
-                              />
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditDocument(doc)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteDocument(doc.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                {demarcheTypes.length === 0 && (
+                  <p className="text-center text-muted-foreground py-12">Aucun type de demarche configure</p>
+                )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* TARIFS DEPARTEMENTAUX */}
-          <TabsContent value="tarifs" className="space-y-4">
-            <Card>
-              <CardHeader>
+        {/* === SECTION: TARIFS DEPARTEMENTAUX === */}
+        {activeSection === "tarifs" && (
+          <div className="space-y-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="bg-[#1B2A4A] text-white rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Tarifs départementaux (prix par CV fiscal)</CardTitle>
-                    <CardDescription>
-                      Ces tarifs sont utilisés pour calculer le prix de la carte grise en fonction du département
+                    <CardTitle className="text-white">Tarifs departementaux (prix par CV fiscal)</CardTitle>
+                    <CardDescription className="text-white/70">
+                      Utilises pour calculer le prix de la carte grise
                     </CardDescription>
                   </div>
-                  <Button onClick={handleSaveTariffs} disabled={saving}>
+                  <Button
+                    onClick={handleSaveTariffs}
+                    disabled={saving}
+                    size="sm"
+                    className="bg-white text-[#1B2A4A] hover:bg-white/90"
+                  >
                     <Save className="mr-2 h-4 w-4" />
-                    {saving ? "Enregistrement..." : "Enregistrer"}
+                    {saving ? "Enregistrement..." : "Sauvegarder"}
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
+              <CardContent className="pt-4 space-y-4">
+                <div className="relative max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Rechercher un département..."
+                    placeholder="Rechercher un departement..."
                     value={departmentSearch}
                     onChange={(e) => setDepartmentSearch(e.target.value)}
-                    className="pl-10 max-w-sm"
+                    className="pl-10"
                   />
                 </div>
 
-                <div className="grid gap-2 max-h-[600px] overflow-y-auto">
+                <div className="grid gap-1.5 max-h-[600px] overflow-y-auto">
                   {filteredTariffs.map((tariff) => (
-                    <div key={tariff.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50">
+                    <div
+                      key={tariff.id}
+                      className="flex items-center justify-between gap-4 p-2.5 border rounded-lg hover:bg-muted/50"
+                    >
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="font-mono w-12 justify-center">
                           {tariff.code}
                         </Badge>
-                        <span className="font-medium">{tariff.label}</span>
+                        <span className="text-sm font-medium">{tariff.label}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Input
@@ -650,7 +626,7 @@ const ManagePricingConfig = () => {
                           onChange={(e) => handleTariffChange(tariff.id, parseFloat(e.target.value) || 0)}
                           className="w-24 text-right"
                         />
-                        <span className="text-muted-foreground text-sm">€/CV</span>
+                        <span className="text-muted-foreground text-xs w-8">euros/CV</span>
                       </div>
                     </div>
                   ))}
@@ -658,35 +634,29 @@ const ManagePricingConfig = () => {
 
                 {filteredTariffs.length === 0 && (
                   <p className="text-center text-muted-foreground py-8">
-                    Aucun département trouvé pour "{departmentSearch}"
+                    Aucun departement trouve
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-muted/50">
-              <CardHeader>
-                <CardTitle className="text-sm">Comment fonctionne le calcul ?</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm space-y-2 text-muted-foreground">
-                <p>• <strong>Taxe régionale :</strong> Tarif du département × Puissance fiscale du véhicule</p>
-                <p>• <strong>Exemple :</strong> Pour un véhicule de 7CV dans le Rhône (43€/CV) = 7 × 43 = 301€</p>
+            <Card className="bg-muted/50 border-0">
+              <CardContent className="p-4 text-sm text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Comment fonctionne le calcul ?</p>
+                <p>Taxe regionale = Tarif du departement x Puissance fiscale du vehicule</p>
+                <p>Exemple : vehicule 7CV dans le Rhone (43 euros/CV) = 7 x 43 = 301 euros</p>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
 
-      {/* Dialog Type de démarche */}
+      {/* Dialog Type de demarche */}
       <Dialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingType?.id ? 'Modifier le type' : 'Nouveau type de démarche'}
-            </DialogTitle>
-            <DialogDescription>
-              Configurez les détails du type de démarche
-            </DialogDescription>
+            <DialogTitle>{editingType?.id ? "Modifier le type" : "Nouveau type de demarche"}</DialogTitle>
+            <DialogDescription>Configurez les details du type de demarche</DialogDescription>
           </DialogHeader>
 
           {editingType && (
@@ -703,7 +673,7 @@ const ManagePricingConfig = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="prix">Prix de base (€) *</Label>
+                  <Label htmlFor="prix">Prix de base (euros) *</Label>
                   <Input
                     id="prix"
                     type="number"
@@ -728,9 +698,9 @@ const ManagePricingConfig = () => {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={editingType.description || ''}
+                  value={editingType.description || ""}
                   onChange={(e) => setEditingType({ ...editingType, description: e.target.value })}
-                  placeholder="Description de la démarche..."
+                  placeholder="Description de la demarche..."
                   rows={2}
                 />
               </div>
@@ -752,18 +722,16 @@ const ManagePricingConfig = () => {
                     checked={editingType.require_vehicle_info}
                     onCheckedChange={(checked) => setEditingType({ ...editingType, require_vehicle_info: checked })}
                   />
-                  <Label htmlFor="require_vehicle">Nécessite les infos véhicule</Label>
+                  <Label htmlFor="require_vehicle">Necessite les infos vehicule</Label>
                 </div>
-
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="require_cg_price"
                     checked={editingType.require_carte_grise_price}
                     onCheckedChange={(checked) => setEditingType({ ...editingType, require_carte_grise_price: checked })}
                   />
-                  <Label htmlFor="require_cg_price">Inclut le prix carte grise (taxe régionale)</Label>
+                  <Label htmlFor="require_cg_price">Inclut le prix carte grise (taxe regionale)</Label>
                 </div>
-
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="actif"
@@ -780,7 +748,7 @@ const ManagePricingConfig = () => {
             <Button variant="outline" onClick={() => setShowTypeDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleSaveType} disabled={saving}>
+            <Button onClick={handleSaveType} disabled={saving} className="bg-[#1B2A4A] hover:bg-[#1B2A4A]/90">
               <Save className="mr-2 h-4 w-4" />
               Enregistrer
             </Button>
@@ -792,12 +760,8 @@ const ManagePricingConfig = () => {
       <Dialog open={showDocDialog} onOpenChange={setShowDocDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingDoc?.id ? 'Modifier le document' : 'Nouveau document'}
-            </DialogTitle>
-            <DialogDescription>
-              Configurez les détails du document requis
-            </DialogDescription>
+            <DialogTitle>{editingDoc?.id ? "Modifier le document" : "Nouveau document"}</DialogTitle>
+            <DialogDescription>Configurez les details du document requis</DialogDescription>
           </DialogHeader>
 
           {editingDoc && (
@@ -808,21 +772,21 @@ const ManagePricingConfig = () => {
                   id="nom"
                   value={editingDoc.nom_document}
                   onChange={(e) => setEditingDoc({ ...editingDoc, nom_document: e.target.value })}
-                  placeholder="Ex: Carte d'identité (recto/verso)"
+                  placeholder="Ex: Carte d'identite (recto/verso)"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type_code">Type de démarche</Label>
-                <Select 
-                  value={editingDoc.demarche_type_code || ''} 
+                <Label htmlFor="type_code">Type de demarche</Label>
+                <Select
+                  value={editingDoc.demarche_type_code || ""}
                   onValueChange={(value) => setEditingDoc({ ...editingDoc, demarche_type_code: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un type" />
+                    <SelectValue placeholder="Selectionner un type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {demarcheTypes.map(type => (
+                    {demarcheTypes.map((type) => (
                       <SelectItem key={type.code} value={type.code}>
                         {type.code} - {type.titre}
                       </SelectItem>
@@ -832,9 +796,9 @@ const ManagePricingConfig = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ordre">Ordre d'affichage</Label>
+                <Label htmlFor="doc_ordre">Ordre d'affichage</Label>
                 <Input
-                  id="ordre"
+                  id="doc_ordre"
                   type="number"
                   value={editingDoc.ordre}
                   onChange={(e) => setEditingDoc({ ...editingDoc, ordre: parseInt(e.target.value) || 0 })}
@@ -852,11 +816,11 @@ const ManagePricingConfig = () => {
 
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="actif"
+                  id="doc_actif"
                   checked={editingDoc.actif}
                   onCheckedChange={(checked) => setEditingDoc({ ...editingDoc, actif: checked })}
                 />
-                <Label htmlFor="actif">Document actif</Label>
+                <Label htmlFor="doc_actif">Document actif</Label>
               </div>
             </div>
           )}
@@ -865,7 +829,7 @@ const ManagePricingConfig = () => {
             <Button variant="outline" onClick={() => setShowDocDialog(false)}>
               Annuler
             </Button>
-            <Button onClick={handleSaveDocument} disabled={saving}>
+            <Button onClick={handleSaveDocument} disabled={saving} className="bg-[#1B2A4A] hover:bg-[#1B2A4A]/90">
               <Save className="mr-2 h-4 w-4" />
               Enregistrer
             </Button>

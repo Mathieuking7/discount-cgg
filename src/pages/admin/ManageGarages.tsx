@@ -616,14 +616,14 @@ export default function ManageGarages() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
+    <div className="min-h-screen bg-[#FDF8F0]">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => navigate("/admin")}>
+          <Button variant="ghost" onClick={() => navigate("/dashboard")} className="rounded-full hover:bg-white/80">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
-          <Button variant="outline" onClick={() => setShowManageDocsDialog(true)}>
+          <Button variant="outline" onClick={() => setShowManageDocsDialog(true)} className="rounded-full">
             <Plus className="mr-2 h-4 w-4" />
             Gérer les documents requis
           </Button>

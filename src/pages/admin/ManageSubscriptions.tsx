@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ManageSubscriptions() {
@@ -74,7 +73,6 @@ export default function ManageSubscriptions() {
         margin_percentage: data.margin_percentage || 0
       });
     } else {
-      // Reset to defaults
       setSubscription({
         plan_type: 'basic',
         price_per_demarche: 8.00,
@@ -112,14 +110,13 @@ export default function ManageSubscriptions() {
     if (!selectedGarageId) {
       toast({
         title: "Erreur",
-        description: "Veuillez sélectionner un garage",
+        description: "Veuillez selectionner un garage",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      // Check if subscription exists
       const { data: existing } = await supabase
         .from('subscriptions')
         .select('id')
@@ -128,7 +125,6 @@ export default function ManageSubscriptions() {
         .single();
 
       if (existing) {
-        // Update existing
         const { error } = await supabase
           .from('subscriptions')
           .update({
@@ -140,7 +136,6 @@ export default function ManageSubscriptions() {
 
         if (error) throw error;
       } else {
-        // Create new
         const { error } = await supabase
           .from('subscriptions')
           .insert({
@@ -154,7 +149,6 @@ export default function ManageSubscriptions() {
         if (error) throw error;
       }
 
-      // Update garage Gold status if needed
       if (subscription.plan_type === 'gold') {
         await supabase
           .from('garages')
@@ -163,41 +157,49 @@ export default function ManageSubscriptions() {
       }
 
       toast({
-        title: "Succès",
-        description: "Abonnement mis à jour avec succès"
+        title: "Succes",
+        description: "Abonnement mis a jour avec succes"
       });
 
       loadGarages();
     } catch (error: any) {
       toast({
         title: "Erreur",
-        description: error.message || "Impossible de mettre à jour l'abonnement",
+        description: error.message || "Impossible de mettre a jour l'abonnement",
         variant: "destructive"
       });
     }
   };
 
   if (authLoading || loading) {
-    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+    return (
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6">
+    <div className="min-h-screen bg-[#FDF8F0]">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-6 rounded-full hover:bg-white/80">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
 
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle>Gérer les abonnements</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-blue-600" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">Gerer les abonnements</h1>
+          </div>
+
+          <div className="space-y-6">
             <div className="space-y-2">
-              <Label>Sélectionner un garage</Label>
+              <Label className="text-gray-700">Selectionner un garage</Label>
               <Select value={selectedGarageId} onValueChange={handleGarageSelect}>
-                <SelectTrigger>
+                <SelectTrigger className="rounded-xl border-gray-200">
                   <SelectValue placeholder="Choisir un garage" />
                 </SelectTrigger>
                 <SelectContent>
@@ -213,9 +215,9 @@ export default function ManageSubscriptions() {
             {selectedGarageId && (
               <>
                 <div className="space-y-2">
-                  <Label>Type d'abonnement</Label>
+                  <Label className="text-gray-700">Type d'abonnement</Label>
                   <Select value={subscription.plan_type} onValueChange={handlePlanChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-xl border-gray-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -227,7 +229,7 @@ export default function ManageSubscriptions() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Prix par démarche (€)</Label>
+                  <Label className="text-gray-700">Prix par demarche (&euro;)</Label>
                   <Input
                     type="number"
                     step="0.01"
@@ -236,11 +238,12 @@ export default function ManageSubscriptions() {
                       ...subscription,
                       price_per_demarche: parseFloat(e.target.value)
                     })}
+                    className="rounded-xl border-gray-200"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Marge personnalisable (%)</Label>
+                  <Label className="text-gray-700">Marge personnalisable (%)</Label>
                   <Input
                     type="number"
                     min="0"
@@ -250,20 +253,21 @@ export default function ManageSubscriptions() {
                       ...subscription,
                       margin_percentage: parseInt(e.target.value)
                     })}
+                    className="rounded-xl border-gray-200"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Le garage pourra ajouter jusqu'à {subscription.margin_percentage}% de marge sur ses démarches
+                  <p className="text-sm text-gray-400">
+                    Le garage pourra ajouter jusqu'a {subscription.margin_percentage}% de marge sur ses demarches
                   </p>
                 </div>
 
-                <Button onClick={handleSave} className="w-full">
+                <Button onClick={handleSave} className="w-full rounded-full">
                   <Save className="mr-2 h-4 w-4" />
                   Enregistrer l'abonnement
                 </Button>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

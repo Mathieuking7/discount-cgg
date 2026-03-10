@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, FileCheck, Plus, Gift, FileText, X, Download, Coins, Check, ChevronDown, FileQuestion } from "lucide-react";
+import { ArrowLeft, FileCheck, Plus, Gift, FileText, X, Download, Coins, Check, ChevronDown, FileQuestion, Shield, Lock, Copy, Mail, Maximize2, Send, Loader2 } from "lucide-react";
+import { siteConfig } from "@/config/site.config";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ActionQuestionnaire } from "@/components/ActionQuestionnaire";
@@ -25,6 +26,8 @@ import { StripePayment } from "@/components/StripePayment";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatPrice } from "@/lib/utils";
 import { extractCerfaNumber, getCerfaUrl, cerfaExists } from "@/lib/cerfa-utils";
+import PaymentOptionSelector from "@/components/PaymentOptionSelector";
+import QRCode from "qrcode";
 
 // Types de démarches PRO qui nécessitent un traitement spécial
 const PRO_DEMARCHE_TYPES = [
@@ -97,6 +100,19 @@ export default function NouvelleDemarche() {
   const [questionnaireCompleted, setQuestionnaireCompleted] = useState(false);
   // Ouverture/fermeture du bloc questionnaire (modifiable même après complétion)
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(true);
+  // CG payment option states
+  const [paymentOption, setPaymentOption] = useState<'garage_dossier' | 'garage_tout' | 'client_tout'>('garage_dossier');
+  const [prixCarteGrise, setPrixCarteGrise] = useState(0);
+  const [fraisDossier, setFraisDossier] = useState(30);
+  const [clientPaymentLinkId, setClientPaymentLinkId] = useState<string | null>(null);
+  const [cgClientEmail, setCgClientEmail] = useState("");
+  const [cgClientName, setCgClientName] = useState("");
+  const [cgSuccessScreen, setCgSuccessScreen] = useState(false);
+  const [cgQrDataUrl, setCgQrDataUrl] = useState("");
+  const [cgCopied, setCgCopied] = useState(false);
+  const [cgSendingEmail, setCgSendingEmail] = useState(false);
+  const [cgQrFullscreen, setCgQrFullscreen] = useState(false);
+  const [cgSubmitting, setCgSubmitting] = useState(false);
   // Textes des réponses au questionnaire (pour DocumentsNecessaires)
   const [questionnaireAnswerTexts, setQuestionnaireAnswerTexts] = useState<Record<string, string>>({});
 
@@ -366,6 +382,123 @@ export default function NouvelleDemarche() {
 
   const handlePriceCalculated = (price: number) => {
     setCarteGrisePrice(price);
+    setPrixCarteGrise(price);
+  };
+
+  // Load frais_dossier from pricing config for CG
+  useEffect(() => {
+    if (actionDetails && formData.type === 'CG') {
+      setFraisDossier(actionDetails.prix || 30);
+    }
+  }, [actionDetails, formData.type]);
+
+  // CG payment link URL
+  const cgPaymentUrl = clientPaymentLinkId
+    ? `${window.location.origin}/payer/${clientPaymentLinkId}`
+    : "";
+
+  // Generate QR code for CG payment link
+  useEffect(() => {
+    if (cgPaymentUrl) {
+      QRCode.toDataURL(cgPaymentUrl, { width: 400, margin: 2 })
+        .then(setCgQrDataUrl)
+        .catch(console.error);
+    } else {
+      setCgQrDataUrl("");
+    }
+  }, [cgPaymentUrl]);
+
+  const copyCgLink = async () => {
+    await navigator.clipboard.writeText(cgPaymentUrl);
+    setCgCopied(true);
+    setTimeout(() => setCgCopied(false), 2000);
+    toast({ title: "Lien copie !" });
+  };
+
+  const downloadCgQr = async () => {
+    try {
+      const dataUrl = await QRCode.toDataURL(cgPaymentUrl, { width: 600, margin: 2 });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `qr-paiement-cg-${clientPaymentLinkId}.png`;
+      a.click();
+    } catch (err) {
+      console.error("QR download error:", err);
+    }
+  };
+
+  const sendCgEmailToClient = async () => {
+    if (!cgClientEmail) return;
+    setCgSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: cgClientEmail,
+          subject: `Paiement carte grise - ${selectedImmatriculation}`,
+          html: `<p>Bonjour${cgClientName ? ` ${cgClientName}` : ""},</p>
+<p>Votre professionnel a initié une démarche de carte grise pour votre véhicule ${selectedImmatriculation}.</p>
+<p><strong>Montant à régler :</strong> ${formatPrice(paymentOption === 'garage_dossier' ? prixCarteGrise : fraisDossier + prixCarteGrise)} EUR</p>
+<p>Pour procéder au paiement, cliquez sur le lien ci-dessous :</p>
+<p><a href="${cgPaymentUrl}" style="display:inline-block;padding:12px 24px;background:#1B2A4A;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Payer maintenant</a></p>
+<p style="color:#888;font-size:13px;">Ou copiez ce lien : ${cgPaymentUrl}</p>
+<p>Cordialement,<br/>${siteConfig.siteName}</p>`,
+        },
+      });
+      if (error) throw error;
+      toast({ title: "Email envoyé", description: `Lien envoyé à ${cgClientEmail}` });
+    } catch (err: any) {
+      toast({ title: "Erreur d'envoi", description: err.message, variant: "destructive" });
+    } finally {
+      setCgSendingEmail(false);
+    }
+  };
+
+  const handleCgSubmit = async () => {
+    if (!demarcheId || !garage) return;
+    setCgSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("deduct-tokens-and-create-demarche", {
+        body: {
+          garage_id: garage.id,
+          demarche_id: demarcheId,
+          demarche_type: 'CG',
+          immatriculation: selectedImmatriculation,
+          payment_option: paymentOption,
+          frais_dossier: fraisDossier,
+          prix_carte_grise: prixCarteGrise,
+          client_name: cgClientName || null,
+          client_email: cgClientEmail || null,
+        },
+      });
+
+      if (error) throw error;
+
+      if (paymentOption === 'garage_tout') {
+        // Option B: garage pays everything, no client payment needed
+        setTokenBalance((prev) => prev - (fraisDossier + prixCarteGrise));
+        toast({
+          title: "Démarche créée !",
+          description: "Le dossier est en attente de traitement.",
+        });
+        navigate("/mes-demarches");
+      } else {
+        // Option A or C: client needs to pay
+        setClientPaymentLinkId(data?.payment_link_id || data?.id);
+        if (paymentOption === 'garage_dossier') {
+          setTokenBalance((prev) => prev - fraisDossier);
+        }
+        setCgSuccessScreen(true);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err.message || "Une erreur est survenue",
+        variant: "destructive",
+      });
+    } finally {
+      setCgSubmitting(false);
+    }
   };
 
 
@@ -666,7 +799,7 @@ export default function NouvelleDemarche() {
 
       // Toujours envoyer les mails admin pour les démarches avec jeton gratuit
       if (demarche) {
-        const adminEmails = ["contact@discountcartegrise.fr"];
+        const adminEmails = ["contact@sivflow.fr"];
         for (const adminEmail of adminEmails) {
           await supabase.functions.invoke("send-email", {
             body: {
@@ -752,59 +885,100 @@ export default function NouvelleDemarche() {
   const requiredDocsCount = documentsRequis.filter(doc => doc.obligatoire).length;
   const allDocsUploaded = uploadedDocuments.size >= requiredDocsCount;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-background">
-      <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au tableau de bord
-        </Button>
+  // Determine current step for progress bar
+  const getCurrentStep = () => {
+    if (!formData.type) return 0;
+    if (!selectedImmatriculation.trim() && !PRO_TYPES_WITHOUT_VEHICLE.includes(formData.type) && !PRO_TYPES_WITH_VEHICLE.includes(formData.type)) return 1;
+    if (PRO_TYPES_WITH_VEHICLE.includes(formData.type) && !vehicleInfoProValid) return 1;
+    return 2;
+  };
+  const currentStep = getCurrentStep();
+  const v4Steps = [
+    { label: "Type", completed: !!formData.type },
+    { label: "Véhicule", completed: !!selectedImmatriculation.trim() || PRO_TYPES_WITHOUT_VEHICLE.includes(formData.type) || (PRO_TYPES_WITH_VEHICLE.includes(formData.type) && vehicleInfoProValid) },
+    { label: "Documents", completed: PRO_DEMARCHE_TYPES.includes(formData.type) ? proDocsState.allRequiredUploaded : allDocsUploaded },
+    { label: "Paiement", completed: false },
+  ];
 
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-2xl">Nouvelle démarche</CardTitle>
-            <CardDescription>
-              Créez une nouvelle démarche administrative pour un véhicule
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isFreeTokenEligible && (
-              <Alert className="mb-6 border-2 border-green-500 bg-green-500/10">
-                <Gift className="h-5 w-5 text-green-500" />
-                <AlertTitle className="text-green-600 font-bold">🎁 Offre de bienvenue activée</AlertTitle>
-                <AlertDescription className="text-green-600">
-                  Les frais de dossier sont offerts pour cette démarche ! Cette démarche sera entièrement gratuite.
-                </AlertDescription>
-              </Alert>
+  return (
+    <div className="min-h-screen" style={{ background: '#FDF8F0' }}>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="mb-8 inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors text-sm font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour au tableau de bord
+        </button>
+
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Nouvelle démarche</h1>
+          <p className="text-gray-500">Créez une nouvelle démarche administrative pour un véhicule</p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-10 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            {v4Steps.map((step, idx) => (
+              <div key={idx} className="flex items-center flex-1 last:flex-none">
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                    step.completed ? 'bg-green-500 text-white' : idx === currentStep ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {step.completed ? <Check className="h-5 w-5" /> : idx + 1}
+                  </div>
+                  <span className={`mt-2 text-xs font-medium ${step.completed ? 'text-green-600' : idx === currentStep ? 'text-blue-600' : 'text-gray-400'}`}>{step.label}</span>
+                </div>
+                {idx < v4Steps.length - 1 && (
+                  <div className={`flex-1 h-1 mx-3 rounded-full transition-all duration-300 ${step.completed ? 'bg-green-400' : 'bg-gray-100'}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-[1fr,360px] gap-8">
+          <div className="space-y-6">
+            {!cgSuccessScreen && isFreeTokenEligible && (
+              <div className="rounded-2xl border-2 border-green-200 bg-green-50 p-5 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Gift className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-green-800 mb-1">Offre de bienvenue activée</p>
+                  <p className="text-sm text-green-700">Les frais de dossier sont offerts pour cette démarche ! Cette démarche sera entièrement gratuite.</p>
+                </div>
+              </div>
             )}
-            {freeTokenAvailable && !isFreeTokenEligible && (formData.type === 'DA' || formData.type === 'DC' || !formData.type) && (
-              <Alert className="mb-6 border-2 border-blue-500 bg-blue-500/10">
-                <Gift className="h-5 w-5 text-blue-500" />
-                <AlertTitle className="text-blue-600 font-bold">💡 Offre de bienvenue disponible</AlertTitle>
-                <AlertDescription className="text-blue-600">
-                  Votre jeton gratuit est utilisable uniquement pour une Déclaration de cession ou une Déclaration d'achat.
-                </AlertDescription>
-              </Alert>
+            {!cgSuccessScreen && freeTokenAvailable && !isFreeTokenEligible && (formData.type === 'DA' || formData.type === 'DC' || !formData.type) && (
+              <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <Gift className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-800 mb-1">Offre de bienvenue disponible</p>
+                  <p className="text-sm text-blue-700">Votre jeton gratuit est utilisable uniquement pour une Déclaration de cession ou une Déclaration d'achat.</p>
+                </div>
+              </div>
             )}
-            <form onSubmit={handleSubmitPayment} className="space-y-6">
-              {/* Affichage du type de démarche sélectionné */}
+            {!cgSuccessScreen && <form onSubmit={handleSubmitPayment} className="space-y-6">
+              {/* Selected demarche type */}
               {actionDetails && (
-                <div className="p-4 rounded-lg border-2 border-primary/20 bg-primary/5">
-                  <p className="text-sm text-muted-foreground mb-1">Type de démarche</p>
-                  <p className="text-lg font-semibold text-primary">{actionDetails.titre}</p>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Type de démarche</p>
+                  <p className="text-lg font-bold text-gray-900">{actionDetails.titre}</p>
                   {actionDetails.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{actionDetails.description}</p>
+                    <p className="text-sm text-gray-500 mt-1">{actionDetails.description}</p>
                   )}
                 </div>
               )}
 
               {garage && (
-                <>
-                  {/* Formulaires véhicule classiques */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600">2</div>
+                    Véhicule
+                  </h2>
                   {formData.type === 'CG' ? (
                     <VehicleFormCG
                       garageId={garage.id}
@@ -833,13 +1007,12 @@ export default function NouvelleDemarche() {
                       requireDateMec={formData.type === 'WW_PROVISOIRE_PRO'}
                     />
                   ) : PRO_TYPES_WITHOUT_VEHICLE.includes(formData.type) ? (
-                    /* W_GARAGE_PRO - Pas de bloc véhicule */
-                    <Alert className="border-blue-500 bg-blue-50">
-                      <AlertDescription className="text-blue-800">
-                        Cette démarche est liée à votre entreprise et non à un véhicule précis. 
+                    <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
+                      <p className="text-sm text-blue-800">
+                        Cette démarche est liée à votre entreprise et non à un véhicule précis.
                         Aucune information véhicule n'est requise.
-                      </AlertDescription>
-                    </Alert>
+                      </p>
+                    </div>
                   ) : !PRO_DEMARCHE_TYPES.includes(formData.type) && (
                     <VehicleForm
                       garageId={garage.id}
@@ -848,73 +1021,65 @@ export default function NouvelleDemarche() {
                       onPriceCalculated={handlePriceCalculated}
                     />
                   )}
-                </>
+                </div>
               )}
 
-
-              <div className="space-y-2">
-                <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <Label htmlFor="commentaire" className="text-sm font-semibold text-gray-700 mb-2 block">Commentaire (optionnel)</Label>
                 <Textarea
                   id="commentaire"
                   placeholder="Informations complémentaires..."
                   value={formData.commentaire}
                   onChange={(e) => setFormData({ ...formData, commentaire: e.target.value })}
-                  rows={4}
+                  rows={3}
+                  className="rounded-xl border-gray-200 min-h-[48px] focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
                 />
               </div>
 
-              {/* Questions conditionnelles - Repliable (et modifiable) */}
+              {/* Questions conditionnelles */}
               {actionDetails?.id && (
-                <Collapsible
-                  open={isQuestionnaireOpen}
-                  onOpenChange={setIsQuestionnaireOpen}
-                  className="border rounded-lg"
-                >
-                  <CollapsibleTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileQuestion className="h-5 w-5 text-primary" />
-                        <span className="font-medium">Questions préalables</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {questionnaireCompleted && (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500">
-                            <Check className="h-3 w-3 mr-1" />
-                            Complété
-                          </Badge>
-                        )}
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform ${
-                            isQuestionnaireOpen ? "rotate-180" : ""
-                          }`}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <Collapsible open={isQuestionnaireOpen} onOpenChange={setIsQuestionnaireOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                            <FileQuestion className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <span className="font-semibold text-gray-900">Questions préalables</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {questionnaireCompleted && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
+                              <Check className="h-3 w-3" />
+                              Complété
+                            </span>
+                          )}
+                          <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isQuestionnaireOpen ? "rotate-180" : ""}`} />
+                        </div>
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-6 pb-6 border-t border-gray-100 pt-4">
+                        <ActionQuestionnaire
+                          actionId={actionDetails.id}
+                          onAnswersChange={(answers, isBlocked, condDocs, allAnswered, answerTexts) => {
+                            setQuestionnaireAnswers(answers);
+                            setIsQuestionnaireBlocked(isBlocked);
+                            setConditionalDocuments(condDocs);
+                            setQuestionnaireAnswerTexts(answerTexts);
+                            const completed = allAnswered && !isBlocked;
+                            setQuestionnaireCompleted(completed);
+                            if (completed) setIsQuestionnaireOpen(false);
+                          }}
                         />
                       </div>
-                    </button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="px-4 pb-4">
-                      <ActionQuestionnaire
-                        actionId={actionDetails.id}
-                        onAnswersChange={(answers, isBlocked, condDocs, allAnswered, answerTexts) => {
-                          setQuestionnaireAnswers(answers);
-                          setIsQuestionnaireBlocked(isBlocked);
-                          setConditionalDocuments(condDocs);
-                          setQuestionnaireAnswerTexts(answerTexts);
-
-                          // Questionnaire complété = toutes les questions ont une réponse ET pas de blocage
-                          const completed = allAnswered && !isBlocked;
-                          setQuestionnaireCompleted(completed);
-
-                          // Une fois complété, on replie par défaut (mais l’utilisateur peut ré-ouvrir)
-                          if (completed) setIsQuestionnaireOpen(false);
-                        }}
-                      />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
               )}
 
               {/* Pièces justificatives - Bloc unique pour tous les types de démarches */}
@@ -922,29 +1087,27 @@ export default function NouvelleDemarche() {
                 <>
                   {/* ====== DÉMARCHES PRO ====== */}
                   {PRO_DEMARCHE_TYPES.includes(formData.type) && (
-                    <div className="space-y-3">
-                      {/* ÉTAPE 1 - Blocage questionnaire */}
+                    <div className="space-y-4">
                       {isQuestionnaireBlocked && (
-                        <Alert variant="destructive">
-                          <AlertTitle>Démarche impossible</AlertTitle>
-                          <AlertDescription>
-                            Une de vos réponses bloque cette démarche. Modifiez vos réponses dans le questionnaire.
-                          </AlertDescription>
-                        </Alert>
+                        <div className="rounded-2xl bg-red-50 border border-red-200 p-5">
+                          <p className="font-semibold text-red-800 mb-1">Démarche impossible</p>
+                          <p className="text-sm text-red-700">Une de vos réponses bloque cette démarche. Modifiez vos réponses dans le questionnaire.</p>
+                        </div>
                       )}
 
-                      {/* ÉTAPE 2 - Questionnaire non complété */}
                       {!isQuestionnaireBlocked && !questionnaireCompleted && (
-                        <Alert>
-                          <AlertTitle>Questionnaire à compléter</AlertTitle>
-                          <AlertDescription>
-                            Répondez aux questions préalables ci-dessus pour afficher la liste des pièces justificatives.
-                          </AlertDescription>
-                        </Alert>
+                        <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5">
+                          <p className="font-semibold text-amber-800 mb-1">Questionnaire à compléter</p>
+                          <p className="text-sm text-amber-700">Répondez aux questions préalables ci-dessus pour afficher la liste des pièces justificatives.</p>
+                        </div>
                       )}
 
-                      {/* ÉTAPE 3 - Documents (visible seulement si questionnaire complété ET pas de blocage) */}
                       {!isQuestionnaireBlocked && questionnaireCompleted && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                          <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-600">3</div>
+                            Documents
+                          </h2>
                         <DocumentsNecessaires
                           demarcheType={formData.type}
                           demarcheId={demarcheId}
@@ -955,6 +1118,7 @@ export default function NouvelleDemarche() {
                           }}
                           uploadedDocuments={uploadedDocuments}
                         />
+                        </div>
                       )}
                     </div>
                   )}
@@ -964,16 +1128,21 @@ export default function NouvelleDemarche() {
                     /* Pour les démarches classiques */
                     documentsRequis.length > 0 && (formData.type === 'CG' ? carteGrisePrice > 0 : true) && (
                       <div className="space-y-6">
-                        {/* Pièces justificatives */}
-                        <div className="bg-muted/50 p-6 rounded-lg space-y-4 border-2">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-lg">Pièces justificatives</h3>
+                            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-600">3</div>
+                              Pièces justificatives
+                            </h2>
                             {allDocsUploaded && (
-                              <FileCheck className="h-5 w-5 text-success" />
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
+                                <FileCheck className="h-3.5 w-3.5" />
+                                Complet
+                              </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            <span className="text-destructive text-base font-bold">*</span> = Document obligatoire
+                          <p className="text-sm text-gray-500">
+                            <span className="text-red-500 text-base font-bold">*</span> = Document obligatoire
                           </p>
                           
                           <div className="space-y-3">
@@ -1088,34 +1257,31 @@ export default function NouvelleDemarche() {
                           </div>
                         </div>
 
-                        {/* Autres pièces justificatives */}
-                        <div className="bg-muted/30 p-4 rounded-lg border border-dashed border-muted-foreground/30">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-medium text-sm text-muted-foreground flex items-center gap-2">
+                        <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-medium text-sm text-gray-500 flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               Pièces supplémentaires
-                              <span className="text-xs bg-muted px-2 py-0.5 rounded">Optionnel</span>
+                              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Optionnel</span>
                             </h3>
-                            <Button
+                            <button
                               type="button"
-                              variant="ghost"
-                              size="sm"
                               onClick={() => setAdditionalDocs([...additionalDocs, { id: Date.now(), name: "" }])}
-                              className="h-8 text-xs"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors"
                             >
-                              <Plus className="mr-1 h-3 w-3" />
+                              <Plus className="h-3.5 w-3.5" />
                               Ajouter
-                            </Button>
+                            </button>
                           </div>
-                          
+
                           {additionalDocs.length === 0 ? (
-                            <p className="text-xs text-muted-foreground text-center py-2">
+                            <p className="text-xs text-gray-400 text-center py-3">
                               Aucune pièce supplémentaire ajoutée
                             </p>
                           ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {additionalDocs.map((doc, index) => (
-                                <div key={doc.id} className="flex items-start gap-2 p-3 border rounded-md bg-background">
+                                <div key={doc.id} className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50/50">
                                   <div className="flex-1 space-y-2">
                                     <Input
                                       placeholder="Nom du document (ex: Procuration, Mandat...)"
@@ -1125,7 +1291,7 @@ export default function NouvelleDemarche() {
                                         newDocs[index] = { ...doc, name: e.target.value };
                                         setAdditionalDocs(newDocs);
                                       }}
-                                      className="h-8 text-sm"
+                                      className="rounded-xl border-gray-200 min-h-[48px] text-sm"
                                     />
                                     <DocumentUpload
                                       demarcheId={demarcheId}
@@ -1135,15 +1301,13 @@ export default function NouvelleDemarche() {
                                       onUploadComplete={() => handleDocumentUploadComplete(`autre_piece_${doc.id}`)}
                                     />
                                   </div>
-                                  <Button
+                                  <button
                                     type="button"
-                                    variant="ghost"
-                                    size="icon"
                                     onClick={() => setAdditionalDocs(additionalDocs.filter((_, i) => i !== index))}
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                                    className="mt-3 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                                   >
                                     <X className="h-4 w-4" />
-                                  </Button>
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -1155,106 +1319,311 @@ export default function NouvelleDemarche() {
                 </>
               )}
 
-              <Button 
-                type="submit"
-                size="lg" 
+              {/* CG Payment Option Step */}
+              {formData.type === 'CG' && carteGrisePrice > 0 && demarcheId && !cgSuccessScreen && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600">4</div>
+                    Option de paiement
+                  </h2>
+                  <PaymentOptionSelector
+                    fraisDossier={fraisDossier}
+                    prixCarteGrise={prixCarteGrise}
+                    garageBalance={tokenBalance}
+                    selectedOption={paymentOption}
+                    onSelect={setPaymentOption}
+                  />
+
+                  {/* Client info for Options A and C (client needs to pay) */}
+                  {paymentOption !== 'garage_tout' && (
+                    <div className="mt-6 space-y-4 border-t border-gray-100 pt-5">
+                      <p className="text-sm font-semibold text-gray-700">Informations client (pour le lien de paiement)</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Nom du client</Label>
+                          <Input
+                            placeholder="Ex: Dupont Jean"
+                            value={cgClientName}
+                            onChange={(e) => setCgClientName(e.target.value)}
+                            className="rounded-xl border-gray-200 min-h-[48px]"
+                          />
+                        </div>
+                        <div>
+                          <Label>Email du client</Label>
+                          <Input
+                            type="email"
+                            placeholder="client@email.com"
+                            value={cgClientEmail}
+                            onChange={(e) => setCgClientEmail(e.target.value)}
+                            className="rounded-xl border-gray-200 min-h-[48px]"
+                          />
+                          <p className="text-xs text-gray-400 mt-1">Si renseigné, le lien sera envoyé par email</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Submit button */}
+              <button
+                type={formData.type === 'CG' && carteGrisePrice > 0 ? 'button' : 'submit'}
+                onClick={formData.type === 'CG' && carteGrisePrice > 0 ? handleCgSubmit : undefined}
                 disabled={
-                  loading || 
+                  cgSubmitting ||
+                  loading ||
                   isQuestionnaireBlocked ||
-                  // Pour les démarches PRO avec véhicule, vérifier les infos véhicule
                   (PRO_TYPES_WITH_VEHICLE.includes(formData.type) && !vehicleInfoProValid) ||
-                  // Pour les démarches PRO, vérifier que le questionnaire est complété
                   (PRO_DEMARCHE_TYPES.includes(formData.type) && !questionnaireCompleted) ||
-                  // Pour les démarches PRO, vérifier que les documents obligatoires sont uploadés
                   (PRO_DEMARCHE_TYPES.includes(formData.type) && !proDocsState.allRequiredUploaded) ||
-                  // Pour les démarches classiques, vérifier l'immatriculation
                   (!PRO_DEMARCHE_TYPES.includes(formData.type) && !selectedImmatriculation.trim()) ||
-                  // Pour CG, vérifier le prix carte grise
                   ((formData.type !== 'DA' && formData.type !== 'DC' && !PRO_DEMARCHE_TYPES.includes(formData.type)) && carteGrisePrice === 0)
                 }
-                className={`w-full ${isFreeTokenEligible ? 'bg-green-500 hover:bg-green-600' : 'bg-success hover:bg-success/90'}`}
+                className={`w-full rounded-full py-4 px-8 text-base font-semibold text-white transition-all duration-200 min-h-[48px] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isFreeTokenEligible ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
-                {isQuestionnaireBlocked ? 'Démarche impossible' : (isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())}€`)}
-              </Button>
-            </form>
+                {cgSubmitting ? 'Traitement en cours...' : isQuestionnaireBlocked ? 'Démarche impossible' : formData.type === 'CG' && carteGrisePrice > 0 ? (paymentOption === 'garage_tout' ? `Payer ${formatPrice(fraisDossier + prixCarteGrise)} EUR (jetons)` : paymentOption === 'garage_dossier' ? `Payer ${formatPrice(fraisDossier)} EUR et envoyer le lien au client` : 'Générer le lien de paiement client') : (isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())} EUR`)}
+              </button>
 
-              <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {isFreeTokenEligible ? '🎁 Confirmation de votre démarche offerte' : 'Paiement de la démarche'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      {isFreeTokenEligible && (
-                        <span className="block text-green-600 font-medium mb-2">
-                          Votre jeton gratuit sera utilisé pour cette démarche.
-                        </span>
-                      )}
-                      Frais de dossier : {isFreeTokenEligible ? (
-                        <><span className="line-through text-muted-foreground">{formatPrice(getOriginalFraisDossier())}€</span> <span className="text-green-600 font-bold">0€ (offert)</span></>
-                      ) : `${formatPrice(getFraisDossier())}€`}
-                      {(formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice > 0 && ` + Prix carte grise : ${formatPrice(carteGrisePrice)}€`}
-                      <br />
-                      Montant total : {formatPrice(getTotalPrice())}€
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4 space-y-6">
-                    {/* Token Payment Option */}
-                    {!isFreeTokenEligible && getTokenCost() > 0 && (
-                      <Card className={`border-2 ${canPayWithTokens() ? 'border-primary bg-primary/5' : 'border-muted bg-muted/30'}`}>
-                        <CardContent className="pt-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                <Coins className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-semibold">Payer avec vos jetons</p>
-                                <p className="text-sm text-muted-foreground">
-                                  Coût : {getTokenCost()} jeton{getTokenCost() > 1 ? 's' : ''} • Votre solde : {tokenBalance} jeton{tokenBalance > 1 ? 's' : ''}
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              onClick={handleTokenPayment}
-                              disabled={!canPayWithTokens() || payingWithTokens}
-                              className="bg-primary hover:bg-primary/90"
-                            >
-                              {payingWithTokens ? 'Paiement...' : canPayWithTokens() ? 'Utiliser mes jetons' : 'Solde insuffisant'}
-                            </Button>
-                          </div>
-                          {!canPayWithTokens() && tokenBalance > 0 && (
-                            <p className="text-sm text-destructive mt-2">
-                              Il vous manque {getTokenCost() - tokenBalance} jeton{getTokenCost() - tokenBalance > 1 ? 's' : ''} pour cette démarche.
-                            </p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pb-2">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Paiement sécurisé et crypté</span>
+              </div>
+            </form>}
 
-                    {/* Stripe Payment Option */}
-                    {demarcheId && (
-                      <div>
-                        {!isFreeTokenEligible && getTokenCost() > 0 && (
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="flex-1 h-px bg-border"></div>
-                            <span className="text-sm text-muted-foreground">ou</span>
-                            <div className="flex-1 h-px bg-border"></div>
-                          </div>
+            {/* CG Success Screen - Payment link created */}
+            {cgSuccessScreen && clientPaymentLinkId && (
+              <div className="space-y-6">
+                {/* QR Fullscreen Modal */}
+                {cgQrFullscreen && (
+                  <div
+                    className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center cursor-pointer"
+                    onClick={() => setCgQrFullscreen(false)}
+                  >
+                    <img src={cgQrDataUrl} alt="QR Code" className="w-[80vmin] h-[80vmin] max-w-[500px] max-h-[500px]" />
+                    <p className="mt-4 text-lg font-semibold text-[#1B2A4A]">Paiement carte grise</p>
+                    <p className="text-blue-600 font-bold text-xl">{selectedImmatriculation}</p>
+                    <p className="mt-2 text-gray-400 text-sm">Le client scanne pour proceder au paiement</p>
+                    <p className="mt-6 text-gray-300 text-xs">Cliquez pour fermer</p>
+                    <Button variant="ghost" className="absolute top-4 right-4" onClick={() => setCgQrFullscreen(false)}>
+                      <X className="w-6 h-6" />
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Lien de paiement créé</h2>
+                    <p className="text-sm text-gray-500">
+                      {cgClientEmail ? "Le lien a été envoyé au client par email." : "Partagez ce lien avec votre client pour qu'il procède au paiement."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+                  {/* Payment link */}
+                  <div className="bg-[#1B2A4A]/5 border-2 border-[#1B2A4A]/20 rounded-xl p-4">
+                    <Label className="text-sm text-[#1B2A4A] font-semibold mb-2 block">Lien de paiement client</Label>
+                    <div className="flex items-center gap-2">
+                      <Input readOnly value={cgPaymentUrl} className="font-mono text-sm bg-white border-[#1B2A4A]/20" />
+                      <Button onClick={copyCgLink} className={cgCopied ? "bg-green-600 hover:bg-green-700" : "bg-[#1B2A4A] hover:bg-[#1B2A4A]/90"}>
+                        {cgCopied ? <><Check className="w-4 h-4 mr-1" /> Copié</> : <><Copy className="w-4 h-4 mr-1" /> Copier</>}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {cgClientEmail ? (
+                      <Button variant="outline" className="w-full" onClick={sendCgEmailToClient} disabled={cgSendingEmail}>
+                        {cgSendingEmail ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi...</>
+                        ) : (
+                          <><Send className="w-4 h-4 mr-2" /> Envoyer par email</>
                         )}
-                        <StripePayment
-                          demarcheId={demarcheId}
-                          amount={getTotalPrice()}
-                          onSuccess={handlePaymentSuccess}
-                          onCancel={handlePaymentCancel}
-                        />
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="w-full" onClick={() => {
+                        window.open(`mailto:?subject=Paiement carte grise - ${selectedImmatriculation}&body=Bonjour,%0A%0AVeuillez procéder au paiement de votre carte grise en suivant ce lien :%0A${encodeURIComponent(cgPaymentUrl)}%0A%0ACordialement`, "_blank");
+                      }}>
+                        <Mail className="w-4 h-4 mr-2" /> Ouvrir dans email
+                      </Button>
+                    )}
+                    <Button variant="outline" className="w-full" onClick={() => setCgQrFullscreen(true)}>
+                      <Maximize2 className="w-4 h-4 mr-2" /> QR plein écran
+                    </Button>
+                    <Button variant="outline" className="w-full" onClick={downloadCgQr}>
+                      <Download className="w-4 h-4 mr-2" /> Télécharger QR
+                    </Button>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <img src={cgQrDataUrl} alt="QR Code" className="w-48 h-48 rounded-lg border" />
+                    <p className="text-sm text-gray-400">Le client scanne pour procéder au paiement</p>
+                  </div>
+
+                  {/* Info */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                    <p className="font-medium mb-1">En attente de paiement client</p>
+                    <p>Le dossier sera visible dans vos démarches une fois le paiement client effectué.</p>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+                    <p className="font-medium text-[#1B2A4A] mb-2">Récapitulatif</p>
+                    <p><span className="text-gray-500">Immatriculation :</span> <span className="font-medium">{selectedImmatriculation}</span></p>
+                    <p><span className="text-gray-500">Option :</span> <span className="font-medium">{paymentOption === 'garage_dossier' ? 'Garage paie frais de dossier' : 'Client paie tout'}</span></p>
+                    <p><span className="text-gray-500">Montant client :</span> <span className="font-medium text-blue-600">{formatPrice(paymentOption === 'garage_dossier' ? prixCarteGrise : fraisDossier + prixCarteGrise)} EUR</span></p>
+                    {cgClientName && <p><span className="text-gray-500">Client :</span> <span className="font-medium">{cgClientName}</span></p>}
+                    {cgClientEmail && <p><span className="text-gray-500">Email :</span> <span className="font-medium">{cgClientEmail}</span></p>}
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-3">
+                  <Button onClick={() => navigate("/mes-demarches")} variant="outline" className="rounded-full">
+                    Voir mes démarches
+                  </Button>
+                  <Button onClick={() => navigate("/nouvelle-demarche")} className="bg-[#1B2A4A] hover:bg-[#1B2A4A]/90 rounded-full">
+                    <Plus className="w-4 h-4 mr-2" /> Nouvelle démarche
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sticky sidebar */}
+          <div className="hidden lg:block">
+            <div className="sticky top-6 space-y-5">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 text-lg mb-4">Récapitulatif</h3>
+                {actionDetails ? (
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Démarche</span>
+                      <span className="font-medium text-gray-900 text-right max-w-[180px]">{actionDetails.titre}</span>
+                    </div>
+                    {selectedImmatriculation && !selectedImmatriculation.startsWith('VIN-') && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Immatriculation</span>
+                        <span className="font-mono font-semibold text-gray-900">{selectedImmatriculation}</span>
                       </div>
                     )}
+                    <div className="border-t border-gray-100 pt-3 mt-3 space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Frais de dossier</span>
+                        <span className="font-medium">{isFreeTokenEligible ? <span className="text-green-600">Offert</span> : `${formatPrice(getFraisDossier())} EUR`}</span>
+                      </div>
+                      {(formData.type !== 'DA' && formData.type !== 'DC' && !PRO_DEMARCHE_TYPES.includes(formData.type)) && carteGrisePrice > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Carte grise</span>
+                          <span className="font-medium">{formatPrice(carteGrisePrice)} EUR</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t-2 border-gray-900 pt-3 mt-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-gray-900">Total</span>
+                        <span className="text-2xl font-bold text-blue-600">{formatPrice(getTotalPrice())} EUR</span>
+                      </div>
+                    </div>
                   </div>
-                </DialogContent>
-              </Dialog>
-          </CardContent>
-        </Card>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-4">Sélectionnez un type de démarche</p>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                  <Shield className="h-5 w-5 text-green-500 shrink-0" />
+                  <span>Agréé Ministère de l'Intérieur</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
+                  <Lock className="h-5 w-5 text-blue-500 shrink-0" />
+                  <span>Données sécurisées SSL</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Check className="h-5 w-5 text-green-500 shrink-0" />
+                  <span>Traitement sous 24h</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Dialog */}
+        <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+          <DialogContent className="max-w-2xl rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl">
+                {isFreeTokenEligible ? 'Confirmation de votre démarche offerte' : 'Paiement de la démarche'}
+              </DialogTitle>
+              <DialogDescription>
+                {isFreeTokenEligible && (
+                  <span className="block text-green-600 font-medium mb-2">Votre jeton gratuit sera utilisé pour cette démarche.</span>
+                )}
+                Frais de dossier : {isFreeTokenEligible ? (
+                  <><span className="line-through text-gray-400">{formatPrice(getOriginalFraisDossier())} EUR</span> <span className="text-green-600 font-bold">0 EUR (offert)</span></>
+                ) : `${formatPrice(getFraisDossier())} EUR`}
+                {(formData.type !== 'DA' && formData.type !== 'DC') && carteGrisePrice > 0 && ` + Prix carte grise : ${formatPrice(carteGrisePrice)} EUR`}
+                <br />
+                Montant total : {formatPrice(getTotalPrice())} EUR
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-6">
+              {!isFreeTokenEligible && getTokenCost() > 0 && (
+                <div className={`rounded-2xl border-2 p-5 ${canPayWithTokens() ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Coins className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">Payer avec vos jetons</p>
+                        <p className="text-sm text-gray-500">
+                          Coût : {getTokenCost()} jeton{getTokenCost() > 1 ? 's' : ''} | Solde : {tokenBalance} jeton{tokenBalance > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleTokenPayment}
+                      disabled={!canPayWithTokens() || payingWithTokens}
+                      className="rounded-full px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {payingWithTokens ? 'Paiement...' : canPayWithTokens() ? 'Utiliser mes jetons' : 'Solde insuffisant'}
+                    </button>
+                  </div>
+                  {!canPayWithTokens() && tokenBalance > 0 && (
+                    <p className="text-sm text-red-500 mt-2">
+                      Il vous manque {getTokenCost() - tokenBalance} jeton{getTokenCost() - tokenBalance > 1 ? 's' : ''} pour cette démarche.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {demarcheId && (
+                <div>
+                  {!isFreeTokenEligible && getTokenCost() > 0 && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="flex-1 h-px bg-gray-200"></div>
+                      <span className="text-sm text-gray-400">ou</span>
+                      <div className="flex-1 h-px bg-gray-200"></div>
+                    </div>
+                  )}
+                  <StripePayment
+                    demarcheId={demarcheId}
+                    amount={getTotalPrice()}
+                    onSuccess={handlePaymentSuccess}
+                    onCancel={handlePaymentCancel}
+                  />
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -302,7 +302,7 @@ export default function GarageSettings() {
         
         // Send admin notification
         await supabase.functions.invoke('send-email', {
-          body: { type: 'admin_verification_request', to: 'contact@discountcartegrise.fr', data: { garage_name: garage.raison_sociale, garage_email: garage.email } }
+          body: { type: 'admin_verification_request', to: 'contact@sivflow.fr', data: { garage_name: garage.raison_sociale, garage_email: garage.email } }
         });
       }
       

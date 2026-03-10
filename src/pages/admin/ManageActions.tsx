@@ -8,11 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { ArrowLeft, Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Save, X, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 
 type ActionRapide = {
   id: string;
@@ -152,7 +151,6 @@ export default function ManageActions() {
 
     try {
       if (editingAction.id) {
-        // Update existing action
         const { error } = await supabase
           .from('actions_rapides')
           .update({
@@ -169,13 +167,11 @@ export default function ManageActions() {
 
         if (error) throw error;
 
-        // Delete old documents
         await supabase
           .from('action_documents')
           .delete()
           .eq('action_id', editingAction.id);
 
-        // Insert new documents
         const docsToInsert = newDocuments
           .filter(d => d.nom.trim())
           .map((doc, idx) => ({
@@ -192,11 +188,10 @@ export default function ManageActions() {
         }
 
         toast({
-          title: "Action mise à jour",
-          description: "L'action rapide a été mise à jour avec succès"
+          title: "Action mise a jour",
+          description: "L'action rapide a ete mise a jour avec succes"
         });
       } else {
-        // Create new action
         const { data: newAction, error } = await supabase
           .from('actions_rapides')
           .insert({
@@ -214,7 +209,6 @@ export default function ManageActions() {
 
         if (error) throw error;
 
-        // Insert documents
         const docsToInsert = newDocuments
           .filter(d => d.nom.trim())
           .map((doc, idx) => ({
@@ -231,8 +225,8 @@ export default function ManageActions() {
         }
 
         toast({
-          title: "Action créée",
-          description: "L'action rapide a été créée avec succès"
+          title: "Action creee",
+          description: "L'action rapide a ete creee avec succes"
         });
       }
 
@@ -252,7 +246,7 @@ export default function ManageActions() {
   };
 
   const handleDeleteAction = async (actionId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette action ?")) return;
+    if (!confirm("Etes-vous sur de vouloir supprimer cette action ?")) return;
 
     setLoading(true);
 
@@ -269,8 +263,8 @@ export default function ManageActions() {
       });
     } else {
       toast({
-        title: "Action supprimée",
-        description: "L'action rapide a été supprimée avec succès"
+        title: "Action supprimee",
+        description: "L'action rapide a ete supprimee avec succes"
       });
       await loadData();
     }
@@ -299,7 +293,6 @@ export default function ManageActions() {
     if (field === 'nom') {
       updated[index].nom = value as string;
     } else {
-      // First document is always required
       if (index === 0) return;
       updated[index].obligatoire = value as boolean;
     }
@@ -308,10 +301,10 @@ export default function ManageActions() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-500">Chargement...</p>
         </div>
       </div>
     );
@@ -322,108 +315,106 @@ export default function ManageActions() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-muted/40">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#FDF8F0]">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         <Button
           variant="ghost"
-          onClick={() => navigate("/admin")}
-          className="mb-6"
+          onClick={() => navigate("/dashboard")}
+          className="mb-6 rounded-full hover:bg-white/80"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour à l'administration
+          Retour a l'administration
         </Button>
 
         <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Gérer les actions rapides</h1>
-            <p className="text-muted-foreground">
-              Configurer les types de démarches, leurs prix et documents requis
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Zap className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gerer les actions rapides</h1>
+              <p className="text-gray-500 text-sm">
+                Configurer les types de demarches, leurs prix et documents requis
+              </p>
+            </div>
           </div>
-          <Button onClick={handleCreateAction}>
+          <Button onClick={handleCreateAction} className="rounded-full">
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle action
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {actions.map((action) => (
-            <Card key={action.id} className={!action.actif ? 'opacity-60' : ''}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {action.titre}
-                      {!action.actif && <Badge variant="secondary">Inactif</Badge>}
-                    </CardTitle>
-                    <CardDescription className="mt-2">
-                      Code: <span className="font-mono font-bold">{action.code}</span>
-                    </CardDescription>
-                    <CardDescription className="text-2xl font-bold text-primary mt-2">
-                      {action.prix}€
-                    </CardDescription>
+            <div key={action.id} className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-5 ${!action.actif ? 'opacity-60' : ''}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-gray-900">{action.titre}</h3>
+                    {!action.actif && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500">Inactif</span>}
                   </div>
-                  <div 
-                    className="h-6 w-6 rounded-full border border-border shadow-sm" 
-                    style={{ backgroundColor: action.couleur.startsWith('#') ? action.couleur : '#3b82f6' }}
-                    title={action.couleur}
-                  />
+                  <p className="text-xs text-gray-400">Code: <span className="font-mono font-bold">{action.code}</span></p>
+                  <p className="text-xl font-bold text-blue-600 mt-2">{action.prix}&euro;</p>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {action.description && (
-                  <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
-                )}
-                
-                <div className="mb-4">
-                  <p className="text-sm font-semibold mb-2">
-                    Documents requis ({documents[action.id]?.length || 0})
-                  </p>
-                  <ul className="text-xs space-y-1">
-                    {documents[action.id]?.slice(0, 3).map((doc) => (
-                      <li key={doc.id} className="text-muted-foreground">
-                        • {doc.nom_document}
-                      </li>
-                    ))}
-                    {(documents[action.id]?.length || 0) > 3 && (
-                      <li className="text-muted-foreground italic">
-                        ... et {documents[action.id].length - 3} autres
-                      </li>
-                    )}
-                  </ul>
-                </div>
+                <div
+                  className="h-6 w-6 rounded-full border border-gray-200 shadow-sm flex-shrink-0"
+                  style={{ backgroundColor: action.couleur.startsWith('#') ? action.couleur : '#3b82f6' }}
+                  title={action.couleur}
+                />
+              </div>
+              {action.description && (
+                <p className="text-sm text-gray-500 mb-3">{action.description}</p>
+              )}
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditAction(action)}
-                    className="flex-1"
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Modifier
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteAction(action.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-gray-500 mb-1.5">
+                  Documents requis ({documents[action.id]?.length || 0})
+                </p>
+                <ul className="text-xs space-y-0.5">
+                  {documents[action.id]?.slice(0, 3).map((doc) => (
+                    <li key={doc.id} className="text-gray-400">
+                      - {doc.nom_document}
+                    </li>
+                  ))}
+                  {(documents[action.id]?.length || 0) > 3 && (
+                    <li className="text-gray-400 italic">
+                      ... et {documents[action.id].length - 3} autres
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEditAction(action)}
+                  className="flex-1 rounded-full text-xs"
+                >
+                  <Edit className="mr-1.5 h-3 w-3" />
+                  Modifier
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDeleteAction(action.id)}
+                  className="rounded-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
 
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-gray-900">
                 {editingAction?.id ? 'Modifier l\'action' : 'Nouvelle action'}
               </DialogTitle>
               <DialogDescription>
-                Configurez les détails de l'action rapide
+                Configurez les details de l'action rapide
               </DialogDescription>
             </DialogHeader>
 
@@ -431,50 +422,54 @@ export default function ManageActions() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="code">Code *</Label>
+                    <Label htmlFor="code" className="text-gray-700">Code *</Label>
                     <Input
                       id="code"
                       value={editingAction.code}
                       onChange={(e) => setEditingAction({ ...editingAction, code: e.target.value.toUpperCase() })}
                       placeholder="DA, DC, CG..."
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="prix">Prix (€) *</Label>
+                    <Label htmlFor="prix" className="text-gray-700">Prix (&euro;) *</Label>
                     <Input
                       id="prix"
                       type="number"
                       value={editingAction.prix}
                       onChange={(e) => setEditingAction({ ...editingAction, prix: parseFloat(e.target.value) || 0 })}
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="titre">Titre *</Label>
+                  <Label htmlFor="titre" className="text-gray-700">Titre *</Label>
                   <Input
                     id="titre"
                     value={editingAction.titre}
                     onChange={(e) => setEditingAction({ ...editingAction, titre: e.target.value })}
-                    placeholder="Déclaration d'achat"
+                    placeholder="Declaration d'achat"
+                    className="rounded-xl border-gray-200"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description" className="text-gray-700">Description</Label>
                   <Textarea
                     id="description"
                     value={editingAction.description || ''}
                     onChange={(e) => setEditingAction({ ...editingAction, description: e.target.value })}
-                    placeholder="Certificat de cession, déclaration d'achat"
+                    placeholder="Certificat de cession, declaration d'achat"
                     rows={3}
+                    className="rounded-xl border-gray-200"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="couleur">Couleur</Label>
+                    <Label htmlFor="couleur" className="text-gray-700">Couleur</Label>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {[
                         { name: 'Bleu', color: '#3b82f6' },
@@ -490,7 +485,7 @@ export default function ManageActions() {
                           key={preset.color}
                           type="button"
                           onClick={() => setEditingAction({ ...editingAction, couleur: preset.color })}
-                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${editingAction.couleur === preset.color ? 'ring-2 ring-offset-2 ring-primary' : 'border-transparent'}`}
+                          className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${editingAction.couleur === preset.color ? 'ring-2 ring-offset-2 ring-blue-500' : 'border-transparent'}`}
                           style={{ backgroundColor: preset.color }}
                           title={preset.name}
                         />
@@ -502,24 +497,25 @@ export default function ManageActions() {
                         id="couleur"
                         value={editingAction.couleur.startsWith('#') ? editingAction.couleur : '#3b82f6'}
                         onChange={(e) => setEditingAction({ ...editingAction, couleur: e.target.value })}
-                        className="h-10 w-16 cursor-pointer rounded border border-input bg-background"
+                        className="h-10 w-16 cursor-pointer rounded-xl border border-gray-200 bg-white"
                       />
                       <Input
                         value={editingAction.couleur}
                         onChange={(e) => setEditingAction({ ...editingAction, couleur: e.target.value })}
                         placeholder="#3b82f6"
-                        className="flex-1"
+                        className="flex-1 rounded-xl border-gray-200"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="ordre">Ordre d'affichage</Label>
+                    <Label htmlFor="ordre" className="text-gray-700">Ordre d'affichage</Label>
                     <Input
                       id="ordre"
                       type="number"
                       value={editingAction.ordre}
                       onChange={(e) => setEditingAction({ ...editingAction, ordre: parseInt(e.target.value) || 0 })}
+                      className="rounded-xl border-gray-200"
                     />
                   </div>
                 </div>
@@ -531,7 +527,7 @@ export default function ManageActions() {
                       checked={editingAction.actif}
                       onCheckedChange={(checked) => setEditingAction({ ...editingAction, actif: checked })}
                     />
-                    <Label htmlFor="actif">Action active</Label>
+                    <Label htmlFor="actif" className="text-gray-700">Action active</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -540,15 +536,15 @@ export default function ManageActions() {
                       checked={editingAction.require_immatriculation}
                       onCheckedChange={(checked) => setEditingAction({ ...editingAction, require_immatriculation: checked })}
                     />
-                    <Label htmlFor="require_immat">Immatriculation requise</Label>
+                    <Label htmlFor="require_immat" className="text-gray-700">Immatriculation requise</Label>
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
+                <div className="border-t border-gray-100 pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <Label>Documents requis</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addNewDocument}>
-                      <Plus className="mr-2 h-3 w-3" />
+                    <Label className="text-gray-700">Documents requis</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addNewDocument} className="rounded-full text-xs">
+                      <Plus className="mr-1 h-3 w-3" />
                       Ajouter
                     </Button>
                   </div>
@@ -561,6 +557,7 @@ export default function ManageActions() {
                             value={doc.nom}
                             onChange={(e) => updateDocument(idx, 'nom', e.target.value)}
                             placeholder="Nom du document"
+                            className="rounded-xl border-gray-200"
                           />
                           <div className="flex items-center space-x-2">
                             <Switch
@@ -569,7 +566,7 @@ export default function ManageActions() {
                               onCheckedChange={(checked) => updateDocument(idx, 'obligatoire', checked)}
                               disabled={idx === 0}
                             />
-                            <Label htmlFor={`obligatoire-${idx}`} className="text-sm text-muted-foreground">
+                            <Label htmlFor={`obligatoire-${idx}`} className="text-sm text-gray-500">
                               {idx === 0 ? 'Obligatoire (toujours)' : 'Obligatoire'}
                             </Label>
                           </div>
@@ -580,6 +577,7 @@ export default function ManageActions() {
                           size="sm"
                           onClick={() => removeDocument(idx)}
                           disabled={idx === 0}
+                          className="rounded-full"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -591,10 +589,10 @@ export default function ManageActions() {
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowDialog(false)}>
+              <Button variant="outline" onClick={() => setShowDialog(false)} className="rounded-full">
                 Annuler
               </Button>
-              <Button onClick={handleSaveAction} disabled={loading}>
+              <Button onClick={handleSaveAction} disabled={loading} className="rounded-full">
                 <Save className="mr-2 h-4 w-4" />
                 {loading ? "Enregistrement..." : "Enregistrer"}
               </Button>

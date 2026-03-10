@@ -1,55 +1,91 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+
+// Keep landing page in main bundle
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import CompleteProfile from "./pages/CompleteProfile";
-import Dashboard from "./pages/Dashboard";
-import NouvelleDemarche from "./pages/NouvelleDemarche";
-import MesDemarches from "./pages/MesDemarches";
-import MesFactures from "./pages/MesFactures";
-import DemarcheDetail from "./pages/DemarcheDetail";
-import GarageSettings from "./pages/GarageSettings";
-import Support from "./pages/Support";
-import CommanderSansCompte from "./pages/CommanderSansCompte";
-import PaiementGuestOrder from "./pages/PaiementGuestOrder";
-import PaiementDemarche from "./pages/PaiementDemarche";
-import PaiementSucces from "./pages/PaiementSucces";
-import SuiviCommande from "./pages/SuiviCommande";
-import RechercheSuivi from "./pages/RechercheSuivi";
-import DevisCarteGrise from "./pages/DevisCarteGrise";
-import Simulateur from "./pages/Simulateur";
-import ResultatCarteGrise from "./pages/ResultatCarteGrise";
-import DemarcheSimple from "./pages/DemarcheSimple";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AllDemarches from "./pages/admin/AllDemarches";
-import AdminDemarcheDetail from "./pages/admin/DemarcheDetail";
-import ManageUsers from "./pages/admin/ManageUsers";
-import ManageActions from "./pages/admin/ManageActions";
-import ManageGarages from "./pages/admin/ManageGarages";
-import ManageAccounts from "./pages/admin/ManageAccounts";
-import GuestOrders from "./pages/admin/GuestOrders";
-import GuestOrderDetail from "./pages/admin/GuestOrderDetail";
-import AdminNotifications from "./pages/admin/AdminNotifications";
-import HistoriquePaiements from "./pages/admin/HistoriquePaiements";
-import TokenPurchases from "./pages/admin/TokenPurchases";
-import ManageEmailTemplates from "./pages/admin/ManageEmailTemplates";
-import ManagePricingConfig from "./pages/admin/ManagePricingConfig";
-import TestEmail from "./pages/admin/TestEmail";
-import AdminRevenus from "./pages/admin/AdminRevenus";
-import ManageGuestActions from "./pages/admin/ManageGuestActions";
-import AcheterJetons from "./pages/AcheterJetons";
-import PaiementRecharge from "./pages/PaiementRecharge";
-import PaiementRechargeSucces from "./pages/PaiementRechargeSucces";
-import PaiementSoldeSucces from "./pages/PaiementSoldeSucces";
 import NotFound from "./pages/NotFound";
+
+// Loading fallback
+const LoadingSpinner = () => (
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+    <div style={{
+      width: 40,
+      height: 40,
+      border: "4px solid #e5e7eb",
+      borderTop: "4px solid #3b82f6",
+      borderRadius: "50%",
+      animation: "spin 0.8s linear infinite",
+    }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
+// Lazy-loaded auth pages
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
+
+// Lazy-loaded user pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const NouvelleDemarche = lazy(() => import("./pages/NouvelleDemarche"));
+const MesDemarches = lazy(() => import("./pages/MesDemarches"));
+const MesFactures = lazy(() => import("./pages/MesFactures"));
+const DemarcheDetail = lazy(() => import("./pages/DemarcheDetail"));
+const GarageSettings = lazy(() => import("./pages/GarageSettings"));
+const Support = lazy(() => import("./pages/Support"));
+const AcheterJetons = lazy(() => import("./pages/AcheterJetons"));
+const PaiementRecharge = lazy(() => import("./pages/PaiementRecharge"));
+const PaiementRechargeSucces = lazy(() => import("./pages/PaiementRechargeSucces"));
+const PaiementSoldeSucces = lazy(() => import("./pages/PaiementSoldeSucces"));
+
+// Lazy-loaded guest/public pages
+const CommanderSansCompte = lazy(() => import("./pages/CommanderSansCompte"));
+const PaiementGuestOrder = lazy(() => import("./pages/PaiementGuestOrder"));
+const PaiementDemarche = lazy(() => import("./pages/PaiementDemarche"));
+const PaiementSucces = lazy(() => import("./pages/PaiementSucces"));
+const SuiviCommande = lazy(() => import("./pages/SuiviCommande"));
+const RechercheSuivi = lazy(() => import("./pages/RechercheSuivi"));
+const DevisCarteGrise = lazy(() => import("./pages/DevisCarteGrise"));
+const Simulateur = lazy(() => import("./pages/Simulateur"));
+const ResultatCarteGrise = lazy(() => import("./pages/ResultatCarteGrise"));
+const DemarcheSimple = lazy(() => import("./pages/DemarcheSimple"));
+const DemarcheParticulier = lazy(() => import("./pages/DemarcheParticulier"));
+const PayerLink = lazy(() => import("./pages/PayerLink"));
+const CompleterDemarchePro = lazy(() => import("./pages/CompleterDemarchePro"));
+const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
+const CGV = lazy(() => import("./pages/CGV"));
+const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
+
+// Lazy-loaded landing pages
+const SIVFlowLanding = lazy(() => import("./pages/SIVFlowLanding"));
+
+// Lazy-loaded admin pages
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AllDemarches = lazy(() => import("./pages/admin/AllDemarches"));
+const AdminDemarcheDetail = lazy(() => import("./pages/admin/DemarcheDetail"));
+const ManageUsers = lazy(() => import("./pages/admin/ManageUsers"));
+const ManageActions = lazy(() => import("./pages/admin/ManageActions"));
+const ManageGarages = lazy(() => import("./pages/admin/ManageGarages"));
+const ManageAccounts = lazy(() => import("./pages/admin/ManageAccounts"));
+const GuestOrders = lazy(() => import("./pages/admin/GuestOrders"));
+const GuestOrderDetail = lazy(() => import("./pages/admin/GuestOrderDetail"));
+const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
+const HistoriquePaiements = lazy(() => import("./pages/admin/HistoriquePaiements"));
+const TokenPurchases = lazy(() => import("./pages/admin/TokenPurchases"));
+const ManageEmailTemplates = lazy(() => import("./pages/admin/ManageEmailTemplates"));
+const ManagePricingConfig = lazy(() => import("./pages/admin/ManagePricingConfig"));
+const TestEmail = lazy(() => import("./pages/admin/TestEmail"));
+const AdminRevenus = lazy(() => import("./pages/admin/AdminRevenus"));
+const ManageGuestActions = lazy(() => import("./pages/admin/ManageGuestActions"));
+const PaymentLinkCreator = lazy(() => import("./pages/admin/PaymentLinkCreator"));
+const CreateDemarche = lazy(() => import("./pages/admin/CreateDemarche"));
 
 const queryClient = new QueryClient();
 
@@ -60,56 +96,66 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/complete-profile" element={<CompleteProfile />} />
-          <Route path="/devis/:orderId" element={<DevisCarteGrise />} />
-          <Route path="/simulateur" element={<Simulateur />} />
-          <Route path="/resultat-carte-grise" element={<ResultatCarteGrise />} />
-          <Route path="/demarche-simple" element={<DemarcheSimple />} />
-        <Route path="/commander/:orderId" element={<CommanderSansCompte />} />
-        <Route path="/paiement/:orderId" element={<PaiementGuestOrder />} />
-        <Route path="/paiement-demarche/:demarcheId" element={<PaiementDemarche />} />
-        <Route path="/paiement-succes/:demarcheId" element={<PaiementSucces />} />
-        <Route path="/recherche-suivi" element={<RechercheSuivi />} />
-        <Route path="/suivi/:trackingNumber" element={<SuiviCommande />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/nouvelle-demarche" element={<NouvelleDemarche />} />
-            <Route path="/nouvelle-demarche/:draftId" element={<NouvelleDemarche />} />
-            <Route path="/mes-demarches" element={<MesDemarches />} />
-            <Route path="/mes-factures" element={<MesFactures />} />
-            <Route path="/demarche/:id" element={<DemarcheDetail />} />
-            <Route path="/garage-settings" element={<GarageSettings />} />
-            <Route path="/acheter-jetons" element={<AcheterJetons />} />
-            <Route path="/paiement-recharge" element={<PaiementRecharge />} />
-            <Route path="/paiement-recharge-succes" element={<PaiementRechargeSucces />} />
-            <Route path="/paiement-solde-succes/:demarcheId" element={<PaiementSoldeSucces />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/demarches" element={<AllDemarches />} />
-          <Route path="/admin/demarche/:id" element={<AdminDemarcheDetail />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
-          <Route path="/admin/actions" element={<ManageActions />} />
-          <Route path="/admin/manage-users" element={<ManageUsers />} />
-          <Route path="/admin/manage-garages" element={<ManageGarages />} />
-          <Route path="/admin/manage-accounts" element={<ManageAccounts />} />
-          <Route path="/admin/notifications" element={<AdminNotifications />} />
-          <Route path="/admin/historique-paiements" element={<HistoriquePaiements />} />
-          <Route path="/admin/token-purchases" element={<TokenPurchases />} />
-          <Route path="/admin/email-templates" element={<ManageEmailTemplates />} />
-          <Route path="/admin/pricing-config" element={<ManagePricingConfig />} />
-          <Route path="/admin/test-email" element={<TestEmail />} />
-          <Route path="/admin/revenus" element={<AdminRevenus />} />
-          <Route path="/admin/guest-orders" element={<GuestOrders />} />
-           <Route path="/admin/guest-order/:id" element={<GuestOrderDetail />} />
-           <Route path="/admin/guest-actions" element={<ManageGuestActions />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/devis/:orderId" element={<DevisCarteGrise />} />
+              <Route path="/demarches/:slug" element={<DemarcheParticulier />} />
+              <Route path="/simulateur" element={<Simulateur />} />
+              <Route path="/resultat-carte-grise" element={<ResultatCarteGrise />} />
+              <Route path="/demarche-simple" element={<DemarcheSimple />} />
+              <Route path="/commander/:orderId" element={<CommanderSansCompte />} />
+              <Route path="/paiement/:orderId" element={<PaiementGuestOrder />} />
+              <Route path="/paiement-demarche/:demarcheId" element={<PaiementDemarche />} />
+              <Route path="/paiement-succes/:demarcheId" element={<PaiementSucces />} />
+              <Route path="/recherche-suivi" element={<RechercheSuivi />} />
+              <Route path="/suivi/:trackingNumber" element={<SuiviCommande />} />
+              <Route path="/mon-espace" element={<Dashboard />} />
+              <Route path="/nouvelle-demarche" element={<NouvelleDemarche />} />
+              <Route path="/nouvelle-demarche/:draftId" element={<NouvelleDemarche />} />
+              <Route path="/mes-demarches" element={<MesDemarches />} />
+              <Route path="/mes-factures" element={<MesFactures />} />
+              <Route path="/demarche/:id" element={<DemarcheDetail />} />
+              <Route path="/garage-settings" element={<GarageSettings />} />
+              <Route path="/acheter-jetons" element={<AcheterJetons />} />
+              <Route path="/paiement-recharge" element={<PaiementRecharge />} />
+              <Route path="/paiement-recharge-succes" element={<PaiementRechargeSucces />} />
+              <Route path="/paiement-solde-succes/:demarcheId" element={<PaiementSoldeSucces />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/dashboard" element={<AdminDashboard />} />
+              <Route path="/dashboard/demarches" element={<AllDemarches />} />
+              <Route path="/dashboard/demarche/:id" element={<AdminDemarcheDetail />} />
+              <Route path="/dashboard/users" element={<ManageUsers />} />
+              <Route path="/dashboard/actions" element={<ManageActions />} />
+              <Route path="/dashboard/manage-garages" element={<ManageGarages />} />
+              <Route path="/dashboard/manage-accounts" element={<ManageAccounts />} />
+              <Route path="/dashboard/notifications" element={<AdminNotifications />} />
+              <Route path="/dashboard/historique-paiements" element={<HistoriquePaiements />} />
+              <Route path="/dashboard/token-purchases" element={<TokenPurchases />} />
+              <Route path="/dashboard/email-templates" element={<ManageEmailTemplates />} />
+              <Route path="/dashboard/pricing-config" element={<ManagePricingConfig />} />
+              <Route path="/dashboard/test-email" element={<TestEmail />} />
+              <Route path="/dashboard/revenus" element={<AdminRevenus />} />
+              <Route path="/dashboard/guest-orders" element={<GuestOrders />} />
+              <Route path="/dashboard/guest-order/:id" element={<GuestOrderDetail />} />
+              <Route path="/dashboard/guest-actions" element={<ManageGuestActions />} />
+              <Route path="/dashboard/payment-links" element={<PaymentLinkCreator />} />
+              <Route path="/dashboard/create-demarche" element={<CreateDemarche />} />
+              <Route path="/payer/:shortCode" element={<PayerLink />} />
+              <Route path="/completer-demarche/:linkId" element={<CompleterDemarchePro />} />
+              <Route path="/sivflow" element={<SIVFlowLanding />} />
+              <Route path="/mentions-legales" element={<MentionsLegales />} />
+              <Route path="/cgv" element={<CGV />} />
+              <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

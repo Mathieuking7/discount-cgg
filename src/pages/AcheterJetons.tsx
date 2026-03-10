@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Euro, Loader2, Percent, LogOut, Settings, Receipt } from "lucide-react";
+import { ArrowLeft, Euro, Loader2, Percent, LogOut, Settings, Receipt, Gift } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -94,11 +94,6 @@ export default function AcheterJetons() {
     navigate("/");
   };
 
-  const getBonus = (creditAmount: number, price: number) => {
-    const bonus = ((creditAmount - price) / price) * 100;
-    return Math.round(bonus);
-  };
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -115,7 +110,7 @@ export default function AcheterJetons() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                DiscountCarteGrise
+                SIVFlow
               </h1>
               <nav className="hidden md:flex items-center gap-2">
                 <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
@@ -132,7 +127,7 @@ export default function AcheterJetons() {
                   Support
                 </Button>
                 {isAdmin && (
-                  <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
                     <Settings className="mr-2 h-4 w-4" />
                     Administration
                   </Button>
@@ -168,6 +163,12 @@ export default function AcheterJetons() {
           <p className="text-muted-foreground">
             Rechargez votre solde et profitez de bonus exclusifs
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2">
+            <Gift className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+              Offre en cours : +20% de credits offerts sur toutes les recharges !
+            </span>
+          </div>
         </div>
 
         {garage && (
@@ -190,13 +191,13 @@ export default function AcheterJetons() {
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {creditPacks.map((pack) => {
-            const bonus = getBonus(pack.quantity, pack.price);
             const isPopular = pack.price === 200;
-            const bonusAmount = pack.quantity - pack.price;
+            const bonusCredits = Math.ceil(pack.quantity * 0.20);
+            const totalCredits = pack.quantity + bonusCredits;
 
             return (
-              <Card 
-                key={pack.id} 
+              <Card
+                key={pack.id}
                 className={`relative ${isPopular ? 'border-primary shadow-lg' : ''}`}
               >
                 {isPopular && (
@@ -205,27 +206,32 @@ export default function AcheterJetons() {
                   </div>
                 )}
                 <div className="absolute top-3 right-3">
-                  <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                    <Percent className="w-3 h-3" />
-                    +{bonus}%
+                  <div className="flex items-center gap-1 bg-amber-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-sm">
+                    <Gift className="w-3 h-3" />
+                    +20% offert
                   </div>
                 </div>
                 <CardHeader className="pt-10">
                   <CardTitle className="flex items-center gap-2">
                     <Euro className="w-5 h-5 text-primary" />
-                    {formatPrice(pack.quantity)}€ de crédit
+                    {formatPrice(totalCredits)}€ de credit
                   </CardTitle>
-                  <CardDescription>Pour seulement {formatPrice(pack.price)}€</CardDescription>
+                  <CardDescription>
+                    {formatPrice(pack.quantity)}€ + {formatPrice(bonusCredits)}€ offerts
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div>
                       <p className="text-3xl font-bold">{formatPrice(pack.price)}€</p>
-                      <p className="text-sm text-green-600 mt-1 font-medium">
-                        +{formatPrice(bonusAmount)}€ offerts
-                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-sm text-muted-foreground">{formatPrice(pack.quantity)}€</span>
+                        <span className="text-sm font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded">
+                          + {formatPrice(bonusCredits)}€ offerts
+                        </span>
+                      </div>
                     </div>
-                    <Button 
+                    <Button
                       onClick={() => handleSelectPack(pack)}
                       className="w-full"
                       variant={isPopular ? "default" : "outline"}

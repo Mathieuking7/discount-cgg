@@ -1,91 +1,38 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { DepartmentSelect } from "@/components/simulateur/DepartmentSelect";
-import { Loader2, Calculator, FileText, Car, FileCheck, MapPin, PlusCircle, Copy, Search, PenTool, Home, ScrollText, Users, Bike, Receipt, Globe, XCircle, ClipboardList } from "lucide-react";
+import { Loader2, Calculator, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getVehicleByPlate } from "@/lib/vehicle-api";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-interface DemarcheType {
-  id: string;
-  code: string;
-  titre: string;
-  description: string | null;
-  prix_base: number;
-  actif: boolean;
-  ordre: number;
-  require_vehicle_info: boolean;
-  require_carte_grise_price: boolean;
-}
-
-const getIconForCode = (code: string) => {
-  switch (code) {
-    case 'CG': return Car;
-    case 'DA': return FileText;
-    case 'DC': return FileCheck;
-    case 'CHGT_ADRESSE': return MapPin;
-    case 'CG_NEUF': return PlusCircle;
-    case 'DUPLICATA': return Copy;
-    case 'FIV': return Search;
-    case 'MODIF_CG': return PenTool;
-    case 'CHGT_ADRESSE_LOCATAIRE': return Home;
-    case 'SUCCESSION': return ScrollText;
-    case 'COTITULAIRE': return Users;
-    case 'IMMAT_CYCLO_ANCIEN': return Bike;
-    case 'QUITUS_FISCAL': return Receipt;
-    case 'CPI_WW': return Globe;
-    case 'ANNULER_CPI_WW': return XCircle;
-    case 'DEMANDE_IMMAT': return ClipboardList;
-    default: return FileText;
-  }
-};
 
 export const SimulateurSection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [demarcheTypes, setDemarcheTypes] = useState<DemarcheType[]>([]);
-  const [selectedTypeCode, setSelectedTypeCode] = useState<string>("CG");
   const [departement, setDepartement] = useState("");
   const [plaque, setPlaque] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loadingTypes, setLoadingTypes] = useState(true);
+  const [prixBase, setPrixBase] = useState(29.90);
 
   useEffect(() => {
-    loadDemarcheTypes();
-  }, []);
+    const fetchPrixBase = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('guest_demarche_types')
+          .select('prix_base')
+          .eq('code', 'CG')
+          .single();
 
-  const loadDemarcheTypes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('guest_demarche_types')
-        .select('*')
-        .eq('actif', true)
-        .order('ordre');
-
-      if (error) throw error;
-      // Filtrer DA (désactivé pour les particuliers)
-      const filteredData = (data || []).filter(t => t.code !== 'DA');
-      setDemarcheTypes(filteredData);
-      if (filteredData.length > 0 && !filteredData.find(t => t.code === selectedTypeCode)) {
-        setSelectedTypeCode(filteredData[0].code);
+        if (!error && data) {
+          setPrixBase(data.prix_base);
+        }
+      } catch (error) {
+        console.error('Error fetching prix_base:', error);
       }
-    } catch (error) {
-      console.error('Error loading demarche types:', error);
-    } finally {
-      setLoadingTypes(false);
-    }
-  };
-
-  const currentDemarche = demarcheTypes.find(t => t.code === selectedTypeCode);
+    };
+    fetchPrixBase();
+  }, []);
 
   const validatePlate = (plate: string) => {
     const newFormat = /^[A-Z]{2}-?\d{3}-?[A-Z]{2}$/i;
@@ -94,19 +41,13 @@ export const SimulateurSection = () => {
   };
 
   const isFormValid = () => {
-    const plateValid = plaque && validatePlate(plaque);
-    if (currentDemarche?.require_carte_grise_price) {
-      return plateValid && departement;
-    }
-    return plateValid;
+    return plaque && validatePlate(plaque) && departement;
   };
 
   const formatPlateDisplay = (value: string) => {
     const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    
-    // Ancienne plaque (commence par un chiffre): 123 ABC 35
+
     if (/^\d/.test(clean)) {
-      // Extraire les parties: chiffres, lettres, département
       const match = clean.match(/^(\d{1,4})([A-Z]{2,3})(\d{0,2})$/);
       if (match) {
         const [, numbers, letters, dept] = match;
@@ -114,106 +55,67 @@ export const SimulateurSection = () => {
       }
       return clean;
     }
-    
-    // Nouvelle plaque: AA-123-AA
+
     if (clean.length <= 2) return clean;
     if (clean.length <= 5) return `${clean.slice(0, 2)}-${clean.slice(2)}`;
     return `${clean.slice(0, 2)}-${clean.slice(2, 5)}-${clean.slice(5, 7)}`;
   };
 
-  // Détecte si c'est une ancienne plaque (commence par un chiffre)
   const isOldPlate = plaque && /^\d/.test(plaque.replace(/[^A-Z0-9]/gi, ''));
 
   const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase();
-    // Autoriser lettres, chiffres, tirets et espaces
     let formatted = value.replace(/[^A-Z0-9\s-]/g, '');
     setPlaque(formatted);
   };
 
   const handleCalculate = async () => {
-    if (!isFormValid() || !currentDemarche) return;
+    if (!isFormValid()) return;
 
     setLoading(true);
     try {
-      if (currentDemarche.require_carte_grise_price) {
-        // Parcours carte grise - besoin de l'API véhicule
-        const apiResponse = await getVehicleByPlate(plaque);
+      const apiResponse = await getVehicleByPlate(plaque);
 
-        if (!apiResponse.success || !apiResponse.data) {
-          throw new Error(apiResponse.error || 'Impossible de récupérer les informations du véhicule');
-        }
-
-        const vehicleData = {
-          dateMiseEnCirculation: apiResponse.data.date_mec,
-          chevauxFiscaux: apiResponse.data.puissance_fiscale,
-        };
-        
-        if (!vehicleData.dateMiseEnCirculation || !vehicleData.chevauxFiscaux) {
-          throw new Error('Données du véhicule incomplètes');
-        }
-
-        const { data: order, error } = await supabase
-          .from('guest_orders')
-          .insert({
-            tracking_number: '',
-            immatriculation: plaque,
-            email: '',
-            telephone: '',
-            nom: '',
-            prenom: '',
-            adresse: '',
-            code_postal: '',
-            ville: '',
-            montant_ht: 0,
-            montant_ttc: 0,
-            frais_dossier: currentDemarche.prix_base,
-            status: 'en_attente',
-            paye: false,
-            demarche_type: selectedTypeCode,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        navigate(`/resultat-carte-grise?orderId=${order.id}&departement=${departement}&plaque=${plaque}`, {
-          state: {
-            vehicleData,
-            departement,
-            plaque,
-          },
-        });
-      } else {
-        // Parcours DA/DC - prix fixe sans TVA
-        const prixHT = currentDemarche.prix_base;
-
-        const { data: order, error } = await supabase
-          .from('guest_orders')
-          .insert({
-            tracking_number: '',
-            immatriculation: plaque,
-            email: '',
-            telephone: '',
-            nom: '',
-            prenom: '',
-            adresse: '',
-            code_postal: '',
-            ville: '',
-            montant_ht: prixHT,
-            montant_ttc: prixHT, // Pas de TVA pour DA/DC
-            frais_dossier: prixHT,
-            status: 'en_attente',
-            paye: false,
-            demarche_type: selectedTypeCode,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        navigate(`/demarche-simple?orderId=${order.id}&type=${selectedTypeCode}&plaque=${plaque}`);
+      if (!apiResponse.success || !apiResponse.data) {
+        throw new Error(apiResponse.error || 'Impossible de recuperer les informations du vehicule');
       }
+
+      const vehicleData = {
+        dateMiseEnCirculation: apiResponse.data.date_mec,
+        chevauxFiscaux: apiResponse.data.puissance_fiscale,
+      };
+
+      if (!vehicleData.dateMiseEnCirculation || !vehicleData.chevauxFiscaux) {
+        throw new Error('Donnees du vehicule incompletes');
+      }
+
+      const { data: order, error } = await supabase
+        .from('guest_orders')
+        .insert({
+          tracking_number: '',
+          immatriculation: plaque,
+          email: '',
+          telephone: '',
+          nom: '',
+          prenom: '',
+          adresse: '',
+          code_postal: '',
+          ville: '',
+          montant_ht: 0,
+          montant_ttc: 0,
+          frais_dossier: prixBase,
+          status: 'en_attente',
+          paye: false,
+          demarche_type: 'CG',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      navigate(`/resultat-carte-grise?orderId=${order.id}&departement=${departement}&plaque=${plaque}`, {
+        state: { vehicleData, departement, plaque },
+      });
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -230,38 +132,28 @@ export const SimulateurSection = () => {
   const displayDept = departement || "75";
   const showOldPlate = isOldPlate;
 
-  if (loadingTypes) {
-    return (
-      <section className="py-20 bg-muted/30" id="simulateur">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="py-20 bg-muted/30" id="simulateur">
+    <section className="py-20 bg-[#FDF8F0]" id="simulateur">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-foreground">
-          Simulateur de prix
-        </h2>
-        <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">
-          Calculez instantanément le prix de votre démarche
-        </p>
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-100 mb-4">
+            <Calculator className="w-7 h-7 text-amber-600" />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Calculez votre carte grise
+          </h2>
+          <p className="text-gray-500 max-w-xl mx-auto">
+            Entrez votre immatriculation et obtenez le prix instantanement
+          </p>
+        </div>
 
-        <div className="max-w-xl mx-auto bg-card border border-border shadow-xl rounded-2xl p-8">
+        <div className="max-w-xl mx-auto bg-white border border-gray-100 shadow-sm rounded-3xl p-8">
           {/* Plaque d'immatriculation visuelle */}
           <div className="mb-10 flex justify-center">
             {showOldPlate ? (
-              // Ancienne plaque (format FNI: 123 ABC 35) - fond jaune
-              <div className="w-full max-w-lg h-20 md:h-24 rounded-lg border-[3px] border-black shadow-lg relative overflow-hidden bg-[#F4C430]">
-                <div className="absolute inset-[3px] rounded border border-black/20" />
-                
-                {/* Bandeau bleu EU à gauche */}
-                <div className="absolute inset-y-0 left-0 w-12 md:w-14 bg-[#003399] flex flex-col items-center justify-between py-1.5 md:py-2 rounded-l">
+              <div className="w-full max-w-lg h-20 md:h-24 rounded-xl border-[3px] border-black shadow-lg relative overflow-hidden bg-[#F4C430]">
+                <div className="absolute inset-[3px] rounded-lg border border-black/20" />
+                <div className="absolute inset-y-0 left-0 w-12 md:w-14 bg-[#003399] flex flex-col items-center justify-between py-1.5 md:py-2 rounded-l-lg">
                   <div className="relative w-8 h-8 md:w-9 md:h-9">
                     {[...Array(12)].map((_, i) => {
                       const angle = (i * 30 - 90) * (Math.PI / 180);
@@ -271,21 +163,15 @@ export const SimulateurSection = () => {
                         <span
                           key={i}
                           className="absolute text-[#FFCC00] text-[6px] md:text-[7px]"
-                          style={{
-                            left: `${x}%`,
-                            top: `${y}%`,
-                            transform: 'translate(-50%, -50%)'
-                          }}
+                          style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
                         >
-                          ★
+                          *
                         </span>
                       );
                     })}
                   </div>
                   <span className="text-white font-bold text-sm md:text-base">F</span>
                 </div>
-                
-                {/* Texte de la plaque */}
                 <div className="absolute inset-y-0 left-12 md:left-14 right-0 flex items-center justify-center bg-[#F4C430]">
                   <span className="text-2xl md:text-4xl font-black tracking-wider text-black" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {displayPlate}
@@ -293,11 +179,9 @@ export const SimulateurSection = () => {
                 </div>
               </div>
             ) : (
-              // Nouvelle plaque (format SIV: AA-123-AA)
-              <div className="w-full max-w-lg h-20 md:h-24 rounded-lg border-[3px] border-foreground shadow-lg relative overflow-hidden bg-background">
-                <div className="absolute inset-[3px] rounded border border-foreground/30" />
-                
-                <div className="absolute inset-y-0 left-0 w-12 md:w-14 bg-[#003399] flex flex-col items-center justify-between py-1.5 md:py-2 rounded-l">
+              <div className="w-full max-w-lg h-20 md:h-24 rounded-xl border-[3px] border-gray-800 shadow-lg relative overflow-hidden bg-white">
+                <div className="absolute inset-[3px] rounded-lg border border-gray-300" />
+                <div className="absolute inset-y-0 left-0 w-12 md:w-14 bg-[#003399] flex flex-col items-center justify-between py-1.5 md:py-2 rounded-l-lg">
                   <div className="relative w-8 h-8 md:w-9 md:h-9">
                     {[...Array(12)].map((_, i) => {
                       const angle = (i * 30 - 90) * (Math.PI / 180);
@@ -307,101 +191,66 @@ export const SimulateurSection = () => {
                         <span
                           key={i}
                           className="absolute text-[#FFCC00] text-[6px] md:text-[7px]"
-                          style={{
-                            left: `${x}%`,
-                            top: `${y}%`,
-                            transform: 'translate(-50%, -50%)'
-                          }}
+                          style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%, -50%)' }}
                         >
-                          ★
+                          *
                         </span>
                       );
                     })}
                   </div>
                   <span className="text-white font-bold text-sm md:text-base">F</span>
                 </div>
-                
-                <div className="absolute inset-y-0 left-12 md:left-14 right-12 md:right-14 flex items-center justify-center bg-background">
-                  <span className="text-2xl md:text-4xl font-black tracking-wider text-foreground" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                <div className="absolute inset-y-0 left-12 md:left-14 right-12 md:right-14 flex items-center justify-center bg-white">
+                  <span className="text-2xl md:text-4xl font-black tracking-wider text-gray-900" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {displayPlate}
                   </span>
                 </div>
-                
-                <div className="absolute inset-y-0 right-0 w-12 md:w-14 bg-[#003399] flex items-center justify-center rounded-r">
+                <div className="absolute inset-y-0 right-0 w-12 md:w-14 bg-[#003399] flex items-center justify-center rounded-r-lg">
                   <span className="text-white font-bold text-lg md:text-xl">{displayDept}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Formulaire */}
-          <div className="space-y-4">
-            {/* Type de démarche */}
+          {/* Form */}
+          <div className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Type de démarche</label>
-              <Select value={selectedTypeCode} onValueChange={setSelectedTypeCode}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir une démarche" />
-                </SelectTrigger>
-                <SelectContent>
-                  {demarcheTypes.map((type) => {
-                    const Icon = getIconForCode(type.code);
-                    return (
-                      <SelectItem key={type.code} value={type.code}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4" />
-                          <span>{type.titre}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {currentDemarche?.description && (
-                <p className="text-xs text-muted-foreground">{currentDemarche.description}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Immatriculation</label>
+              <label className="text-sm font-semibold text-gray-700">Immatriculation</label>
               <Input
                 type="text"
                 placeholder="AA-123-AA ou 123 ABC 75"
                 value={plaque}
                 onChange={handlePlateChange}
-                className="text-center text-lg font-mono uppercase"
+                className="text-center text-lg font-mono uppercase h-12 rounded-xl border-gray-200 bg-gray-50 focus:ring-amber-400 focus:border-amber-400"
                 maxLength={12}
               />
             </div>
 
-            {currentDemarche?.require_carte_grise_price && (
-              <DepartmentSelect
-                value={departement}
-                onChange={setDepartement}
-              />
-            )}
+            <DepartmentSelect
+              value={departement}
+              onChange={setDepartement}
+            />
 
-            <Button
+            <button
               onClick={handleCalculate}
               disabled={!isFormValid() || loading}
-              className="w-full py-6 text-lg font-semibold rounded-xl"
-              size="lg"
+              className="w-full h-14 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-lg rounded-full transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:shadow-none"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  {currentDemarche?.require_carte_grise_price ? "Calcul en cours..." : "Traitement..."}
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Calcul en cours...
                 </>
               ) : (
                 <>
-                  <Calculator className="w-5 h-5 mr-2" />
-                  {currentDemarche?.require_carte_grise_price ? "Calculer le prix" : "Continuer"}
+                  <Calculator className="w-5 h-5" />
+                  Calculer le prix
                 </>
               )}
-            </Button>
+            </button>
 
-            <p className="text-xs text-muted-foreground text-center pt-2">
-              Tarifs officiels en vigueur • Service habilité
+            <p className="text-xs text-gray-400 text-center pt-2">
+              Tarifs officiels en vigueur - Service habilite
             </p>
           </div>
         </div>

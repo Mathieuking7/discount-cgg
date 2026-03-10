@@ -1,87 +1,178 @@
 import { Facebook, Instagram, Linkedin, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { siteConfig } from "@/config/site.config";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const navigate = useNavigate();
 
+  const linkClass =
+    "text-sm text-white/80 hover:text-white transition-colors";
+  const headingClass =
+    "text-xs uppercase tracking-widest font-sans text-white/70 mb-4";
+
   return (
-    <footer className="bg-secondary text-secondary-foreground">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+    <footer className="bg-encre text-white">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-0">
           {/* Brand */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Flag_of_France.svg/1200px-Flag_of_France.svg.png" 
-                alt="Drapeau français"
-                className="w-8 h-5 rounded-sm border border-secondary-foreground/20 object-cover"
-              />
-              <span className="text-xl font-bold">DiscountCG</span>
-            </div>
-            <p className="text-sm opacity-80">
-              Vos démarches d'immatriculation simplifiées. Service rapide, professionnel et 100% sécurisé.
+          <div className="md:pr-8 space-y-4">
+            <span className="font-serif font-bold text-xl text-white tracking-tight">
+              {siteConfig.siteName}
+            </span>
+            <p className="text-sm text-white/80 leading-relaxed">
+              Vos demarches d'immatriculation simplifiees. Service rapide,
+              professionnel et 100% securise.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="opacity-70 hover:opacity-100 transition-opacity">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="opacity-70 hover:opacity-100 transition-opacity">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="opacity-70 hover:opacity-100 transition-opacity">
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a href="#" className="opacity-70 hover:opacity-100 transition-opacity">
-                <Mail className="w-5 h-5" />
+            <div className="flex space-x-3 pt-1">
+              {siteConfig.social.facebook && (
+                <a
+                  href={siteConfig.social.facebook}
+                  aria-label="Facebook"
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <Facebook className="w-4 h-4" aria-hidden="true" />
+                </a>
+              )}
+              {siteConfig.social.instagram && (
+                <a
+                  href={siteConfig.social.instagram}
+                  aria-label="Instagram"
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <Instagram className="w-4 h-4" aria-hidden="true" />
+                </a>
+              )}
+              {siteConfig.social.linkedin && (
+                <a
+                  href={siteConfig.social.linkedin}
+                  aria-label="LinkedIn"
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <Linkedin className="w-4 h-4" aria-hidden="true" />
+                </a>
+              )}
+              <a
+                href={`mailto:${siteConfig.emails.contact}`}
+                aria-label="Email"
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <Mail className="w-4 h-4" aria-hidden="true" />
               </a>
             </div>
           </div>
 
           {/* Services */}
-          <div>
-            <h4 className="font-bold mb-4">Services</h4>
-            <ul className="space-y-2 text-sm opacity-80">
-              <li><a href="#services" className="hover:opacity-100 transition-opacity">Changement de titulaire</a></li>
-              <li><a href="#services" className="hover:opacity-100 transition-opacity">Déclaration de cession</a></li>
-              <li><a href="#services" className="hover:opacity-100 transition-opacity">Changement d'adresse</a></li>
-              <li><a href="#tarifs" className="hover:opacity-100 transition-opacity">Tarifs</a></li>
+          <div className="md:px-8 md:border-l md:border-white/10">
+            <h4 className={headingClass}>Services</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <a href="#" className={linkClass}>
+                  Carte grise
+                </a>
+              </li>
+              <li>
+                <a href="#" className={linkClass}>
+                  Declaration de cession
+                </a>
+              </li>
+              <li>
+                <a href="#" className={linkClass}>
+                  Changement d'adresse
+                </a>
+              </li>
+              <li>
+                <a href="#" className={linkClass}>
+                  Duplicata
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Informations */}
-          <div>
-            <h4 className="font-bold mb-4">Informations</h4>
-            <ul className="space-y-2 text-sm opacity-80">
-              <li><a href="#process" className="hover:opacity-100 transition-opacity">Comment ça marche</a></li>
-              <li><a href="#faq" className="hover:opacity-100 transition-opacity">FAQ</a></li>
-              <li><a href="#contact" className="hover:opacity-100 transition-opacity">Contact</a></li>
-              <li><button onClick={() => navigate("/login")} className="hover:opacity-100 transition-opacity">Espace Pro</button></li>
+          <div className="md:px-8 md:border-l md:border-white/10">
+            <h4 className={headingClass}>Informations</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <a href="#fonctionnement" className={linkClass}>
+                  Comment ca marche
+                </a>
+              </li>
+              <li>
+                <a href="#tarifs" className={linkClass}>
+                  Tarifs
+                </a>
+              </li>
+              <li>
+                <a href="#faq" className={linkClass}>
+                  FAQ
+                </a>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/login")}
+                  className={linkClass}
+                >
+                  Espace Pro
+                </button>
+              </li>
             </ul>
           </div>
 
-          {/* Légal */}
-          <div>
-            <h4 className="font-bold mb-4">Légal</h4>
-            <ul className="space-y-2 text-sm opacity-80">
-              <li><a href="#" className="hover:opacity-100 transition-opacity">Mentions légales</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-opacity">Conditions générales</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-opacity">Politique de confidentialité</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-opacity">Cookies</a></li>
+          {/* Legal */}
+          <div className="md:px-8 md:border-l md:border-white/10">
+            <h4 className={headingClass}>Legal</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <button
+                  onClick={() => navigate("/mentions-legales")}
+                  className={linkClass}
+                >
+                  Mentions legales
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/cgv")}
+                  className={linkClass}
+                >
+                  CGV
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => navigate("/politique-confidentialite")}
+                  className={linkClass}
+                >
+                  Politique de confidentialite
+                </button>
+              </li>
+              <li>
+                <a
+                  href={`mailto:${siteConfig.emails.contact}`}
+                  className={linkClass}
+                >
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-secondary-foreground/20 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-sm opacity-70">
-              © {currentYear} DiscountCG. Tous droits réservés.
-            </p>
-            <p className="text-sm opacity-70">
-              Service agréé et conforme ANTS
-            </p>
-          </div>
+        {/* Bottom bar */}
+        <div className="border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/70">
+          <p>
+            &copy; {currentYear} {siteConfig.siteName}. Tous droits reserves.
+          </p>
+          <p>Service agree et conforme ANTS</p>
         </div>
+      </div>
+
+      {/* Tricolor bar */}
+      <div className="h-1.5 flex">
+        <div className="flex-1 bg-bleu-france" />
+        <div className="flex-1 bg-white" />
+        <div className="flex-1 bg-rouge-france" />
       </div>
     </footer>
   );

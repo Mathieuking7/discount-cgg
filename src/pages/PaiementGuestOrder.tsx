@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle, CreditCard, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle, CreditCard, ChevronLeft, Shield, Lock } from "lucide-react";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import Navbar from "@/components/Navbar";
@@ -20,22 +18,17 @@ const CheckoutForm = ({ order }: { order: any }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
+    if (!stripe || !elements) return;
 
     setIsProcessing(true);
 
     try {
-      // Calculate total amount with correct TVA
       const totalAmount = calculateGuestOrderTTC(
         order.montant_ht || 0,
         order.frais_dossier || 30,
         order.sms_notifications
       );
 
-      // Create payment intent
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
         "create-payment-intent",
         {
@@ -55,7 +48,6 @@ const CheckoutForm = ({ order }: { order: any }) => {
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) throw new Error("Card element not found");
 
-      // Confirm payment
       const { error, paymentIntent } = await stripe.confirmCardPayment(
         paymentData.clientSecret,
         {
@@ -70,19 +62,15 @@ const CheckoutForm = ({ order }: { order: any }) => {
         }
       );
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       if (paymentIntent?.status === "succeeded") {
-        // Recalculate total for storage
         const finalTTC = calculateGuestOrderTTC(
           order.montant_ht || 0,
           order.frais_dossier || 30,
           order.sms_notifications
         );
-        
-        // Update order
+
         await supabase
           .from("guest_orders")
           .update({
@@ -95,8 +83,8 @@ const CheckoutForm = ({ order }: { order: any }) => {
           .eq("id", order.id);
 
         toast({
-          title: "✅ Paiement accepté !",
-          description: "Votre paiement a été validé avec succès. Votre commande est en cours de traitement.",
+          title: "Paiement accepte !",
+          description: "Votre paiement a ete valide avec succes.",
           variant: "success" as any,
         });
 
@@ -105,8 +93,8 @@ const CheckoutForm = ({ order }: { order: any }) => {
     } catch (error: any) {
       console.error("Payment error:", error);
       toast({
-        title: "❌ Paiement refusé",
-        description: error.message || "Votre paiement n'a pas pu être traité. Veuillez réessayer.",
+        title: "Paiement refuse",
+        description: error.message || "Votre paiement n'a pas pu etre traite.",
         variant: "destructive",
       });
     } finally {
@@ -116,31 +104,32 @@ const CheckoutForm = ({ order }: { order: any }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5" />
-            Informations de paiement
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 border rounded-lg bg-background">
-            <CardElement
-              options={{
-                style: {
-                  base: {
-                    fontSize: "16px",
-                    color: "hsl(var(--foreground))",
-                    "::placeholder": {
-                      color: "hsl(var(--muted-foreground))",
-                    },
-                  },
-                },
-              }}
-            />
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
+            <CreditCard className="w-4 h-4 text-amber-600" />
           </div>
-        </CardContent>
-      </Card>
+          <h3 className="font-bold text-gray-900">Informations de paiement</h3>
+        </div>
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+          <CardElement
+            options={{
+              style: {
+                base: {
+                  fontSize: "16px",
+                  color: "#1f2937",
+                  "::placeholder": { color: "#9ca3af" },
+                  lineHeight: "48px",
+                },
+              },
+            }}
+          />
+        </div>
+        <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
+          <Lock className="w-3.5 h-3.5" />
+          <span>Paiement securise par Stripe</span>
+        </div>
+      </div>
 
       <GuestPaymentDetailsSummary
         prixCarteGrise={order.montant_ht || 0}
@@ -149,24 +138,23 @@ const CheckoutForm = ({ order }: { order: any }) => {
         emailNotifications={order.email_notifications}
       />
 
-      <Button
+      <button
         type="submit"
         disabled={!stripe || isProcessing}
-        size="lg"
-        className="w-full text-lg h-14"
+        className="w-full h-14 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-semibold text-lg rounded-full transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:shadow-none"
       >
         {isProcessing ? (
           <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin" />
             Traitement en cours...
           </>
         ) : (
           <>
-            <CheckCircle className="w-5 h-5 mr-2" />
+            <CheckCircle className="w-5 h-5" />
             Payer maintenant
           </>
         )}
-      </Button>
+      </button>
     </form>
   );
 };
@@ -187,27 +175,18 @@ const PaiementGuestOrder = () => {
   const initializeStripe = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('get-stripe-key');
-      
       if (error) throw error;
-      
       if (data?.publishableKey) {
         setStripePromise(loadStripe(data.publishableKey));
       }
     } catch (error) {
       console.error("Error loading Stripe:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger le système de paiement",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: "Impossible de charger le systeme de paiement", variant: "destructive" });
     }
   };
 
   const loadOrder = async () => {
-    if (!orderId) {
-      navigate("/");
-      return;
-    }
+    if (!orderId) { navigate("/"); return; }
 
     const { data, error } = await supabase
       .from("guest_orders")
@@ -216,29 +195,19 @@ const PaiementGuestOrder = () => {
       .single();
 
     if (error || !data) {
-      toast({
-        title: "Erreur",
-        description: "Commande introuvable",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", description: "Commande introuvable", variant: "destructive" });
       navigate("/");
       return;
     }
 
     if (data.paye) {
-      toast({
-        title: "Commande déjà payée",
-        description: "Redirection vers le suivi",
-      });
+      toast({ title: "Commande deja payee", description: "Redirection vers le suivi" });
       navigate(`/suivi/${data.tracking_number}`);
       return;
     }
 
     if (!data.documents_complets) {
-      toast({
-        title: "Documents manquants",
-        description: "Veuillez d'abord envoyer vos documents",
-      });
+      toast({ title: "Documents manquants", description: "Veuillez d'abord envoyer vos documents" });
       navigate(`/commander/${orderId}`);
       return;
     }
@@ -247,44 +216,34 @@ const PaiementGuestOrder = () => {
     setIsLoading(false);
   };
 
-  if (isLoading) {
+  if (isLoading || !order || !stripePromise) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!order) return null;
-
-  if (!stripePromise) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#FDF8F0]">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="max-w-2xl mx-auto space-y-8">
-          <Button
-            variant="ghost"
+          <button
             onClick={() => navigate(`/commander/${orderId}`)}
-            className="mb-4"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ChevronLeft className="w-4 h-4" />
             Retour
-          </Button>
+          </button>
 
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold">Paiement sécurisé</h1>
-            <p className="text-xl text-muted-foreground">
-              Commande {order.tracking_number}
-            </p>
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-2">
+              <Shield className="w-8 h-8 text-amber-600" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Paiement securise</h1>
+            <p className="text-gray-500 text-lg">Commande {order.tracking_number}</p>
           </div>
 
           <Elements stripe={stripePromise}>
