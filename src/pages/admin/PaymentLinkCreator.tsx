@@ -224,9 +224,12 @@ export default function PaymentLinkCreator() {
     const paymentUrl = `${window.location.origin}/payer/${shortCode}`;
     const { error } = await supabase.functions.invoke("send-email", {
       body: {
+        type: "simple_text",
         to: email,
-        subject: `Lien de paiement - ${desc}`,
-        html: `<p>Bonjour,</p><p>Veuillez trouver ci-dessous votre lien de paiement :</p><p><strong>Montant : ${amt.toFixed(2)} EUR</strong></p><p><strong>Description : ${desc}</strong></p><p><a href="${paymentUrl}">${paymentUrl}</a></p><p>Cordialement,<br/>SIVFlow</p>`,
+        data: {
+          subject: `Lien de paiement - ${desc}`,
+          html: `<p>Bonjour,</p><p>Veuillez trouver ci-dessous votre lien de paiement :</p><p><strong>Montant : ${amt.toFixed(2)} EUR</strong></p><p><strong>Description : ${desc}</strong></p><p><a href="${paymentUrl}">${paymentUrl}</a></p><p>Cordialement,<br/>DiscountCarteGrise</p>`,
+        },
       },
     });
 

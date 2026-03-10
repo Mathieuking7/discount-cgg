@@ -34,13 +34,26 @@ type StatusFilter = "all" | "en_attente" | "en_cours" | "terminee" | "annulee";
 
 const statusConfig: Record<string, { label: string; bgClass: string }> = {
   en_attente: { label: "En attente", bgClass: "bg-amber-100 text-amber-800" },
+  paye: { label: "Paye", bgClass: "bg-emerald-100 text-emerald-800" },
+  payee: { label: "Payee", bgClass: "bg-emerald-100 text-emerald-800" },
   en_cours: { label: "En cours", bgClass: "bg-blue-100 text-blue-800" },
-  terminee: { label: "Terminee", bgClass: "bg-green-100 text-green-800" },
-  annulee: { label: "Annulee", bgClass: "bg-red-100 text-red-800" },
-  // legacy statuses mapped
-  valide: { label: "Valide", bgClass: "bg-blue-100 text-blue-800" },
+  en_traitement: { label: "En traitement", bgClass: "bg-blue-100 text-blue-800" },
+  documents_valides: { label: "Documents valides", bgClass: "bg-cyan-100 text-cyan-800" },
+  document_refuse: { label: "Document refuse", bgClass: "bg-orange-100 text-orange-800" },
+  documents_refuses: { label: "Documents refuses", bgClass: "bg-orange-100 text-orange-800" },
+  soumis_ants: { label: "Soumis ANTS", bgClass: "bg-indigo-100 text-indigo-800" },
+  cpi_disponible: { label: "CPI disponible", bgClass: "bg-teal-100 text-teal-800" },
+  valide: { label: "Valide", bgClass: "bg-green-100 text-green-800" },
   finalise: { label: "Finalise", bgClass: "bg-green-100 text-green-800" },
+  termine: { label: "Termine", bgClass: "bg-green-100 text-green-800" },
+  terminee: { label: "Terminee", bgClass: "bg-green-100 text-green-800" },
+  annule: { label: "Annule", bgClass: "bg-red-100 text-red-800" },
+  annulee: { label: "Annulee", bgClass: "bg-red-100 text-red-800" },
   refuse: { label: "Refuse", bgClass: "bg-red-100 text-red-800" },
+  attente_paiement: { label: "Attente paiement", bgClass: "bg-amber-100 text-amber-800" },
+  attente_paiement_client: { label: "Attente paiement client", bgClass: "bg-amber-100 text-amber-800" },
+  expedition: { label: "Expedition", bgClass: "bg-purple-100 text-purple-800" },
+  livree: { label: "Livree", bgClass: "bg-green-100 text-green-800" },
 };
 
 const demarcheColors: Record<string, string> = {
@@ -126,9 +139,33 @@ export default function GuestOrders() {
       terminee: 0,
       annulee: 0,
     };
+    const statusGroups: Record<string, StatusFilter> = {
+      en_attente: "en_attente",
+      en_cours: "en_cours",
+      en_traitement: "en_cours",
+      paye: "en_cours",
+      payee: "en_cours",
+      documents_valides: "en_cours",
+      soumis_ants: "en_cours",
+      cpi_disponible: "en_cours",
+      attente_paiement: "en_cours",
+      attente_paiement_client: "en_cours",
+      expedition: "en_cours",
+      terminee: "terminee",
+      termine: "terminee",
+      finalise: "terminee",
+      valide: "terminee",
+      livree: "terminee",
+      annulee: "annulee",
+      annule: "annulee",
+      refuse: "annulee",
+      document_refuse: "annulee",
+      documents_refuses: "annulee",
+    };
     orders.forEach((o) => {
-      if (o.status in counts) {
-        counts[o.status as StatusFilter]++;
+      const group = statusGroups[o.status];
+      if (group) {
+        counts[group]++;
       }
     });
     return counts;
@@ -139,7 +176,15 @@ export default function GuestOrders() {
     let result = orders;
 
     if (activeFilter !== "all") {
-      result = result.filter((o) => o.status === activeFilter);
+      const statusGroups: Record<StatusFilter, string[]> = {
+        all: [],
+        en_attente: ["en_attente"],
+        en_cours: ["en_cours", "en_traitement", "paye", "payee", "documents_valides", "soumis_ants", "cpi_disponible", "attente_paiement", "attente_paiement_client", "expedition"],
+        terminee: ["terminee", "termine", "finalise", "valide", "livree"],
+        annulee: ["annulee", "annule", "refuse", "document_refuse", "documents_refuses"],
+      };
+      const allowed = statusGroups[activeFilter] || [activeFilter];
+      result = result.filter((o) => allowed.includes(o.status));
     }
 
     if (searchQuery.trim()) {

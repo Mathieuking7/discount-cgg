@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Car,
@@ -10,7 +10,6 @@ import {
   Clock,
   Zap,
   HeadphonesIcon,
-  ChevronRight,
   Star,
   ArrowRight,
   FileCheck,
@@ -36,7 +35,6 @@ import {
   ClipboardList,
   PlusCircle,
   Globe,
-  ChevronLeft,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -84,21 +82,21 @@ const steps = [
 ];
 
 const demarchesParticulier = [
-  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire suite a un achat.", slug: "carte-grise" },
-  { icon: FilePen, title: "Declaration de cession", desc: "Declarez la vente de votre vehicule.", slug: "declaration-cession" },
-  { icon: MapPin, title: "Changement d'adresse", desc: "Mettez a jour l'adresse sur votre CG.", slug: "changement-adresse" },
-  { icon: Copy, title: "Duplicata", desc: "Perte ou vol de carte grise.", slug: "duplicata" },
-  { icon: PlusCircle, title: "Vehicule neuf", desc: "Premiere immatriculation.", slug: "vehicule-neuf" },
-  { icon: Globe, title: "Carte grise import", desc: "Vehicule importe de l'etranger.", slug: "carte-grise-import" },
-  { icon: Search, title: "FIV", desc: "Fiche d'identification vehicule.", slug: "fiv" },
-  { icon: PenTool, title: "Modification CG", desc: "Modifier les infos de votre CG.", slug: "modification-carte-grise" },
-  { icon: ScrollText, title: "Succession", desc: "Transfert suite a un heritage.", slug: "succession" },
-  { icon: Users, title: "Cotitulaire", desc: "Ajout ou retrait de cotitulaire.", slug: "cotitulaire" },
-  { icon: Receipt, title: "Quitus fiscal", desc: "Attestation fiscale pour import.", slug: "quitus-fiscal" },
-  { icon: Home, title: "Adresse locataire", desc: "Changement d'adresse leasing.", slug: "changement-adresse-locataire" },
-  { icon: Bike, title: "Cyclomoteur", desc: "Immatriculation cyclomoteur ancien.", slug: "immatriculation-cyclomoteur" },
-  { icon: XCircle, title: "Annuler CPI/WW", desc: "Annulation certificat provisoire.", slug: "annuler-cpi-ww" },
-  { icon: ClipboardList, title: "Demande immatriculation", desc: "Vehicule non enregistre au SIV.", slug: "demande-immatriculation" },
+  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire suite a un achat.", slug: "carte-grise", color: "#2563EB", bg: "#EFF6FF" },
+  { icon: FilePen, title: "Declaration de cession", desc: "Declarez la vente de votre vehicule.", slug: "declaration-cession", color: "#7C3AED", bg: "#F5F3FF" },
+  { icon: MapPin, title: "Changement d'adresse", desc: "Mettez a jour l'adresse sur votre CG.", slug: "changement-adresse", color: "#059669", bg: "#ECFDF5" },
+  { icon: Copy, title: "Duplicata", desc: "Perte ou vol de carte grise.", slug: "duplicata", color: "#D97706", bg: "#FFFBEB" },
+  { icon: PlusCircle, title: "Vehicule neuf", desc: "Premiere immatriculation.", slug: "vehicule-neuf", color: "#DC2626", bg: "#FEF2F2" },
+  { icon: Globe, title: "Carte grise import", desc: "Vehicule importe de l'etranger.", slug: "carte-grise-import", color: "#0891B2", bg: "#ECFEFF" },
+  { icon: Search, title: "FIV", desc: "Fiche d'identification vehicule.", slug: "fiv", color: "#4F46E5", bg: "#EEF2FF" },
+  { icon: PenTool, title: "Modification CG", desc: "Modifier les infos de votre CG.", slug: "modification-carte-grise", color: "#BE185D", bg: "#FDF2F8" },
+  { icon: ScrollText, title: "Succession", desc: "Transfert suite a un heritage.", slug: "succession", color: "#0D9488", bg: "#F0FDFA" },
+  { icon: Users, title: "Cotitulaire", desc: "Ajout ou retrait de cotitulaire.", slug: "cotitulaire", color: "#EA580C", bg: "#FFF7ED" },
+  { icon: Receipt, title: "Quitus fiscal", desc: "Attestation fiscale pour import.", slug: "quitus-fiscal", color: "#7C3AED", bg: "#FAF5FF" },
+  { icon: Home, title: "Adresse locataire", desc: "Changement d'adresse leasing.", slug: "changement-adresse-locataire", color: "#2563EB", bg: "#F0F9FF" },
+  { icon: Bike, title: "Cyclomoteur", desc: "Immatriculation cyclomoteur ancien.", slug: "immatriculation-cyclomoteur", color: "#65A30D", bg: "#F7FEE7" },
+  { icon: XCircle, title: "Annuler CPI/WW", desc: "Annulation certificat provisoire.", slug: "annuler-cpi-ww", color: "#E11D48", bg: "#FFF1F2" },
+  { icon: ClipboardList, title: "Demande immatriculation", desc: "Vehicule non enregistre au SIV.", slug: "demande-immatriculation", color: "#0284C7", bg: "#F0F9FF" },
 ];
 
 const demarchesPro = [
@@ -152,43 +150,8 @@ const testimonials = [
   },
 ];
 
-const useHorizontalScroll = () => {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
-  const updateScrollState = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    updateScrollState();
-    el.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
-    return () => {
-      el.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
-    };
-  }, [updateScrollState]);
-
-  const scroll = useCallback((direction: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = 280;
-    el.scrollBy({ left: direction === "left" ? -amount : amount, behavior: "smooth" });
-  }, []);
-
-  return { scrollRef, canScrollLeft, canScrollRight, scroll };
-};
-
 const Index = () => {
   const navigate = useNavigate();
-  const { scrollRef, canScrollLeft, canScrollRight, scroll } = useHorizontalScroll();
 
   return (
     <div className="min-h-screen font-sans bg-white">
@@ -307,75 +270,33 @@ const Index = () => {
             </motion.p>
           </div>
 
-          {/* Scroll container with gradient fades and arrow buttons */}
-          <div className="relative group/carousel">
-            {/* Left gradient fade */}
-            <div
-              className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
-              style={{
-                background: "linear-gradient(to right, white 0%, transparent 100%)",
-                opacity: canScrollLeft ? 1 : 0,
-              }}
-            />
-            {/* Right gradient fade */}
-            <div
-              className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
-              style={{
-                background: "linear-gradient(to left, white 0%, transparent 100%)",
-                opacity: canScrollRight ? 1 : 0,
-              }}
-            />
-
-            {/* Left arrow */}
-            <button
-              onClick={() => scroll("left")}
-              aria-label="Defiler vers la gauche"
-              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-20 w-10 h-10 rounded-full bg-[#1B2A4A] text-white shadow-lg items-center justify-center hover:bg-[#1B2A4A]/80 transition-all disabled:opacity-0 disabled:pointer-events-none"
-              disabled={!canScrollLeft}
-            >
-              <ChevronLeft size={20} />
-            </button>
-
-            {/* Right arrow */}
-            <button
-              onClick={() => scroll("right")}
-              aria-label="Defiler vers la droite"
-              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-20 w-10 h-10 rounded-full bg-[#1B2A4A] text-white shadow-lg items-center justify-center hover:bg-[#1B2A4A]/80 transition-all disabled:opacity-0 disabled:pointer-events-none"
-              disabled={!canScrollRight}
-            >
-              <ChevronRight size={20} />
-            </button>
-
-            {/* Scrollable row */}
-            <div
-              ref={scrollRef}
-              className="overflow-x-auto flex gap-4 snap-x snap-mandatory pb-4 -mx-4 px-4 scrollbar-hide"
-              style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}
-            >
-              {demarchesParticulier.map((d, i) => (
-                <motion.button
-                  key={d.slug}
-                  onClick={() => navigate(`/demarches/${d.slug}`)}
-                  className="group relative min-w-[260px] snap-start flex-shrink-0 flex flex-col items-center text-center p-5 bg-[#F8F9FB] hover:bg-white border border-transparent hover:border-amber-400/30 rounded-2xl hover:shadow-md transition-all"
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={Math.min(i, 4) * 0.5}
-                  variants={fadeUp}
+          {/* Grid of demarches */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {demarchesParticulier.map((d, i) => (
+              <button
+                key={d.slug}
+                onClick={() => navigate(`/demarches/${d.slug}`)}
+                className="group flex flex-col items-center text-center p-5 hover:bg-white border border-transparent hover:shadow-lg rounded-2xl transition-all"
+                style={{ backgroundColor: d.bg }}
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${d.color}18` }}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-[#1B2A4A]/10 flex items-center justify-center mb-3 group-hover:bg-amber-400/15 transition-colors">
-                    <d.icon size={22} className="text-[#1B2A4A] group-hover:text-amber-600 transition-colors" />
-                  </div>
-                  <h3 className="font-semibold text-encre text-sm leading-tight mb-1">
-                    {d.title}
-                  </h3>
-                  <p className="text-[11px] text-encre/70 leading-snug line-clamp-2">{d.desc}</p>
-                  <div className="mt-3 text-[10px] font-semibold text-amber-600 uppercase tracking-wider opacity-0 group-hover:opacity-100 transition flex items-center gap-1">
-                    Commencer <ArrowRight size={12} />
-                  </div>
-                </motion.button>
-              ))}
-            </div>
+                  <d.icon size={22} style={{ color: d.color }} />
+                </div>
+                <h3 className="font-semibold text-encre text-sm leading-tight mb-1">
+                  {d.title}
+                </h3>
+                <p className="text-[11px] text-encre/70 leading-snug line-clamp-2">{d.desc}</p>
+                <div
+                  className="mt-3 text-[10px] font-semibold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition flex items-center gap-1"
+                  style={{ color: d.color }}
+                >
+                  Commencer <ArrowRight size={12} />
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </section>
