@@ -23,6 +23,7 @@ const CommanderSansCompte = () => {
   const [order, setOrder] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, File>>({});
+  const [extraDocs, setExtraDocs] = useState<{ name: string; file: File }[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     nom: "",
@@ -198,6 +199,31 @@ const CommanderSansCompte = () => {
           nom_fichier: file.name,
           url: urlData.publicUrl,
           taille_octets: file.size,
+          validation_status: 'pending',
+        });
+      }
+
+      // Upload extra/supplementary docs
+      for (const doc of extraDocs) {
+        const cleanedFileName = cleanFileName(doc.file.name);
+        const fileName = `${orderId}/${doc.name}_${Date.now()}_${cleanedFileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("guest-order-documents")
+          .upload(fileName, doc.file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("guest-order-documents")
+          .getPublicUrl(fileName);
+
+        await supabase.from("guest_order_documents").insert({
+          order_id: orderId,
+          type_document: `Document supplementaire ${doc.name}`,
+          nom_fichier: doc.file.name,
+          url: urlData.publicUrl,
+          taille_octets: doc.file.size,
           validation_status: 'pending',
         });
       }
@@ -432,6 +458,39 @@ const CommanderSansCompte = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Documents supplementaires */}
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-3">Documents supplementaires (optionnel)</h3>
+                  {extraDocs.map((doc, i) => (
+                    <div key={i} className="flex items-center gap-2 mb-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <FileCheck className="w-4 h-4 text-emerald-600" />
+                      <span className="text-sm text-emerald-700 flex-1">{doc.file.name}</span>
+                      <button
+                        onClick={() => setExtraDocs(extraDocs.filter((_, j) => j !== i))}
+                        className="text-xs text-red-400 hover:text-red-600"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex items-center gap-2 p-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-amber-300 transition-all">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setExtraDocs([...extraDocs, { name: `supplementaire_${extraDocs.length + 1}`, file }]);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <Upload className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-400">Ajouter un document supplementaire</span>
+                  </label>
                 </div>
               </div>
             )}

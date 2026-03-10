@@ -21,11 +21,11 @@ import {
   Lock,
   Clock,
   Loader2,
-  ArrowLeft,
   ArrowRight,
   ChevronRight,
   Star,
   BadgeCheck,
+  FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -33,22 +33,22 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 
-const DEMARCHE_CONFIG: Record<string, { code: string; icon: any; color: string; steps: string[] }> = {
-  'carte-grise': { code: 'CG', icon: Car, color: 'blue', steps: ['Entrez votre immatriculation', 'Calculez le prix de votre carte grise', 'Payez en ligne de maniere securisee', 'Recevez votre carte grise sous 3-5 jours'] },
-  'declaration-cession': { code: 'DC', icon: FileCheck, color: 'green', steps: ['Remplissez le formulaire de cession', 'Uploadez les documents requis', 'Payez les frais de dossier', 'Recevez votre certificat de cession'] },
-  'changement-adresse': { code: 'CHGT_ADRESSE', icon: MapPin, color: 'amber', steps: ['Entrez votre nouvelle adresse', 'Fournissez un justificatif de domicile', 'Payez en ligne', 'Recevez votre nouvelle carte grise'] },
-  'duplicata': { code: 'DUPLICATA', icon: Copy, color: 'purple', steps: ['Declarez la perte ou le vol', 'Uploadez les documents justificatifs', 'Payez les frais', 'Recevez votre duplicata'] },
-  'vehicule-neuf': { code: 'CG_NEUF', icon: PlusCircle, color: 'teal', steps: ['Entrez les informations du vehicule', 'Fournissez le certificat de conformite', 'Payez en ligne', 'Recevez votre carte grise'] },
-  'carte-grise-import': { code: 'CPI_WW', icon: Globe, color: 'indigo', steps: ['Fournissez les documents du pays d\'origine', 'Obtenez le quitus fiscal', 'Payez les frais d\'immatriculation', 'Recevez votre carte grise francaise'] },
-  'fiv': { code: 'FIV', icon: Search, color: 'sky', steps: ['Entrez l\'immatriculation du vehicule', 'Consultez le fichier des vehicules', 'Obtenez les informations techniques', 'Telechargez votre rapport'] },
-  'modification-carte-grise': { code: 'MODIF_CG', icon: PenTool, color: 'orange', steps: ['Selectionnez la modification souhaitee', 'Fournissez les justificatifs', 'Payez les frais', 'Recevez votre carte grise modifiee'] },
-  'succession': { code: 'SUCCESSION', icon: ScrollText, color: 'rose', steps: ['Fournissez l\'acte de succession', 'Uploadez les documents du vehicule', 'Payez les frais de transfert', 'Recevez la carte grise a votre nom'] },
-  'cotitulaire': { code: 'COTITULAIRE', icon: Users, color: 'violet', steps: ['Identifiez le cotitulaire', 'Fournissez les pieces d\'identite', 'Payez les frais', 'Recevez la carte grise mise a jour'] },
-  'quitus-fiscal': { code: 'QUITUS_FISCAL', icon: Receipt, color: 'emerald', steps: ['Fournissez la facture d\'achat', 'Uploadez les documents du vehicule', 'Demandez le quitus aupres des impots', 'Recevez votre attestation fiscale'] },
-  'changement-adresse-locataire': { code: 'CHGT_ADRESSE_LOCATAIRE', icon: Home, color: 'cyan', steps: ['Entrez la nouvelle adresse du locataire', 'Fournissez le contrat de location', 'Payez les frais', 'Recevez la carte grise mise a jour'] },
-  'immatriculation-cyclomoteur': { code: 'IMMAT_CYCLO_ANCIEN', icon: Bike, color: 'lime', steps: ['Entrez les informations du cyclomoteur', 'Fournissez un justificatif de propriete', 'Payez les frais', 'Recevez votre carte grise'] },
-  'annuler-cpi-ww': { code: 'ANNULER_CPI_WW', icon: XCircle, color: 'red', steps: ['Fournissez le numero CPI/WW', 'Uploadez les documents justificatifs', 'Confirmez l\'annulation', 'Recevez la confirmation'] },
-  'demande-immatriculation': { code: 'DEMANDE_IMMAT', icon: ClipboardList, color: 'slate', steps: ['Remplissez la demande d\'immatriculation', 'Fournissez les documents requis', 'Payez les frais', 'Recevez votre certificat'] },
+const DEMARCHE_CONFIG: Record<string, { code: string; icon: any; color: string }> = {
+  'carte-grise': { code: 'CG', icon: Car, color: 'blue' },
+  'declaration-cession': { code: 'DC', icon: FileCheck, color: 'green' },
+  'changement-adresse': { code: 'CHGT_ADRESSE', icon: MapPin, color: 'amber' },
+  'duplicata': { code: 'DUPLICATA', icon: Copy, color: 'purple' },
+  'vehicule-neuf': { code: 'CG_NEUF', icon: PlusCircle, color: 'teal' },
+  'carte-grise-import': { code: 'CPI_WW', icon: Globe, color: 'indigo' },
+  'fiv': { code: 'FIV', icon: Search, color: 'sky' },
+  'modification-carte-grise': { code: 'MODIF_CG', icon: PenTool, color: 'orange' },
+  'succession': { code: 'SUCCESSION', icon: ScrollText, color: 'rose' },
+  'cotitulaire': { code: 'COTITULAIRE', icon: Users, color: 'violet' },
+  'quitus-fiscal': { code: 'QUITUS_FISCAL', icon: Receipt, color: 'emerald' },
+  'changement-adresse-locataire': { code: 'CHGT_ADRESSE_LOCATAIRE', icon: Home, color: 'cyan' },
+  'immatriculation-cyclomoteur': { code: 'IMMAT_CYCLO_ANCIEN', icon: Bike, color: 'lime' },
+  'annuler-cpi-ww': { code: 'ANNULER_CPI_WW', icon: XCircle, color: 'red' },
+  'demande-immatriculation': { code: 'DEMANDE_IMMAT', icon: ClipboardList, color: 'slate' },
 };
 
 const COLOR_CLASSES: Record<string, { bg: string; text: string }> = {
@@ -78,6 +78,9 @@ const validatePlate = (plate: string) => {
   return formats.some((f) => f.test(plate.trim()));
 };
 
+// Only carte-grise (CG) should show "Calculer le prix" and redirect to simulateur
+const isCarteGrise = (slug: string) => slug === 'carte-grise';
+
 const DemarcheParticulier = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -99,14 +102,15 @@ const DemarcheParticulier = () => {
         const [demarcheRes, docsRes] = await Promise.all([
           supabase
             .from("guest_demarche_types")
-            .select("titre, description, prix_base, require_carte_grise_price")
+            .select("titre, description, prix_base, require_carte_grise_price, require_vehicle_info")
             .eq("code", config.code)
             .eq("actif", true)
             .single(),
           supabase
             .from("guest_order_required_documents")
-            .select("nom_document, description")
-            .eq("demarche_type_code", config.code),
+            .select("nom_document")
+            .eq("demarche_type_code", config.code)
+            .order("ordre", { ascending: true }),
         ]);
 
         if (demarcheRes.error) throw demarcheRes.error;
@@ -135,7 +139,7 @@ const DemarcheParticulier = () => {
             <h1 className="text-2xl font-bold text-gray-900">Demarche introuvable</h1>
             <p className="text-gray-500">Cette demarche n'existe pas ou n'est plus disponible.</p>
             <Link to="/" className="inline-flex items-center gap-2 text-[#1B2A4A] font-medium hover:underline">
-              <ArrowLeft className="w-4 h-4" /> Retour a l'accueil
+              <ChevronRight className="w-4 h-4 rotate-180" /> Retour a l'accueil
             </Link>
           </div>
         </main>
@@ -147,8 +151,10 @@ const DemarcheParticulier = () => {
   const Icon = config.icon;
   const colors = COLOR_CLASSES[config.color] || COLOR_CLASSES.blue;
 
+  const needsPlate = demarcheData?.require_vehicle_info !== false;
+
   const handleCommencer = async () => {
-    if (!plaque || !validatePlate(plaque)) {
+    if (needsPlate && (!plaque || !validatePlate(plaque))) {
       toast({
         title: "Erreur",
         description: "Veuillez entrer une immatriculation valide",
@@ -162,7 +168,7 @@ const DemarcheParticulier = () => {
         .from("guest_orders")
         .insert({
           tracking_number: "",
-          immatriculation: plaque.trim().toUpperCase(),
+          immatriculation: needsPlate ? plaque.trim().toUpperCase() : "",
           email: "",
           telephone: "",
           nom: "",
@@ -215,7 +221,7 @@ const DemarcheParticulier = () => {
             <h1 className="text-2xl font-bold text-gray-900">Demarche indisponible</h1>
             <p className="text-gray-500">Cette demarche n'est pas disponible pour le moment.</p>
             <Link to="/" className="inline-flex items-center gap-2 text-[#1B2A4A] font-medium hover:underline">
-              <ArrowLeft className="w-4 h-4" /> Retour a l'accueil
+              <ChevronRight className="w-4 h-4 rotate-180" /> Retour a l'accueil
             </Link>
           </div>
         </main>
@@ -224,179 +230,149 @@ const DemarcheParticulier = () => {
     );
   }
 
+  const isCG = isCarteGrise(slug || "");
+
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-[#F8F9FB]">
       <Navbar />
 
-      {/* Tricolor bar */}
-      <div className="h-1 flex">
-        <div className="flex-1 bg-blue-700" />
-        <div className="flex-1 bg-white" />
-        <div className="flex-1 bg-red-600" />
-      </div>
-
       {/* Trust bar */}
-      <div className="bg-[#1B2A4A] py-2.5 px-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-center gap-6 text-white text-xs sm:text-sm">
+      <div className="bg-[#1B2A4A] py-2 px-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-center gap-6 text-white text-xs">
           <span className="flex items-center gap-1.5">
-            <BadgeCheck size={15} className="text-amber-400" />
-            <span className="text-white/80">Service habilite par le Ministere de l'Interieur</span>
+            <BadgeCheck size={14} className="text-amber-400" />
+            <span className="text-white/70">Service habilite ANTS</span>
           </span>
-          <span className="hidden sm:block w-px h-4 bg-white/20" />
-          <span className="hidden sm:flex items-center gap-1">
+          <span className="hidden sm:block w-px h-3 bg-white/20" />
+          <span className="hidden sm:flex items-center gap-0.5">
             {[...Array(5)].map((_, i) => (
-              <Star key={i} size={13} className="fill-amber-400 text-amber-400" />
+              <Star key={i} size={11} className="fill-amber-400 text-amber-400" />
             ))}
-            <span className="text-white/80 ml-1">4.8/5 avis verifies</span>
+            <span className="text-white/70 ml-1">4.8/5</span>
+          </span>
+          <span className="hidden sm:block w-px h-3 bg-white/20" />
+          <span className="hidden sm:flex items-center gap-1">
+            <Lock size={12} className="text-green-400" />
+            <span className="text-white/70">Paiement securise</span>
           </span>
         </div>
       </div>
 
-      <main className="flex-1">
-        {/* Hero section */}
-        <section className="bg-gradient-to-b from-[#F0F4F8] to-white pt-8 pb-12 px-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-sm text-encre/50 mb-8">
-              <Link to="/" className="hover:text-bleu-france transition-colors">Accueil</Link>
-              <ChevronRight size={14} />
-              <span className="text-encre font-medium">{demarcheData.titre}</span>
-            </nav>
+      <main className="flex-1 px-4 py-6 sm:py-10">
+        <div className="max-w-3xl mx-auto">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-xs text-encre/40 mb-6">
+            <Link to="/" className="hover:text-bleu-france transition-colors">Accueil</Link>
+            <ChevronRight size={12} />
+            <span className="text-encre/70">{demarcheData.titre}</span>
+          </nav>
 
-            <div className="grid lg:grid-cols-5 gap-12">
-              {/* Left col (3/5) */}
-              <div className="lg:col-span-3">
-                <div className={`w-14 h-14 rounded-2xl ${colors.bg} flex items-center justify-center mb-5`}>
-                  <Icon className={`w-7 h-7 ${colors.text}`} />
+          {/* Main card - everything compact */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            {/* Header */}
+            <div className="p-6 sm:p-8 pb-0">
+              <div className="flex items-start gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className={`w-6 h-6 ${colors.text}`} />
                 </div>
-                <h1 className="text-3xl md:text-5xl font-serif font-bold text-encre leading-tight mb-4">
-                  {demarcheData.titre}
-                </h1>
-                <p className="text-lg text-encre/60 leading-relaxed">
-                  {demarcheData.description}
-                </p>
-
-                {/* Trust pills */}
-                <div className="flex flex-wrap gap-3 mt-6">
-                  <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
-                    <ShieldCheck size={14} /> Service agree ANTS
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-medium">
-                    <Lock size={14} /> Paiement securise
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full text-xs font-medium">
-                    <Clock size={14} /> Traitement sous 24h
-                  </span>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold text-encre leading-tight">
+                    {demarcheData.titre}
+                  </h1>
+                  <p className="text-sm text-encre/50 mt-1 leading-relaxed">
+                    {demarcheData.description}
+                  </p>
                 </div>
               </div>
 
-              {/* Right col (2/5) - Pricing card */}
-              <div className="lg:col-span-2">
-                <div className="sticky top-24 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-                  <div className="bg-[#1B2A4A] p-5 text-white">
-                    <p className="text-white/60 text-sm">A partir de</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">{demarcheData.prix_base}</span>
-                      <span className="text-lg text-white/60">EUR</span>
+              {/* Price badge */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="inline-flex items-baseline gap-1 bg-[#1B2A4A] text-white px-4 py-2 rounded-xl">
+                  <span className="text-2xl font-bold">{demarcheData.prix_base}</span>
+                  <span className="text-sm text-white/60">EUR</span>
+                </div>
+                {isCG && (
+                  <span className="text-xs text-amber-600 font-medium">+ taxe regionale</span>
+                )}
+                <div className="flex items-center gap-3 ml-auto">
+                  <span className="flex items-center gap-1 text-[10px] text-encre/40">
+                    <ShieldCheck size={12} /> ANTS
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] text-encre/40">
+                    <Clock size={12} /> 24h
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-100" />
+
+            {/* Documents requis */}
+            {requiredDocs.length > 0 && (
+              <div className="p-6 sm:p-8 pb-0">
+                <h2 className="text-sm font-semibold text-encre mb-3 flex items-center gap-2">
+                  <FileText size={15} className="text-encre/40" />
+                  Documents necessaires
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {requiredDocs.map((doc, i) => (
+                    <div key={i} className="flex items-center gap-2.5 py-2 px-3 bg-[#F8F9FB] rounded-lg">
+                      <CheckCircle size={14} className="text-green-500 flex-shrink-0" />
+                      <span className="text-sm text-encre/80">{doc.nom_document}</span>
                     </div>
-                    {demarcheData.require_carte_grise_price && (
-                      <p className="text-amber-300 text-sm mt-1">+ taxe regionale selon departement</p>
-                    )}
-                  </div>
-                  <div className="p-5 space-y-4">
-                    {demarcheData.require_carte_grise_price ? (
-                      <button
-                        onClick={() => navigate("/simulateur")}
-                        className="w-full h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-lg transition flex items-center justify-center gap-2"
-                      >
-                        Calculer mon prix <ArrowRight size={18} />
-                      </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="border-t border-gray-100 mt-6" />
+
+            {/* Action section */}
+            <div className="p-6 sm:p-8">
+              {isCG ? (
+                /* Carte grise → simulateur pour calculer le prix */
+                <button
+                  onClick={() => navigate("/simulateur")}
+                  className="w-full h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-base transition flex items-center justify-center gap-2"
+                >
+                  Calculer le prix de ma carte grise <ArrowRight size={18} />
+                </button>
+              ) : (
+                /* Toutes les autres démarches */
+                <div className="space-y-3">
+                  {needsPlate && (
+                    <div>
+                      <label className="text-sm font-medium text-encre/60 mb-1.5 block">
+                        Immatriculation du vehicule
+                      </label>
+                      <Input
+                        placeholder="AA-123-AA"
+                        value={plaque}
+                        onChange={(e) => setPlaque(e.target.value.toUpperCase())}
+                        className="h-12 text-center text-lg font-mono tracking-wider border-gray-300 rounded-xl"
+                      />
+                    </div>
+                  )}
+                  <button
+                    onClick={handleCommencer}
+                    disabled={submitting}
+                    className="w-full h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-base transition flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {submitting ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
-                        <div>
-                          <label className="text-sm font-medium text-encre/70 mb-1.5 block">
-                            Immatriculation du vehicule
-                          </label>
-                          <Input
-                            placeholder="AA-123-AA"
-                            value={plaque}
-                            onChange={(e) => setPlaque(e.target.value.toUpperCase())}
-                            className="h-12 text-center text-lg font-mono tracking-wider border-gray-300 rounded-xl"
-                          />
-                        </div>
-                        <button
-                          onClick={handleCommencer}
-                          disabled={submitting}
-                          className="w-full h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-lg transition flex items-center justify-center gap-2 disabled:opacity-60"
-                        >
-                          {submitting ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                          ) : (
-                            <>
-                              Commencer <ArrowRight size={18} />
-                            </>
-                          )}
-                        </button>
+                        Commencer ma demarche <ArrowRight size={18} />
                       </>
                     )}
-                    <div className="flex items-center justify-center gap-4 text-xs text-encre/40 pt-2">
-                      <span className="flex items-center gap-1"><Lock size={12} /> SSL securise</span>
-                      <span className="flex items-center gap-1"><ShieldCheck size={12} /> Agree ANTS</span>
-                    </div>
-                  </div>
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-        </section>
-
-        {/* Process steps */}
-        <section className="px-4 py-16 bg-white">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-serif font-bold text-encre mb-10 text-center">Comment ca marche</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {config.steps.map((step, i) => (
-                <div key={i} className="relative">
-                  <div className="w-10 h-10 rounded-full bg-bleu-france text-white flex items-center justify-center font-bold text-sm mb-4">
-                    {i + 1}
-                  </div>
-                  <p className="text-sm text-encre/80 leading-relaxed">{step}</p>
-                  {i < config.steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-5 left-12 w-[calc(100%-48px)] h-px bg-encre/10" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Documents section */}
-        <section className="px-4 py-16 bg-[#F8F9FA]">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-serif font-bold text-encre mb-8">Documents necessaires</h2>
-            {requiredDocs.length > 0 ? (
-              <div className="grid sm:grid-cols-2 gap-3">
-                {requiredDocs.map((doc, i) => (
-                  <div key={i} className="flex items-start gap-3 p-4 bg-white rounded-xl border border-gray-100">
-                    <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle size={16} className="text-green-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-encre text-sm">{doc.nom_document}</p>
-                      {doc.description && (
-                        <p className="text-xs text-encre/50 mt-0.5">{doc.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-encre/50">
-                Les documents requis seront precises lors de votre demarche.
-              </p>
-            )}
-          </div>
-        </section>
+        </div>
       </main>
 
       <Footer />

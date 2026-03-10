@@ -25,6 +25,17 @@ import {
   Lock,
   Quote,
   BadgeCheck,
+  Search,
+  PenTool,
+  ScrollText,
+  Receipt,
+  Home,
+  Bike,
+  XCircle,
+  ClipboardList,
+  PlusCircle,
+  Globe,
+  ChevronLeft,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -71,12 +82,21 @@ const steps = [
 ];
 
 const demarchesParticulier = [
-  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire suite a un achat de vehicule.", slug: "carte-grise" },
-  { icon: FilePen, title: "Declaration de cession", desc: "Declarez la vente de votre vehicule en quelques clics.", slug: "declaration-cession" },
-  { icon: MapPin, title: "Changement d'adresse", desc: "Mettez a jour l'adresse sur votre carte grise.", slug: "changement-adresse" },
-  { icon: Copy, title: "Duplicata", desc: "Obtenez un duplicata en cas de perte ou vol.", slug: "duplicata" },
-  { icon: Import, title: "Carte grise import", desc: "Immatriculation d'un vehicule importe de l'etranger.", slug: "carte-grise-import" },
-  { icon: Car, title: "Vehicule neuf", desc: "Premiere immatriculation d'un vehicule neuf.", slug: "vehicule-neuf" },
+  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire suite a un achat.", slug: "carte-grise" },
+  { icon: FilePen, title: "Declaration de cession", desc: "Declarez la vente de votre vehicule.", slug: "declaration-cession" },
+  { icon: MapPin, title: "Changement d'adresse", desc: "Mettez a jour l'adresse sur votre CG.", slug: "changement-adresse" },
+  { icon: Copy, title: "Duplicata", desc: "Perte ou vol de carte grise.", slug: "duplicata" },
+  { icon: PlusCircle, title: "Vehicule neuf", desc: "Premiere immatriculation.", slug: "vehicule-neuf" },
+  { icon: Globe, title: "Carte grise import", desc: "Vehicule importe de l'etranger.", slug: "carte-grise-import" },
+  { icon: Search, title: "FIV", desc: "Fiche d'identification vehicule.", slug: "fiv" },
+  { icon: PenTool, title: "Modification CG", desc: "Modifier les infos de votre CG.", slug: "modification-carte-grise" },
+  { icon: ScrollText, title: "Succession", desc: "Transfert suite a un heritage.", slug: "succession" },
+  { icon: Users, title: "Cotitulaire", desc: "Ajout ou retrait de cotitulaire.", slug: "cotitulaire" },
+  { icon: Receipt, title: "Quitus fiscal", desc: "Attestation fiscale pour import.", slug: "quitus-fiscal" },
+  { icon: Home, title: "Adresse locataire", desc: "Changement d'adresse leasing.", slug: "changement-adresse-locataire" },
+  { icon: Bike, title: "Cyclomoteur", desc: "Immatriculation cyclomoteur ancien.", slug: "immatriculation-cyclomoteur" },
+  { icon: XCircle, title: "Annuler CPI/WW", desc: "Annulation certificat provisoire.", slug: "annuler-cpi-ww" },
+  { icon: ClipboardList, title: "Demande immatriculation", desc: "Vehicule non enregistre au SIV.", slug: "demande-immatriculation" },
 ];
 
 const demarchesPro = [
@@ -246,26 +266,28 @@ const Index = () => {
               Choisissez votre demarche et laissez-vous guider
             </motion.p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {demarchesParticulier.map((d, i) => (
               <motion.button
                 key={i}
                 onClick={() => navigate(`/demarches/${d.slug}`)}
-                className="group p-6 bg-white border border-gray-200 rounded-2xl hover:border-bleu-france/30 hover:shadow-lg transition-all text-left"
+                className="group relative flex flex-col items-center text-center p-5 bg-[#F8F9FB] hover:bg-white border border-transparent hover:border-bleu-france/20 rounded-2xl hover:shadow-md transition-all"
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
-                custom={i}
+                custom={Math.min(i, 6) * 0.5}
                 variants={fadeUp}
               >
-                <div className="w-12 h-12 rounded-xl bg-bleu-france/10 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-bleu-france/10 flex items-center justify-center mb-3 group-hover:bg-bleu-france/15 transition-colors">
                   <d.icon size={22} className="text-bleu-france" />
                 </div>
-                <h3 className="font-semibold text-encre mb-1 flex items-center gap-2">
+                <h3 className="font-semibold text-encre text-sm leading-tight mb-1">
                   {d.title}
-                  <ChevronRight size={16} className="opacity-0 group-hover:opacity-100 transition text-bleu-france" />
                 </h3>
-                <p className="text-sm text-encre/60">{d.desc}</p>
+                <p className="text-[11px] text-encre/50 leading-snug line-clamp-2">{d.desc}</p>
+                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition">
+                  <ArrowRight size={14} className="text-bleu-france" />
+                </div>
               </motion.button>
             ))}
           </div>
