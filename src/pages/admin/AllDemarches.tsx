@@ -81,7 +81,7 @@ export default function AllDemarches() {
       );
     }
 
-    navigate(`/admin/demarche/${demarche.id}`);
+    navigate(`/dashboard/demarche/${demarche.id}`);
   };
 
   const getPaymentStatusBadge = (demarche: any) => {
@@ -164,7 +164,7 @@ export default function AllDemarches() {
               <TableCell className="text-gray-500 text-sm">{new Date(d.created_at).toLocaleDateString('fr-FR')}</TableCell>
               <TableCell>
                 <Link
-                  to={`/admin/demarche/${d.id}`}
+                  to={`/dashboard/demarche/${d.id}`}
                   onClick={() => options?.showUnviewed && handleViewDemarche(d)}
                 >
                   <Button
@@ -185,7 +185,7 @@ export default function AllDemarches() {
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-md hover:bg-gray-50">
+        <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-6 rounded-md hover:bg-gray-50">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>

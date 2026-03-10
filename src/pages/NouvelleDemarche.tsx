@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, FileCheck, Plus, Gift, FileText, X, Download, Coins, Check, ChevronDown, FileQuestion, Shield, Lock } from "lucide-react";
+import { ArrowLeft, FileCheck, Plus, Gift, FileText, X, Download, Coins, Check, ChevronDown, FileQuestion, Shield, Lock, Copy, Mail, Maximize2, Send, Loader2 } from "lucide-react";
 import { siteConfig } from "@/config/site.config";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,8 @@ import { StripePayment } from "@/components/StripePayment";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatPrice } from "@/lib/utils";
 import { extractCerfaNumber, getCerfaUrl, cerfaExists } from "@/lib/cerfa-utils";
+import PaymentOptionSelector from "@/components/PaymentOptionSelector";
+import QRCode from "qrcode";
 
 // Types de démarches PRO qui nécessitent un traitement spécial
 const PRO_DEMARCHE_TYPES = [
@@ -98,6 +100,19 @@ export default function NouvelleDemarche() {
   const [questionnaireCompleted, setQuestionnaireCompleted] = useState(false);
   // Ouverture/fermeture du bloc questionnaire (modifiable même après complétion)
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(true);
+  // CG payment option states
+  const [paymentOption, setPaymentOption] = useState<'garage_dossier' | 'garage_tout' | 'client_tout'>('garage_dossier');
+  const [prixCarteGrise, setPrixCarteGrise] = useState(0);
+  const [fraisDossier, setFraisDossier] = useState(30);
+  const [clientPaymentLinkId, setClientPaymentLinkId] = useState<string | null>(null);
+  const [cgClientEmail, setCgClientEmail] = useState("");
+  const [cgClientName, setCgClientName] = useState("");
+  const [cgSuccessScreen, setCgSuccessScreen] = useState(false);
+  const [cgQrDataUrl, setCgQrDataUrl] = useState("");
+  const [cgCopied, setCgCopied] = useState(false);
+  const [cgSendingEmail, setCgSendingEmail] = useState(false);
+  const [cgQrFullscreen, setCgQrFullscreen] = useState(false);
+  const [cgSubmitting, setCgSubmitting] = useState(false);
   // Textes des réponses au questionnaire (pour DocumentsNecessaires)
   const [questionnaireAnswerTexts, setQuestionnaireAnswerTexts] = useState<Record<string, string>>({});
 
@@ -367,6 +382,123 @@ export default function NouvelleDemarche() {
 
   const handlePriceCalculated = (price: number) => {
     setCarteGrisePrice(price);
+    setPrixCarteGrise(price);
+  };
+
+  // Load frais_dossier from pricing config for CG
+  useEffect(() => {
+    if (actionDetails && formData.type === 'CG') {
+      setFraisDossier(actionDetails.prix || 30);
+    }
+  }, [actionDetails, formData.type]);
+
+  // CG payment link URL
+  const cgPaymentUrl = clientPaymentLinkId
+    ? `${window.location.origin}/payer/${clientPaymentLinkId}`
+    : "";
+
+  // Generate QR code for CG payment link
+  useEffect(() => {
+    if (cgPaymentUrl) {
+      QRCode.toDataURL(cgPaymentUrl, { width: 400, margin: 2 })
+        .then(setCgQrDataUrl)
+        .catch(console.error);
+    } else {
+      setCgQrDataUrl("");
+    }
+  }, [cgPaymentUrl]);
+
+  const copyCgLink = async () => {
+    await navigator.clipboard.writeText(cgPaymentUrl);
+    setCgCopied(true);
+    setTimeout(() => setCgCopied(false), 2000);
+    toast({ title: "Lien copie !" });
+  };
+
+  const downloadCgQr = async () => {
+    try {
+      const dataUrl = await QRCode.toDataURL(cgPaymentUrl, { width: 600, margin: 2 });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `qr-paiement-cg-${clientPaymentLinkId}.png`;
+      a.click();
+    } catch (err) {
+      console.error("QR download error:", err);
+    }
+  };
+
+  const sendCgEmailToClient = async () => {
+    if (!cgClientEmail) return;
+    setCgSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: cgClientEmail,
+          subject: `Paiement carte grise - ${selectedImmatriculation}`,
+          html: `<p>Bonjour${cgClientName ? ` ${cgClientName}` : ""},</p>
+<p>Votre professionnel a initié une démarche de carte grise pour votre véhicule ${selectedImmatriculation}.</p>
+<p><strong>Montant à régler :</strong> ${formatPrice(paymentOption === 'garage_dossier' ? prixCarteGrise : fraisDossier + prixCarteGrise)} EUR</p>
+<p>Pour procéder au paiement, cliquez sur le lien ci-dessous :</p>
+<p><a href="${cgPaymentUrl}" style="display:inline-block;padding:12px 24px;background:#1B2A4A;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Payer maintenant</a></p>
+<p style="color:#888;font-size:13px;">Ou copiez ce lien : ${cgPaymentUrl}</p>
+<p>Cordialement,<br/>${siteConfig.siteName}</p>`,
+        },
+      });
+      if (error) throw error;
+      toast({ title: "Email envoyé", description: `Lien envoyé à ${cgClientEmail}` });
+    } catch (err: any) {
+      toast({ title: "Erreur d'envoi", description: err.message, variant: "destructive" });
+    } finally {
+      setCgSendingEmail(false);
+    }
+  };
+
+  const handleCgSubmit = async () => {
+    if (!demarcheId || !garage) return;
+    setCgSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("deduct-tokens-and-create-demarche", {
+        body: {
+          garage_id: garage.id,
+          demarche_id: demarcheId,
+          demarche_type: 'CG',
+          immatriculation: selectedImmatriculation,
+          payment_option: paymentOption,
+          frais_dossier: fraisDossier,
+          prix_carte_grise: prixCarteGrise,
+          client_name: cgClientName || null,
+          client_email: cgClientEmail || null,
+        },
+      });
+
+      if (error) throw error;
+
+      if (paymentOption === 'garage_tout') {
+        // Option B: garage pays everything, no client payment needed
+        setTokenBalance((prev) => prev - (fraisDossier + prixCarteGrise));
+        toast({
+          title: "Démarche créée !",
+          description: "Le dossier est en attente de traitement.",
+        });
+        navigate("/mes-demarches");
+      } else {
+        // Option A or C: client needs to pay
+        setClientPaymentLinkId(data?.payment_link_id || data?.id);
+        if (paymentOption === 'garage_dossier') {
+          setTokenBalance((prev) => prev - fraisDossier);
+        }
+        setCgSuccessScreen(true);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err.message || "Une erreur est survenue",
+        variant: "destructive",
+      });
+    } finally {
+      setCgSubmitting(false);
+    }
   };
 
 
@@ -807,7 +939,7 @@ export default function NouvelleDemarche() {
 
         <div className="grid lg:grid-cols-[1fr,360px] gap-8">
           <div className="space-y-6">
-            {isFreeTokenEligible && (
+            {!cgSuccessScreen && isFreeTokenEligible && (
               <div className="rounded-2xl border-2 border-green-200 bg-green-50 p-5 flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                   <Gift className="h-5 w-5 text-green-600" />
@@ -818,7 +950,7 @@ export default function NouvelleDemarche() {
                 </div>
               </div>
             )}
-            {freeTokenAvailable && !isFreeTokenEligible && (formData.type === 'DA' || formData.type === 'DC' || !formData.type) && (
+            {!cgSuccessScreen && freeTokenAvailable && !isFreeTokenEligible && (formData.type === 'DA' || formData.type === 'DC' || !formData.type) && (
               <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                   <Gift className="h-5 w-5 text-blue-600" />
@@ -829,7 +961,7 @@ export default function NouvelleDemarche() {
                 </div>
               </div>
             )}
-            <form onSubmit={handleSubmitPayment} className="space-y-6">
+            {!cgSuccessScreen && <form onSubmit={handleSubmitPayment} className="space-y-6">
               {/* Selected demarche type */}
               {actionDetails && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -1187,10 +1319,58 @@ export default function NouvelleDemarche() {
                 </>
               )}
 
+              {/* CG Payment Option Step */}
+              {formData.type === 'CG' && carteGrisePrice > 0 && demarcheId && !cgSuccessScreen && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-600">4</div>
+                    Option de paiement
+                  </h2>
+                  <PaymentOptionSelector
+                    fraisDossier={fraisDossier}
+                    prixCarteGrise={prixCarteGrise}
+                    garageBalance={tokenBalance}
+                    selectedOption={paymentOption}
+                    onSelect={setPaymentOption}
+                  />
+
+                  {/* Client info for Options A and C (client needs to pay) */}
+                  {paymentOption !== 'garage_tout' && (
+                    <div className="mt-6 space-y-4 border-t border-gray-100 pt-5">
+                      <p className="text-sm font-semibold text-gray-700">Informations client (pour le lien de paiement)</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Nom du client</Label>
+                          <Input
+                            placeholder="Ex: Dupont Jean"
+                            value={cgClientName}
+                            onChange={(e) => setCgClientName(e.target.value)}
+                            className="rounded-xl border-gray-200 min-h-[48px]"
+                          />
+                        </div>
+                        <div>
+                          <Label>Email du client</Label>
+                          <Input
+                            type="email"
+                            placeholder="client@email.com"
+                            value={cgClientEmail}
+                            onChange={(e) => setCgClientEmail(e.target.value)}
+                            className="rounded-xl border-gray-200 min-h-[48px]"
+                          />
+                          <p className="text-xs text-gray-400 mt-1">Si renseigné, le lien sera envoyé par email</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Submit button */}
               <button
-                type="submit"
+                type={formData.type === 'CG' && carteGrisePrice > 0 ? 'button' : 'submit'}
+                onClick={formData.type === 'CG' && carteGrisePrice > 0 ? handleCgSubmit : undefined}
                 disabled={
+                  cgSubmitting ||
                   loading ||
                   isQuestionnaireBlocked ||
                   (PRO_TYPES_WITH_VEHICLE.includes(formData.type) && !vehicleInfoProValid) ||
@@ -1203,14 +1383,117 @@ export default function NouvelleDemarche() {
                   isFreeTokenEligible ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
                 }`}
               >
-                {isQuestionnaireBlocked ? 'Démarche impossible' : (isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())} EUR`)}
+                {cgSubmitting ? 'Traitement en cours...' : isQuestionnaireBlocked ? 'Démarche impossible' : formData.type === 'CG' && carteGrisePrice > 0 ? (paymentOption === 'garage_tout' ? `Payer ${formatPrice(fraisDossier + prixCarteGrise)} EUR (jetons)` : paymentOption === 'garage_dossier' ? `Payer ${formatPrice(fraisDossier)} EUR et envoyer le lien au client` : 'Générer le lien de paiement client') : (isFreeTokenEligible && getTotalPrice() === 0 ? 'Valider gratuitement' : `Payer ${formatPrice(getTotalPrice())} EUR`)}
               </button>
 
               <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pb-2">
                 <Lock className="h-3.5 w-3.5" />
                 <span>Paiement sécurisé et crypté</span>
               </div>
-            </form>
+            </form>}
+
+            {/* CG Success Screen - Payment link created */}
+            {cgSuccessScreen && clientPaymentLinkId && (
+              <div className="space-y-6">
+                {/* QR Fullscreen Modal */}
+                {cgQrFullscreen && (
+                  <div
+                    className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center cursor-pointer"
+                    onClick={() => setCgQrFullscreen(false)}
+                  >
+                    <img src={cgQrDataUrl} alt="QR Code" className="w-[80vmin] h-[80vmin] max-w-[500px] max-h-[500px]" />
+                    <p className="mt-4 text-lg font-semibold text-[#1B2A4A]">Paiement carte grise</p>
+                    <p className="text-blue-600 font-bold text-xl">{selectedImmatriculation}</p>
+                    <p className="mt-2 text-gray-400 text-sm">Le client scanne pour proceder au paiement</p>
+                    <p className="mt-6 text-gray-300 text-xs">Cliquez pour fermer</p>
+                    <Button variant="ghost" className="absolute top-4 right-4" onClick={() => setCgQrFullscreen(false)}>
+                      <X className="w-6 h-6" />
+                    </Button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Lien de paiement créé</h2>
+                    <p className="text-sm text-gray-500">
+                      {cgClientEmail ? "Le lien a été envoyé au client par email." : "Partagez ce lien avec votre client pour qu'il procède au paiement."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+                  {/* Payment link */}
+                  <div className="bg-[#1B2A4A]/5 border-2 border-[#1B2A4A]/20 rounded-xl p-4">
+                    <Label className="text-sm text-[#1B2A4A] font-semibold mb-2 block">Lien de paiement client</Label>
+                    <div className="flex items-center gap-2">
+                      <Input readOnly value={cgPaymentUrl} className="font-mono text-sm bg-white border-[#1B2A4A]/20" />
+                      <Button onClick={copyCgLink} className={cgCopied ? "bg-green-600 hover:bg-green-700" : "bg-[#1B2A4A] hover:bg-[#1B2A4A]/90"}>
+                        {cgCopied ? <><Check className="w-4 h-4 mr-1" /> Copié</> : <><Copy className="w-4 h-4 mr-1" /> Copier</>}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {cgClientEmail ? (
+                      <Button variant="outline" className="w-full" onClick={sendCgEmailToClient} disabled={cgSendingEmail}>
+                        {cgSendingEmail ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi...</>
+                        ) : (
+                          <><Send className="w-4 h-4 mr-2" /> Envoyer par email</>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="w-full" onClick={() => {
+                        window.open(`mailto:?subject=Paiement carte grise - ${selectedImmatriculation}&body=Bonjour,%0A%0AVeuillez procéder au paiement de votre carte grise en suivant ce lien :%0A${encodeURIComponent(cgPaymentUrl)}%0A%0ACordialement`, "_blank");
+                      }}>
+                        <Mail className="w-4 h-4 mr-2" /> Ouvrir dans email
+                      </Button>
+                    )}
+                    <Button variant="outline" className="w-full" onClick={() => setCgQrFullscreen(true)}>
+                      <Maximize2 className="w-4 h-4 mr-2" /> QR plein écran
+                    </Button>
+                    <Button variant="outline" className="w-full" onClick={downloadCgQr}>
+                      <Download className="w-4 h-4 mr-2" /> Télécharger QR
+                    </Button>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <img src={cgQrDataUrl} alt="QR Code" className="w-48 h-48 rounded-lg border" />
+                    <p className="text-sm text-gray-400">Le client scanne pour procéder au paiement</p>
+                  </div>
+
+                  {/* Info */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                    <p className="font-medium mb-1">En attente de paiement client</p>
+                    <p>Le dossier sera visible dans vos démarches une fois le paiement client effectué.</p>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="bg-gray-50 rounded-lg p-4 text-sm space-y-1">
+                    <p className="font-medium text-[#1B2A4A] mb-2">Récapitulatif</p>
+                    <p><span className="text-gray-500">Immatriculation :</span> <span className="font-medium">{selectedImmatriculation}</span></p>
+                    <p><span className="text-gray-500">Option :</span> <span className="font-medium">{paymentOption === 'garage_dossier' ? 'Garage paie frais de dossier' : 'Client paie tout'}</span></p>
+                    <p><span className="text-gray-500">Montant client :</span> <span className="font-medium text-blue-600">{formatPrice(paymentOption === 'garage_dossier' ? prixCarteGrise : fraisDossier + prixCarteGrise)} EUR</span></p>
+                    {cgClientName && <p><span className="text-gray-500">Client :</span> <span className="font-medium">{cgClientName}</span></p>}
+                    {cgClientEmail && <p><span className="text-gray-500">Email :</span> <span className="font-medium">{cgClientEmail}</span></p>}
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-3">
+                  <Button onClick={() => navigate("/mes-demarches")} variant="outline" className="rounded-full">
+                    Voir mes démarches
+                  </Button>
+                  <Button onClick={() => navigate("/nouvelle-demarche")} className="bg-[#1B2A4A] hover:bg-[#1B2A4A]/90 rounded-full">
+                    <Plus className="w-4 h-4 mr-2" /> Nouvelle démarche
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sticky sidebar */}

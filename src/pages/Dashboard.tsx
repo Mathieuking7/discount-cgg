@@ -47,7 +47,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     totalDemarches: 0,
     enAttente: 0,
-    validees: 0
+    validees: 0,
+    attentePaiementClient: 0
   });
   const [recentDemarches, setRecentDemarches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,10 +109,18 @@ export default function Dashboard() {
         .eq('paye', true)
         .order('created_at', { ascending: false });
 
+      // Also count demarches awaiting client payment (including non-paid ones)
+      const { data: attentePaiement } = await supabase
+        .from('demarches')
+        .select('id')
+        .eq('garage_id', garageData.id)
+        .eq('status', 'attente_paiement_client');
+
       setStats({
         totalDemarches: demarches?.length || 0,
         enAttente: demarches?.filter(d => d.status === 'en_attente' || d.status === 'paye').length || 0,
-        validees: demarches?.filter(d => d.status === 'valide' || d.status === 'finalise').length || 0
+        validees: demarches?.filter(d => d.status === 'valide' || d.status === 'finalise').length || 0,
+        attentePaiementClient: attentePaiement?.length || 0
       });
       setRecentDemarches(demarches?.slice(0, 5) || []);
 
@@ -153,6 +162,7 @@ export default function Dashboard() {
     paye: { label: "Payee", color: "text-blue-600", bgColor: "bg-blue-50", icon: CheckCircle },
     valide: { label: "Validee", color: "text-green-600", bgColor: "bg-green-50", icon: CheckCircle },
     finalise: { label: "Finalisee", color: "text-teal-600", bgColor: "bg-teal-50", icon: CheckCircle },
+    attente_paiement_client: { label: "Attente paiement", color: "text-amber-600", bgColor: "bg-amber-50", icon: Clock },
   };
 
   const refusees = (stats.totalDemarches - stats.enAttente - stats.validees);
@@ -181,7 +191,7 @@ export default function Dashboard() {
               </button>
             ))}
             {isAdmin && (
-              <button onClick={() => navigate('/admin')} className="px-3 py-2 text-sm text-rouge-france hover:bg-rouge-france/5 rounded-lg transition">
+              <button onClick={() => navigate('/dashboard')} className="px-3 py-2 text-sm text-rouge-france hover:bg-rouge-france/5 rounded-lg transition">
                 Admin
               </button>
             )}
@@ -220,7 +230,7 @@ export default function Dashboard() {
                     Support
                   </Button>
                   {isAdmin && (
-                    <Button variant="ghost" className="w-full justify-start rounded-2xl text-gray-700 min-h-[48px]" onClick={() => { setMobileMenuOpen(false); navigate("/admin"); }}>
+                    <Button variant="ghost" className="w-full justify-start rounded-2xl text-gray-700 min-h-[48px]" onClick={() => { setMobileMenuOpen(false); navigate("/dashboard"); }}>
                       <Settings className="mr-3 h-5 w-5" />
                       Administration
                     </Button>
@@ -356,6 +366,31 @@ export default function Dashboard() {
             );
           })}
         </motion.div>
+
+        {/* Attente paiement client badge */}
+        {stats.attentePaiementClient > 0 && (
+          <motion.div initial="hidden" animate="visible" custom={2.5} variants={fadeUp}>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 p-2 rounded-xl">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-encre text-sm">
+                    {stats.attentePaiementClient} démarche{stats.attentePaiementClient > 1 ? 's' : ''} en attente de paiement client
+                  </p>
+                  <p className="text-xs text-encre/50">Le client n'a pas encore réglé le montant de la carte grise</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/mes-demarches?filter=attente_paiement_client')}
+                className="border border-amber-300 text-amber-700 hover:bg-amber-100 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition"
+              >
+                Voir
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* ROW 4: Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -505,7 +540,7 @@ export default function Dashboard() {
                     <Receipt className="w-4 h-4" /> Mes factures
                   </Link>
                   {isAdmin && (
-                    <Link to="/admin" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-encre/70 transition">
+                    <Link to="/dashboard" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-encre/70 transition">
                       <Shield className="w-4 h-4" /> Administration
                     </Link>
                   )}

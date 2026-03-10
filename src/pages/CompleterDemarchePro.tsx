@@ -1,26 +1,14 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Upload, FileCheck, CreditCard, Loader2, Shield, Clock,
-  ChevronLeft, ChevronRight, User, Bell, CheckCircle,
-  Eye, X, AlertCircle, Lock, BadgeCheck, Star, FileText,
-  Camera, RotateCcw
+  ChevronLeft, ChevronRight, User, CheckCircle, X, Lock,
+  BadgeCheck, FileText, Camera, RotateCcw, Car, AlertTriangle,
+  Check
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { GuestPaymentDetailsSummary, calculateGuestOrderTTC } from "@/components/payment/GuestPaymentDetailsSummary";
 
-const STEPS = [
-  { id: 1, label: "Informations", icon: User },
-  { id: 2, label: "Documents", icon: Upload },
-  { id: 3, label: "Options", icon: Bell },
-  { id: 4, label: "Recapitulatif", icon: CheckCircle },
-];
-
-// Documents that require recto + verso (ID documents)
 const isIdentityDocument = (docName: string) => {
   const lower = docName.toLowerCase();
   return lower.includes("identite") || lower.includes("identité") ||
@@ -28,17 +16,19 @@ const isIdentityDocument = (docName: string) => {
     lower.includes("piece d'identite") || lower.includes("pièce d'identité");
 };
 
-const CommanderSansCompte = () => {
-  const { orderId } = useParams();
-  const navigate = useNavigate();
+type PageState = "loading" | "invalid" | "already_completed" | "cancelled" | "form" | "success";
+
+const CompleterDemarchePro = () => {
+  const { linkId } = useParams();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [order, setOrder] = useState<any>(null);
-  const [demarcheInfo, setDemarcheInfo] = useState<any>(null);
+
+  const [pageState, setPageState] = useState<PageState>("loading");
+  const [demarche, setDemarche] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, File>>({});
   const [extraDocs, setExtraDocs] = useState<{ name: string; file: File }[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     nom: "",
     prenom: "",
@@ -47,67 +37,74 @@ const CommanderSansCompte = () => {
     adresse: "",
     code_postal: "",
     ville: "",
-    sms_notifications: false,
-    email_notifications: true,
   });
 
-  useEffect(() => {
-    loadOrder();
-  }, [orderId]);
+  const paymentOption = demarche?.payment_option || "client_tout";
+  const needsPayment = paymentOption !== "garage_tout";
+
+  const STEPS = needsPayment
+    ? [
+        { id: 1, label: "Informations", icon: User },
+        { id: 2, label: "Documents", icon: Upload },
+        { id: 3, label: "Recapitulatif", icon: CheckCircle },
+      ]
+    : [
+        { id: 1, label: "Informations", icon: User },
+        { id: 2, label: "Documents", icon: Upload },
+        { id: 3, label: "Confirmation", icon: CheckCircle },
+      ];
+
+  const totalSteps = STEPS.length;
 
   useEffect(() => {
-    if (order?.demarche_type) {
-      loadRequiredDocuments(order.demarche_type);
-      loadDemarcheInfo(order.demarche_type);
+    loadDemarche();
+  }, [linkId]);
+
+  useEffect(() => {
+    if (demarche?.demarche_type) {
+      loadRequiredDocuments(demarche.demarche_type);
     }
-  }, [order?.demarche_type]);
+  }, [demarche?.demarche_type]);
 
-  const loadOrder = async () => {
-    if (!orderId) return;
+  const loadDemarche = async () => {
+    if (!linkId) { setPageState("invalid"); return; }
+
     const { data, error } = await supabase
-      .from("guest_orders")
+      .from("demarches")
       .select("*")
-      .eq("id", orderId)
+      .eq("client_payment_link_id", linkId)
       .single();
 
-    if (error) {
-      toast({ title: "Erreur", description: "Commande introuvable", variant: "destructive" });
-      navigate("/");
-      return;
-    }
-    setOrder(data);
-    if (data.nom) {
-      setFormData({
-        nom: data.nom || "",
-        prenom: data.prenom || "",
-        email: data.email || "",
-        telephone: data.telephone || "",
-        adresse: data.adresse || "",
-        code_postal: data.code_postal || "",
-        ville: data.ville || "",
-        sms_notifications: data.sms_notifications || false,
-        email_notifications: data.email_notifications !== false,
-      });
-    }
-  };
+    if (error || !data) { setPageState("invalid"); return; }
 
-  const loadDemarcheInfo = async (demarcheType: string) => {
-    const { data } = await supabase
-      .from("guest_demarche_types")
-      .select("titre, description, prix_base")
-      .eq("code", demarcheType)
-      .single();
-    if (data) setDemarcheInfo(data);
+    if (data.client_payment_status === "paid") { setPageState("already_completed"); return; }
+    if (data.status === "annulee") { setPageState("cancelled"); return; }
+
+    setDemarche(data);
+    // Pre-fill client info if available
+    if (data.client_nom) {
+      setFormData(prev => ({
+        ...prev,
+        nom: data.client_nom || "",
+        prenom: data.client_prenom || "",
+        email: data.client_email || "",
+        telephone: data.client_telephone || "",
+        adresse: data.client_adresse || "",
+        code_postal: data.client_code_postal || "",
+        ville: data.client_ville || "",
+      }));
+    }
+    setPageState("form");
   };
 
   const loadRequiredDocuments = async (demarcheType: string) => {
-    const { data: docsData } = await supabase
+    const { data } = await supabase
       .from("guest_order_required_documents")
       .select("*")
       .eq("actif", true)
       .eq("demarche_type_code", demarcheType)
       .order("ordre");
-    setDocuments(docsData || []);
+    setDocuments(data || []);
   };
 
   const handleFileChange = (documentName: string, file: File | null) => {
@@ -121,14 +118,9 @@ const CommanderSansCompte = () => {
   };
 
   const cleanFileName = (name: string) => {
-    return name
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[()\/\\]/g, '_')
-      .replace(/\s+/g, '_')
-      .replace(/[^a-zA-Z0-9.]/g, '_')
-      .replace(/_+/g, '_')
-      .toLowerCase();
+    return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[()\/\\]/g, '_').replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9.]/g, '_').replace(/_+/g, '_').toLowerCase();
   };
 
   const validateStep1 = () => {
@@ -151,7 +143,6 @@ const CommanderSansCompte = () => {
       case 1: return validateStep1();
       case 2: return validateStep2();
       case 3: return true;
-      case 4: return true;
       default: return false;
     }
   };
@@ -162,10 +153,10 @@ const CommanderSansCompte = () => {
       return;
     }
     if (currentStep === 2 && !validateStep2()) {
-      toast({ title: "Documents manquants", description: "Veuillez telecharger tous les documents obligatoires (recto et verso pour les pieces d'identite)", variant: "destructive" });
+      toast({ title: "Documents manquants", description: "Veuillez telecharger tous les documents obligatoires", variant: "destructive" });
       return;
     }
-    if (currentStep < 4) {
+    if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -179,136 +170,86 @@ const CommanderSansCompte = () => {
   };
 
   const handleSubmit = async () => {
-    if (!order) return;
+    if (!demarche) return;
     setIsLoading(true);
 
     try {
-      const { error: updateError } = await supabase
-        .from("guest_orders")
-        .update({
-          ...formData,
-          documents_complets: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", orderId);
-
-      if (updateError) throw updateError;
-
-      // Delete old docs
-      const { data: existingDocs } = await supabase
-        .from("guest_order_documents")
-        .select("id, url")
-        .eq("order_id", orderId);
-
-      if (existingDocs && existingDocs.length > 0) {
-        for (const doc of existingDocs) {
-          const path = doc.url.split('/').slice(-2).join('/');
-          await supabase.storage.from("guest-order-documents").remove([path]);
-          await supabase.from("guest_order_documents").delete().eq("id", doc.id);
-        }
-      }
-
-      // Upload new docs
+      // Upload documents
       for (const [key, file] of Object.entries(uploadedDocs)) {
         const cleanedKey = cleanFileName(key);
         const cleanedFileName = cleanFileName(file.name);
-        const fileName = `${orderId}/${cleanedKey}_${Date.now()}_${cleanedFileName}`;
+        const fileName = `${demarche.id}/${cleanedKey}_${Date.now()}_${cleanedFileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("guest-order-documents")
           .upload(fileName, file);
-
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
           .from("guest-order-documents")
           .getPublicUrl(fileName);
 
-        await supabase.from("guest_order_documents").insert({
-          order_id: orderId,
+        await supabase.from("demarche_documents").insert({
+          demarche_id: demarche.id,
           type_document: key,
           nom_fichier: file.name,
           url: urlData.publicUrl,
           taille_octets: file.size,
-          validation_status: 'pending',
         });
       }
 
-      // Upload extra/supplementary docs
+      // Upload extra docs
       for (const doc of extraDocs) {
         const cleanedFileName = cleanFileName(doc.file.name);
-        const fileName = `${orderId}/${doc.name}_${Date.now()}_${cleanedFileName}`;
+        const fileName = `${demarche.id}/${doc.name}_${Date.now()}_${cleanedFileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("guest-order-documents")
           .upload(fileName, doc.file);
-
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
           .from("guest-order-documents")
           .getPublicUrl(fileName);
 
-        await supabase.from("guest_order_documents").insert({
-          order_id: orderId,
+        await supabase.from("demarche_documents").insert({
+          demarche_id: demarche.id,
           type_document: `Document supplementaire ${doc.name}`,
           nom_fichier: doc.file.name,
           url: urlData.publicUrl,
           taille_octets: doc.file.size,
-          validation_status: 'pending',
         });
       }
 
-      const hasStripe = !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      // Update demarche with client info
+      const updateData: any = {
+        client_nom: formData.nom,
+        client_prenom: formData.prenom,
+        client_email: formData.email,
+        client_telephone: formData.telephone,
+        client_adresse: formData.adresse,
+        client_code_postal: formData.code_postal,
+        client_ville: formData.ville,
+        status: "en_attente",
+        client_completed_at: new Date().toISOString(),
+      };
 
-      if (!hasStripe) {
-        await supabase
-          .from("guest_orders")
-          .update({
-            paye: true,
-            paid_at: new Date().toISOString(),
-            status: "paye"
-          })
-          .eq("id", orderId);
-
-        if (formData.email_notifications) {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              type: 'payment_confirmed',
-              to: formData.email,
-              data: {
-                tracking_number: order.tracking_number,
-                nom: formData.nom,
-                prenom: formData.prenom,
-                immatriculation: order.immatriculation,
-                montant_ttc: order.montant_ttc + (formData.sms_notifications ? 5 : 0)
-              }
-            }
-          });
-        }
-
-        toast({ title: "Commande validee", description: "Votre commande a ete enregistree avec succes" });
-        navigate(`/suivi/${order.tracking_number}`);
+      if (paymentOption === "garage_tout") {
+        updateData.client_payment_status = "not_required";
       } else {
-        if (formData.email_notifications) {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              type: 'order_confirmation',
-              to: formData.email,
-              data: {
-                tracking_number: order.tracking_number,
-                nom: formData.nom,
-                prenom: formData.prenom,
-                immatriculation: order.immatriculation,
-                montant_ttc: order.montant_ttc + (formData.sms_notifications ? 5 : 0)
-              }
-            }
-          });
-        }
-
-        toast({ title: "Documents envoyes", description: "Passons maintenant au paiement" });
-        navigate(`/paiement/${orderId}`);
+        // For client_tout and garage_dossier, mark as paid (simplified -- real flow would go through Stripe)
+        updateData.client_payment_status = "paid";
+        updateData.client_paid_at = new Date().toISOString();
       }
+
+      const { error: updateError } = await supabase
+        .from("demarches")
+        .update(updateData)
+        .eq("id", demarche.id);
+
+      if (updateError) throw updateError;
+
+      setPageState("success");
     } catch (error: any) {
       console.error("Error:", error);
       toast({ title: "Erreur", description: "Une erreur est survenue lors de l'envoi", variant: "destructive" });
@@ -317,9 +258,21 @@ const CommanderSansCompte = () => {
     }
   };
 
+  // Price helpers
+  const prixCarteGrise = demarche?.prix_carte_grise || demarche?.montant_ht || 0;
+  const fraisDossier = demarche?.frais_dossier || 30;
+
+  const getClientTotal = () => {
+    if (paymentOption === "garage_tout") return 0;
+    if (paymentOption === "garage_dossier") return prixCarteGrise;
+    return prixCarteGrise + fraisDossier; // client_tout
+  };
+
   const totalDocs = Object.keys(uploadedDocs).length + extraDocs.length;
 
-  if (!order) {
+  // --- RENDER STATES ---
+
+  if (pageState === "loading") {
     return (
       <div className="min-h-screen bg-[#F8F9FB] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#1B2A4A]" />
@@ -327,11 +280,72 @@ const CommanderSansCompte = () => {
     );
   }
 
-  const demarcheTitle = demarcheInfo?.titre || "Votre demarche";
+  if (pageState === "invalid") {
+    return (
+      <ErrorPage
+        icon={<AlertTriangle className="w-12 h-12 text-red-400" />}
+        title="Lien invalide"
+        message="Ce lien de demarche n'existe pas ou a expire. Veuillez contacter votre professionnel pour obtenir un nouveau lien."
+      />
+    );
+  }
 
+  if (pageState === "already_completed") {
+    return (
+      <ErrorPage
+        icon={<CheckCircle className="w-12 h-12 text-emerald-500" />}
+        title="Demarche deja completee"
+        message="Cette demarche a deja ete completee. Vous recevrez un email avec le suivi de votre dossier."
+      />
+    );
+  }
+
+  if (pageState === "cancelled") {
+    return (
+      <ErrorPage
+        icon={<X className="w-12 h-12 text-gray-400" />}
+        title="Demarche annulee"
+        message="Cette demarche a ete annulee. Veuillez contacter votre professionnel pour plus d'informations."
+      />
+    );
+  }
+
+  if (pageState === "success") {
+    return (
+      <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
+        <PageHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-emerald-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-3">Votre dossier a ete envoye !</h1>
+            <p className="text-gray-500 mb-6">
+              Vous recevrez un email de suivi a l'adresse <span className="font-medium text-gray-700">{formData.email}</span>.
+              Votre professionnel sera egalement notifie.
+            </p>
+            <div className="p-4 bg-white rounded-xl border border-gray-200 text-left space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Car className="w-4 h-4 text-[#1B2A4A]" />
+                <span className="text-gray-500">Vehicule:</span>
+                <span className="font-mono font-semibold text-[#1B2A4A]">{demarche?.immatriculation || "N/A"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <FileText className="w-4 h-4 text-[#1B2A4A]" />
+                <span className="text-gray-500">Documents:</span>
+                <span className="font-medium text-gray-700">{totalDocs} fichier(s)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- MAIN FORM ---
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FB]">
-      <Navbar />
+      <PageHeader />
 
       {/* Trust bar */}
       <div className="bg-[#1B2A4A] py-2 px-4">
@@ -353,19 +367,52 @@ const CommanderSansCompte = () => {
         </div>
       </div>
 
-      <div id="main-content" className="flex-1 container mx-auto px-4 py-6 sm:py-10">
+      <div className="flex-1 container mx-auto px-4 py-6 sm:py-10">
         <div className="max-w-2xl mx-auto">
-          {/* Header - compact */}
+          {/* Header with vehicle info */}
           <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{demarcheTitle}</h1>
-            {order.immatriculation && (
-              <p className="text-sm text-gray-500 mt-1">
-                Vehicule : <span className="font-semibold text-[#1B2A4A] font-mono tracking-wide">{order.immatriculation}</span>
-              </p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Completez votre demarche</h1>
+            {demarche?.immatriculation && (
+              <div className="flex items-center gap-2 mt-2">
+                <Car size={16} className="text-[#1B2A4A]" />
+                <span className="text-sm text-gray-500">Vehicule :</span>
+                <span className="font-semibold text-[#1B2A4A] font-mono tracking-wide">{demarche.immatriculation}</span>
+                {demarche.marque && (
+                  <span className="text-sm text-gray-400">
+                    {demarche.marque} {demarche.modele || ""}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Step Indicator - clean horizontal */}
+          {/* Payment option banner */}
+          {paymentOption === "garage_tout" && (
+            <div className="mb-5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+              <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Check className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">Entierement pris en charge par votre professionnel</p>
+                <p className="text-xs text-emerald-600">Aucun paiement requis de votre part.</p>
+              </div>
+            </div>
+          )}
+
+          {paymentOption === "garage_dossier" && (
+            <div className="mb-5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <p className="text-sm text-emerald-800">
+                <span className="font-semibold">Frais de dossier :</span>{" "}
+                <span className="text-emerald-600">Pris en charge par votre professionnel</span>{" "}
+                <CheckCircle size={14} className="inline text-emerald-500" />
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Vous ne payez que la taxe carte grise : <span className="font-semibold text-[#1B2A4A]">{prixCarteGrise.toFixed(2)} EUR</span>
+              </p>
+            </div>
+          )}
+
+          {/* Step Indicator */}
           <div className="mb-6">
             <div className="flex items-center gap-0">
               {STEPS.map((step, index) => {
@@ -374,16 +421,9 @@ const CommanderSansCompte = () => {
                 return (
                   <div key={step.id} className="flex items-center flex-1">
                     <button
-                      onClick={() => {
-                        // Allow going back to completed steps
-                        if (isCompleted) {
-                          setCurrentStep(step.id);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                      }}
+                      onClick={() => { if (isCompleted) { setCurrentStep(step.id); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
                       className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg transition-all text-left w-full ${
-                        isCompleted ? "cursor-pointer hover:bg-green-50" :
-                        isActive ? "" : "cursor-default"
+                        isCompleted ? "cursor-pointer hover:bg-green-50" : isActive ? "" : "cursor-default"
                       }`}
                     >
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${
@@ -406,11 +446,10 @@ const CommanderSansCompte = () => {
                 );
               })}
             </div>
-            {/* Progress bar */}
-            <div className="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={4} aria-label="Progression du formulaire">
+            <div className="mt-2 h-1 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#1B2A4A] rounded-full transition-all duration-500"
-                style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+                style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
               />
             </div>
           </div>
@@ -504,7 +543,6 @@ const CommanderSansCompte = () => {
                     const isID = isIdentityDocument(doc.nom_document);
 
                     if (isID) {
-                      // Recto / Verso layout for ID documents
                       const rectoKey = `${doc.nom_document}_recto`;
                       const versoKey = `${doc.nom_document}_verso`;
                       const hasRecto = !!uploadedDocs[rectoKey];
@@ -518,79 +556,46 @@ const CommanderSansCompte = () => {
                             </label>
                             <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">Recto + Verso</span>
                           </div>
-
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {/* Recto */}
-                            <div className="relative">
-                              <div className={`border-2 border-dashed rounded-xl p-3 transition-all text-center ${
-                                hasRecto ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50 hover:border-[#1B2A4A]/30"
-                              }`}>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  aria-label={`Télécharger ${doc.nom_document} recto`}
-                                  onChange={(e) => handleFileChange(rectoKey, e.target.files?.[0] || null)}
-                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                />
-                                {hasRecto ? (
-                                  <div className="space-y-1">
-                                    <FileCheck className="w-5 h-5 text-emerald-600 mx-auto" />
-                                    <p className="text-xs text-emerald-700 font-medium truncate">{uploadedDocs[rectoKey].name}</p>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleFileChange(rectoKey, null); }}
-                                      className="text-[10px] text-red-400 hover:text-red-600 underline"
-                                    >
-                                      Supprimer
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-1">
-                                    <Camera className="w-5 h-5 text-gray-400 mx-auto" />
-                                    <p className="text-xs font-semibold text-gray-600">RECTO</p>
-                                    <p className="text-[10px] text-gray-400">Face avant</p>
-                                  </div>
-                                )}
+                            {[
+                              { key: rectoKey, has: hasRecto, label: "RECTO", sublabel: "Face avant", icon: Camera },
+                              { key: versoKey, has: hasVerso, label: "VERSO", sublabel: "Face arriere", icon: RotateCcw },
+                            ].map((side) => (
+                              <div key={side.key} className="relative">
+                                <div className={`border-2 border-dashed rounded-xl p-3 transition-all text-center ${
+                                  side.has ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50 hover:border-[#1B2A4A]/30"
+                                }`}>
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    aria-label={`Telecharger ${doc.nom_document} ${side.label.toLowerCase()}`}
+                                    onChange={(e) => handleFileChange(side.key, e.target.files?.[0] || null)}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                  />
+                                  {side.has ? (
+                                    <div className="space-y-1">
+                                      <FileCheck className="w-5 h-5 text-emerald-600 mx-auto" />
+                                      <p className="text-xs text-emerald-700 font-medium truncate">{uploadedDocs[side.key].name}</p>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleFileChange(side.key, null); }}
+                                        className="text-[10px] text-red-400 hover:text-red-600 underline"
+                                      >Supprimer</button>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      <side.icon className="w-5 h-5 text-gray-400 mx-auto" />
+                                      <p className="text-xs font-semibold text-gray-600">{side.label}</p>
+                                      <p className="text-[10px] text-gray-400">{side.sublabel}</p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-
-                            {/* Verso */}
-                            <div className="relative">
-                              <div className={`border-2 border-dashed rounded-xl p-3 transition-all text-center ${
-                                hasVerso ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50 hover:border-[#1B2A4A]/30"
-                              }`}>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  aria-label={`Télécharger ${doc.nom_document} verso`}
-                                  onChange={(e) => handleFileChange(versoKey, e.target.files?.[0] || null)}
-                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                />
-                                {hasVerso ? (
-                                  <div className="space-y-1">
-                                    <FileCheck className="w-5 h-5 text-emerald-600 mx-auto" />
-                                    <p className="text-xs text-emerald-700 font-medium truncate">{uploadedDocs[versoKey].name}</p>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleFileChange(versoKey, null); }}
-                                      className="text-[10px] text-red-400 hover:text-red-600 underline"
-                                    >
-                                      Supprimer
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-1">
-                                    <RotateCcw className="w-5 h-5 text-gray-400 mx-auto" />
-                                    <p className="text-xs font-semibold text-gray-600">VERSO</p>
-                                    <p className="text-[10px] text-gray-400">Face arriere</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            ))}
                           </div>
                         </div>
                       );
                     }
 
-                    // Regular document upload
                     return (
                       <div key={doc.id} className="space-y-1.5">
                         <label className="text-sm font-semibold text-gray-800">
@@ -598,14 +603,12 @@ const CommanderSansCompte = () => {
                         </label>
                         <div className="relative">
                           <div className={`border-2 border-dashed rounded-xl p-3 transition-all ${
-                            uploadedDocs[doc.nom_document]
-                              ? "border-emerald-300 bg-emerald-50"
-                              : "border-gray-200 bg-gray-50 hover:border-[#1B2A4A]/30"
+                            uploadedDocs[doc.nom_document] ? "border-emerald-300 bg-emerald-50" : "border-gray-200 bg-gray-50 hover:border-[#1B2A4A]/30"
                           }`}>
                             <input
                               type="file"
                               accept=".pdf,.jpg,.jpeg,.png"
-                              aria-label={`Télécharger ${doc.nom_document}`}
+                              aria-label={`Telecharger ${doc.nom_document}`}
                               onChange={(e) => handleFileChange(doc.nom_document, e.target.files?.[0] || null)}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
@@ -616,9 +619,7 @@ const CommanderSansCompte = () => {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleFileChange(doc.nom_document, null); }}
                                   className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
-                                >
-                                  <X size={14} />
-                                </button>
+                                ><X size={14} /></button>
                               </div>
                             ) : (
                               <div className="flex items-center gap-2 text-gray-400">
@@ -633,17 +634,14 @@ const CommanderSansCompte = () => {
                   })}
                 </div>
 
-                {/* Documents supplementaires */}
+                {/* Extra docs */}
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Documents supplementaires (optionnel)</h3>
                   {extraDocs.map((doc, i) => (
                     <div key={i} className="flex items-center gap-2 mb-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
                       <FileCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                       <span className="text-sm text-emerald-700 flex-1 truncate">{doc.file.name}</span>
-                      <button
-                        onClick={() => setExtraDocs(extraDocs.filter((_, j) => j !== i))}
-                        className="text-red-400 hover:text-red-600 flex-shrink-0"
-                      >
+                      <button onClick={() => setExtraDocs(extraDocs.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 flex-shrink-0">
                         <X size={14} />
                       </button>
                     </div>
@@ -652,7 +650,7 @@ const CommanderSansCompte = () => {
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
-                      aria-label="Télécharger un document supplémentaire"
+                      aria-label="Telecharger un document supplementaire"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -669,57 +667,14 @@ const CommanderSansCompte = () => {
               </div>
             )}
 
-            {/* Step 3: Options */}
+            {/* Step 3: Recap / Confirmation */}
             {currentStep === 3 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Bell size={18} className="text-[#1B2A4A]" />
-                  <h2 className="text-lg font-bold text-gray-900">Options de suivi</h2>
-                </div>
-                <p className="text-sm text-gray-500 -mt-2">Choisissez comment vous souhaitez etre informe de l'avancement de votre dossier.</p>
-
-                <div className="space-y-3">
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    formData.email_notifications ? "border-[#1B2A4A]/30 bg-blue-50/50" : "border-gray-100 bg-gray-50"
-                  }`}>
-                    <Checkbox
-                      checked={formData.email_notifications}
-                      onCheckedChange={(checked) => setFormData({ ...formData, email_notifications: checked as boolean })}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-800 text-sm">Notifications par email</span>
-                        <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">GRATUIT</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">Recevez les mises a jour par email a chaque etape</p>
-                    </div>
-                  </label>
-
-                  <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    formData.sms_notifications ? "border-[#1B2A4A]/30 bg-blue-50/50" : "border-gray-100 bg-gray-50"
-                  }`}>
-                    <Checkbox
-                      checked={formData.sms_notifications}
-                      onCheckedChange={(checked) => setFormData({ ...formData, sms_notifications: checked as boolean })}
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-800 text-sm">Notifications par SMS</span>
-                        <span className="text-[10px] px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">+5 EUR</span>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">Recevez un SMS instantane a chaque changement de statut</p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Recap */}
-            {currentStep === 4 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-1">
                   <CheckCircle size={18} className="text-[#1B2A4A]" />
-                  <h2 className="text-lg font-bold text-gray-900">Recapitulatif</h2>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {needsPayment ? "Recapitulatif et paiement" : "Confirmation"}
+                  </h2>
                 </div>
 
                 {/* Info summary */}
@@ -743,7 +698,7 @@ const CommanderSansCompte = () => {
                     <button onClick={() => setCurrentStep(2)} className="text-xs text-[#1B2A4A] hover:underline font-medium">Modifier</button>
                   </div>
                   <div className="space-y-1">
-                    {Object.entries(uploadedDocs).map(([name, file]) => (
+                    {Object.entries(uploadedDocs).map(([name]) => (
                       <div key={name} className="flex items-center gap-2 text-sm">
                         <FileCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                         <span className="text-gray-700 truncate">{name}</span>
@@ -758,33 +713,47 @@ const CommanderSansCompte = () => {
                   </div>
                 </div>
 
-                {/* Options summary */}
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Options</h3>
-                    <button onClick={() => setCurrentStep(3)} className="text-xs text-[#1B2A4A] hover:underline font-medium">Modifier</button>
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle size={13} className={formData.email_notifications ? "text-emerald-500" : "text-gray-300"} />
-                      <span className={formData.email_notifications ? "text-gray-700" : "text-gray-400"}>Email</span>
-                      <span className="text-xs text-emerald-600 font-medium">Gratuit</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle size={13} className={formData.sms_notifications ? "text-emerald-500" : "text-gray-300"} />
-                      <span className={formData.sms_notifications ? "text-gray-700" : "text-gray-400"}>SMS</span>
-                      {formData.sms_notifications && <span className="text-xs text-amber-600 font-medium">+5 EUR</span>}
-                    </div>
-                  </div>
-                </div>
+                {/* Price breakdown */}
+                {needsPayment && (
+                  <div className="p-4 bg-white border border-gray-200 rounded-xl space-y-3">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Detail du paiement</h3>
 
-                {/* Price summary */}
-                <GuestPaymentDetailsSummary
-                  prixCarteGrise={order.montant_ht || 0}
-                  fraisDossier={order.frais_dossier || 30}
-                  smsNotifications={formData.sms_notifications}
-                  emailNotifications={formData.email_notifications}
-                />
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Taxe carte grise</span>
+                        <span className="font-medium text-gray-800">{prixCarteGrise.toFixed(2)} EUR</span>
+                      </div>
+
+                      {paymentOption === "client_tout" && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">Frais de dossier</span>
+                          <span className="font-medium text-gray-800">{fraisDossier.toFixed(2)} EUR</span>
+                        </div>
+                      )}
+
+                      {paymentOption === "garage_dossier" && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-600">Frais de dossier</span>
+                          <span className="font-medium text-emerald-600">Pris en charge</span>
+                        </div>
+                      )}
+
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                        <span className="font-semibold text-gray-900">Total a payer</span>
+                        <span className="text-lg font-bold text-[#1B2A4A]">{getClientTotal().toFixed(2)} EUR</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!needsPayment && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3">
+                    <Check className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                    <p className="text-sm text-emerald-800">
+                      Aucun paiement requis. Votre professionnel prend en charge l'integralite des frais.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -803,7 +772,7 @@ const CommanderSansCompte = () => {
 
             <div className="flex-1" />
 
-            {currentStep < 4 ? (
+            {currentStep < totalSteps ? (
               <button
                 onClick={handleNext}
                 disabled={!canProceed()}
@@ -823,10 +792,15 @@ const CommanderSansCompte = () => {
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Envoi en cours...
                   </>
-                ) : (
+                ) : needsPayment ? (
                   <>
                     <CreditCard size={16} />
-                    Valider et payer
+                    Valider et payer {getClientTotal().toFixed(2)} EUR
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    Envoyer mon dossier
                   </>
                 )}
               </button>
@@ -841,10 +815,34 @@ const CommanderSansCompte = () => {
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };
 
-export default CommanderSansCompte;
+// --- Sub-components ---
+
+const PageHeader = () => (
+  <div className="bg-white border-b border-gray-100 px-4 py-3">
+    <div className="max-w-5xl mx-auto flex items-center gap-2">
+      <div className="w-8 h-8 bg-[#1B2A4A] rounded-lg flex items-center justify-center">
+        <span className="text-white font-bold text-xs">SF</span>
+      </div>
+      <span className="font-bold text-[#1B2A4A] text-lg">SIVFlow</span>
+    </div>
+  </div>
+);
+
+const ErrorPage = ({ icon, title, message }: { icon: React.ReactNode; title: string; message: string }) => (
+  <div className="min-h-screen bg-[#F8F9FB] flex flex-col">
+    <PageHeader />
+    <div className="flex-1 flex items-center justify-center px-4">
+      <div className="max-w-md w-full text-center">
+        <div className="mb-4">{icon}</div>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">{title}</h1>
+        <p className="text-gray-500 text-sm">{message}</p>
+      </div>
+    </div>
+  </div>
+);
+
+export default CompleterDemarchePro;

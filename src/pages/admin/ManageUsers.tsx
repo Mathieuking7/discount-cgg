@@ -178,7 +178,7 @@ export default function ManageUsers() {
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Button
           variant="ghost"
-          onClick={() => navigate("/admin")}
+          onClick={() => navigate("/dashboard")}
           className="mb-6 rounded-full hover:bg-white/80"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

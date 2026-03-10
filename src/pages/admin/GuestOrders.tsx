@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Eye, Package } from "lucide-react";
+import { ArrowLeft, Search, Eye, Package, RefreshCw } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,21 +30,44 @@ interface GuestOrder {
   demarche_type?: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  en_attente: { label: "En attente", color: "bg-amber-100 text-amber-700" },
-  valide: { label: "Valide", color: "bg-blue-100 text-blue-700" },
-  finalise: { label: "Finalise", color: "bg-green-100 text-green-700" },
-  refuse: { label: "Refuse", color: "bg-red-100 text-red-700" },
+type StatusFilter = "all" | "en_attente" | "en_cours" | "terminee" | "annulee";
+
+const statusConfig: Record<string, { label: string; bgClass: string }> = {
+  en_attente: { label: "En attente", bgClass: "bg-amber-100 text-amber-800" },
+  en_cours: { label: "En cours", bgClass: "bg-blue-100 text-blue-800" },
+  terminee: { label: "Terminee", bgClass: "bg-green-100 text-green-800" },
+  annulee: { label: "Annulee", bgClass: "bg-red-100 text-red-800" },
+  // legacy statuses mapped
+  valide: { label: "Valide", bgClass: "bg-blue-100 text-blue-800" },
+  finalise: { label: "Finalise", bgClass: "bg-green-100 text-green-800" },
+  refuse: { label: "Refuse", bgClass: "bg-red-100 text-red-800" },
 };
+
+const demarcheColors: Record<string, string> = {
+  DA: "bg-purple-100 text-purple-800",
+  DC: "bg-indigo-100 text-indigo-800",
+  CG: "bg-teal-100 text-teal-800",
+  DI: "bg-sky-100 text-sky-800",
+  CT: "bg-rose-100 text-rose-800",
+};
+
+const filterTabs: { key: StatusFilter; label: string }[] = [
+  { key: "all", label: "Toutes" },
+  { key: "en_attente", label: "En attente" },
+  { key: "en_cours", label: "En cours" },
+  { key: "terminee", label: "Terminees" },
+  { key: "annulee", label: "Annulees" },
+];
 
 export default function GuestOrders() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [orders, setOrders] = useState<GuestOrder[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<GuestOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<StatusFilter>("all");
 
   useEffect(() => {
     if (user) {
@@ -52,25 +75,8 @@ export default function GuestOrders() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = orders.filter(
-        (order) =>
-          order.tracking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.immatriculation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.prenom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          order.email.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredOrders(filtered);
-    } else {
-      setFilteredOrders(orders);
-    }
-  }, [searchQuery, orders]);
-
   const checkAdminAndLoadData = async () => {
     if (!user) return;
-
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
@@ -80,7 +86,6 @@ export default function GuestOrders() {
       navigate("/dashboard");
       return;
     }
-
     await loadOrders();
   };
 
@@ -93,7 +98,6 @@ export default function GuestOrders() {
 
       if (error) throw error;
       setOrders(data || []);
-      setFilteredOrders(data || []);
     } catch (error) {
       console.error("Erreur:", error);
       toast({
@@ -105,6 +109,53 @@ export default function GuestOrders() {
       setLoading(false);
     }
   };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadOrders();
+    setRefreshing(false);
+    toast({ title: "Liste actualisee" });
+  };
+
+  // Counts per status
+  const statusCounts = useMemo(() => {
+    const counts: Record<StatusFilter, number> = {
+      all: orders.length,
+      en_attente: 0,
+      en_cours: 0,
+      terminee: 0,
+      annulee: 0,
+    };
+    orders.forEach((o) => {
+      if (o.status in counts) {
+        counts[o.status as StatusFilter]++;
+      }
+    });
+    return counts;
+  }, [orders]);
+
+  // Filtered + searched orders
+  const filteredOrders = useMemo(() => {
+    let result = orders;
+
+    if (activeFilter !== "all") {
+      result = result.filter((o) => o.status === activeFilter);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (o) =>
+          o.nom.toLowerCase().includes(q) ||
+          o.prenom.toLowerCase().includes(q) ||
+          o.email.toLowerCase().includes(q) ||
+          o.immatriculation.toLowerCase().includes(q) ||
+          o.tracking_number.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [orders, activeFilter, searchQuery]);
 
   if (loading) {
     return (
@@ -120,29 +171,74 @@ export default function GuestOrders() {
   return (
     <div className="min-h-screen bg-[#FDF8F0]">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Button variant="ghost" onClick={() => navigate("/admin")} className="mb-6 rounded-full hover:bg-white/80">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au dashboard
-        </Button>
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+            className="rounded-full hover:bg-white/80"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au dashboard
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="rounded-full"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            Rafraichir
+          </Button>
+        </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          {/* Title */}
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
               <Package className="h-5 w-5 text-orange-600" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Commandes Particuliers</h1>
+              <h1 className="text-xl font-bold text-gray-900">Demarches en cours</h1>
               <p className="text-sm text-gray-500">
-                Gerer les commandes des clients sans compte ({orders.length} commande{orders.length > 1 ? "s" : ""})
+                {orders.length} demarche{orders.length > 1 ? "s" : ""} au total
               </p>
             </div>
           </div>
 
+          {/* Filter tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {filterTabs.map((tab) => {
+              const isActive = activeFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveFilter(tab.key)}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-[#0f1b3d] text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
+                      isActive ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    {statusCounts[tab.key]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search */}
           <div className="mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Rechercher par numero, immatriculation, nom, email..."
+                placeholder="Rechercher par nom, email ou immatriculation..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 rounded-xl border-gray-200"
@@ -150,77 +246,85 @@ export default function GuestOrders() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Table */}
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
             <Table>
               <TableHeader>
-                <TableRow className="border-gray-100">
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">N Commande</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Type</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Client</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Immatriculation</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Montant</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Statut</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Paiement</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Documents</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Date</TableHead>
-                  <TableHead className="text-gray-500 font-medium text-xs uppercase tracking-wider">Actions</TableHead>
+                <TableRow className="bg-[#0f1b3d] hover:bg-[#0f1b3d]">
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider">Date</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider">Client</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider">Immatriculation</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider">Montant</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider">Statut</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-gray-400 py-8">
-                      Aucune commande trouvee
+                    <TableCell colSpan={7} className="text-center text-gray-400 py-12">
+                      Aucune demarche trouvee
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((order) => {
-                    const status = statusConfig[order.status] || { label: order.status, color: "bg-gray-100 text-gray-700" };
+                  filteredOrders.map((order, index) => {
+                    const status = statusConfig[order.status] || {
+                      label: order.status,
+                      bgClass: "bg-gray-100 text-gray-700",
+                    };
+                    const demarcheLabel = order.demarche_type || "CG";
+                    const demarcheColor = demarcheColors[demarcheLabel] || "bg-gray-100 text-gray-700";
+
                     return (
-                      <TableRow key={order.id} className="border-gray-50">
-                        <TableCell className="font-mono font-medium text-gray-700 text-sm">
-                          {order.tracking_number}
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                            {order.demarche_type === 'DA' ? "DA" :
-                             order.demarche_type === 'DC' ? "DC" : "CG"}
-                          </span>
+                      <TableRow
+                        key={order.id}
+                        className={`border-gray-50 ${index % 2 === 1 ? "bg-gray-50/60" : ""} hover:bg-orange-50/40 transition-colors`}
+                      >
+                        <TableCell className="text-sm text-gray-500 whitespace-nowrap">
+                          {new Date(order.created_at).toLocaleDateString("fr-FR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-gray-700 text-sm">{order.prenom} {order.nom}</p>
+                            <p className="font-medium text-gray-800 text-sm">
+                              {order.prenom} {order.nom}
+                            </p>
                             <p className="text-xs text-gray-400">{order.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="font-mono text-sm text-gray-600">{order.immatriculation}</TableCell>
-                        <TableCell className="font-medium text-gray-900">{order.montant_ttc.toFixed(2)} &euro;</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status.color}`}>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${demarcheColor}`}
+                          >
+                            {demarcheLabel}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-gray-600">
+                          {order.immatriculation}
+                        </TableCell>
+                        <TableCell className="font-semibold text-gray-900 whitespace-nowrap">
+                          {order.montant_ttc.toFixed(2)} &euro;
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${status.bgClass}`}
+                          >
                             {status.label}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.paye ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {order.paye ? "Paye" : "Non paye"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.documents_complets ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {order.documents_complets ? "Complets" : "Incomplets"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-sm">
-                          {new Date(order.created_at).toLocaleDateString("fr-FR")}
-                        </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/admin/guest-order/${order.id}`)}
-                            className="rounded-full hover:bg-gray-100"
+                            onClick={() => navigate(`/dashboard/guest-order/${order.id}`)}
+                            className="rounded-full text-xs"
                           >
-                            <Eye className="h-4 w-4 text-gray-500" />
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            Voir
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -230,6 +334,13 @@ export default function GuestOrders() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Result count */}
+          {searchQuery && (
+            <p className="text-xs text-gray-400 mt-3">
+              {filteredOrders.length} resultat{filteredOrders.length > 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       </div>
     </div>

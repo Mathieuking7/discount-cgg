@@ -811,7 +811,7 @@ export default function DemarcheDetail() {
       <div className="container mx-auto px-4 py-8">
         <Button
           variant="ghost"
-          onClick={() => navigate("/admin/demarches")}
+          onClick={() => navigate("/dashboard/demarches")}
           className="mb-6 rounded-full hover:bg-white/80"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

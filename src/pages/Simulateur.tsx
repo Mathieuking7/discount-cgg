@@ -146,7 +146,7 @@ export default function Simulateur() {
       />
       <Navbar />
 
-      <div className="container mx-auto px-4 py-12 md:py-20">
+      <div id="main-content" className="container mx-auto px-4 py-12 md:py-20">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-10">

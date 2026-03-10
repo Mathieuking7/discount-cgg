@@ -1,878 +1,708 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2,
   CheckCircle,
   Clock,
-  Package,
-  Truck,
   FileCheck,
-  Mail,
-  Phone,
-  MapPin,
   FileText,
   AlertCircle,
   Download,
   CreditCard,
   Ban,
   Send,
-  CheckCircle2
+  CheckCircle2,
+  Mail,
+  HelpCircle,
+  RefreshCw,
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { GuestDocumentUpload } from "@/components/GuestDocumentUpload";
 import { SimpleDownloadButton } from "@/components/SimpleDownloadButton";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site.config";
+
+/* ------------------------------------------------------------------ */
+/*  Timeline step definitions                                         */
+/* ------------------------------------------------------------------ */
+
+interface TimelineStep {
+  key: string;
+  label: string;
+  icon: string;
+  date: string | null;
+  state: "completed" | "current" | "future";
+  subtitle?: string;
+}
+
+function buildTimeline(order: any): TimelineStep[] {
+  const history: Record<string, string> = order.status_history || {};
+  const status = order.status;
+
+  const raw: {
+    key: string;
+    label: string;
+    icon: string;
+    completedWhen: () => string | null;
+    currentWhen?: () => boolean;
+    futureSubtitle?: string;
+  }[] = [
+    {
+      key: "commande_recue",
+      label: "Commande recue",
+      icon: "\ud83d\udccb",
+      completedWhen: () => order.created_at || history.commande_recue || null,
+    },
+    {
+      key: "paiement_confirme",
+      label: "Paiement confirme",
+      icon: "\ud83d\udcb3",
+      completedWhen: () => order.paid_at || history.paiement_confirme || (order.paye ? order.created_at : null),
+    },
+    {
+      key: "documents_verifies",
+      label: "Documents verifies",
+      icon: "\ud83d\udcc4",
+      completedWhen: () =>
+        history.documents_verifies ||
+        (["valide", "finalise"].includes(status) ? history.en_traitement || order.validated_at : null),
+      currentWhen: () => status === "en_traitement",
+      futureSubtitle: "En attente de verification",
+    },
+    {
+      key: "dossier_ants",
+      label: "Dossier soumis a l'ANTS",
+      icon: "\ud83c\udfdb\ufe0f",
+      completedWhen: () => history.dossier_ants || (["valide", "finalise"].includes(status) ? order.validated_at : null),
+      currentWhen: () => status === "valide" && !history.cpi_disponible,
+    },
+    {
+      key: "cpi_disponible",
+      label: "CPI disponible",
+      icon: "\ud83d\udcec",
+      completedWhen: () => history.cpi_disponible || null,
+      currentWhen: () => status === "valide" && !!history.cpi_disponible && !history.carte_grise_expediee,
+    },
+    {
+      key: "carte_grise_expediee",
+      label: "Carte grise expediee",
+      icon: "\u2705",
+      completedWhen: () =>
+        history.carte_grise_expediee || (status === "finalise" ? history.finalise || order.updated_at : null),
+    },
+  ];
+
+  let foundCurrent = false;
+  const steps: TimelineStep[] = [];
+
+  for (const step of raw) {
+    const dateStr = step.completedWhen();
+    if (dateStr) {
+      steps.push({ key: step.key, label: step.label, icon: step.icon, date: dateStr, state: "completed" });
+    } else if (!foundCurrent && step.currentWhen?.()) {
+      foundCurrent = true;
+      steps.push({
+        key: step.key,
+        label: step.label,
+        icon: step.icon,
+        date: null,
+        state: "current",
+        subtitle: "En cours",
+      });
+    } else if (!foundCurrent) {
+      foundCurrent = true;
+      steps.push({
+        key: step.key,
+        label: step.label,
+        icon: step.icon,
+        date: null,
+        state: "current",
+        subtitle: step.futureSubtitle || "En cours",
+      });
+    } else {
+      steps.push({ key: step.key, label: step.label, icon: step.icon, date: null, state: "future" });
+    }
+  }
+
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getDemarcheLabel(type: string) {
+  const map: Record<string, string> = {
+    CG: "Carte grise",
+    DA: "Declaration d'achat",
+    DC: "Declaration de cession",
+    DI: "Duplicata",
+    CT: "Changement titulaire",
+  };
+  return map[type] || type;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main component                                                    */
+/* ------------------------------------------------------------------ */
 
 const SuiviCommande = () => {
   const { trackingNumber } = useParams();
   const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
-  const [adminDocuments, setAdminDocuments] = useState<any[]>([]);
   const [adminSentDocuments, setAdminSentDocuments] = useState<any[]>([]);
   const [carteGriseUrl, setCarteGriseUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [requiredDocuments, setRequiredDocuments] = useState<any[]>([]);
   const [factureUrl, setFactureUrl] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [reuploadedDocs, setReuploadedDocs] = useState<Set<string>>(new Set());
   const [isSubmittingReupload, setIsSubmittingReupload] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  useEffect(() => {
-    loadRequiredDocuments();
-    loadOrder();
-    loadDocuments();
-  }, [trackingNumber]);
+  /* ---- data fetching ---- */
 
-  const loadRequiredDocuments = async () => {
-    const { data } = await supabase
-      .from("guest_order_required_documents")
-      .select("*")
-      .eq("actif", true)
-      .order("ordre");
-
-    if (data) {
-      setRequiredDocuments(data);
-    }
-  };
-
-  const loadOrder = async () => {
+  const loadOrder = useCallback(async () => {
     if (!trackingNumber) return;
-
     try {
-      const { data: response, error } = await supabase.functions.invoke('get-guest-order', {
-        body: { tracking_number: trackingNumber }
+      const { data: response, error } = await supabase.functions.invoke("get-guest-order", {
+        body: { tracking_number: trackingNumber },
       });
 
       if (error || !response?.success || !response?.data?.order) {
-        toast({
-          title: "Commande introuvable",
-          description: "Verifiez votre numero de suivi",
-          variant: "destructive",
-        });
+        toast({ title: "Commande introuvable", description: "Verifiez votre numero de suivi", variant: "destructive" });
         setIsLoading(false);
         return;
       }
 
       const orderData = response.data.order;
       setOrder(orderData);
-      setDocuments(response.data.documents || []);
-      setAdminSentDocuments(response.data.adminDocuments || []);
-      setIsLoading(false);
 
-      const carteGriseDoc = (response.data.documents || []).find(
-        (doc: any) => doc.type_document === 'carte_grise_finale'
+      const allDocs = response.data.documents || [];
+      const customerDocs = allDocs.filter(
+        (doc: any) => doc.type_document !== "carte_grise_finale" && !doc.type_document?.startsWith("admin_")
       );
+      setDocuments(customerDocs);
+      setAdminSentDocuments(response.data.adminDocuments || []);
 
-      if (carteGriseDoc) {
-        setCarteGriseUrl(carteGriseDoc.url);
-      }
+      const cgDoc = allDocs.find((d: any) => d.type_document === "carte_grise_finale");
+      setCarteGriseUrl(cgDoc?.url || null);
+
+      setIsLoading(false);
+      setLastRefresh(new Date());
 
       const { data: facture } = await supabase
-        .from('factures')
-        .select('pdf_url')
-        .eq('guest_order_id', orderData.id)
+        .from("factures")
+        .select("pdf_url")
+        .eq("guest_order_id", orderData.id)
         .single();
-
-      if (facture?.pdf_url) {
-        setFactureUrl(facture.pdf_url);
-      }
-    } catch (err) {
-      console.error('Error loading order:', err);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger la commande",
-        variant: "destructive",
-      });
+      if (facture?.pdf_url) setFactureUrl(facture.pdf_url);
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de charger la commande", variant: "destructive" });
       setIsLoading(false);
     }
-  };
+  }, [trackingNumber]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    if (!trackingNumber) return;
+    const interval = setInterval(() => loadOrder(), 30000);
+    return () => clearInterval(interval);
+  }, [trackingNumber, loadOrder]);
+
+  /* ---- handlers ---- */
 
   const handleResubmissionPayment = async () => {
     if (!order) return;
-
     setIsProcessingPayment(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-resubmission-payment', {
-        body: {
-          order_id: order.id,
-          amount: order.resubmission_payment_amount || 10,
-        }
+      const { data, error } = await supabase.functions.invoke("create-resubmission-payment", {
+        body: { order_id: order.id, amount: order.resubmission_payment_amount || 10 },
       });
-
       if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de creer le paiement",
-        variant: "destructive",
-      });
+      if (data?.url) window.open(data.url, "_blank");
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de creer le paiement", variant: "destructive" });
     } finally {
       setIsProcessingPayment(false);
     }
   };
 
-  const loadDocuments = async () => {
-    if (!trackingNumber || !order) return;
-
+  const handleValidateReupload = async () => {
+    setIsSubmittingReupload(true);
     try {
-      const { data: response, error } = await supabase.functions.invoke('get-guest-order', {
-        body: { tracking_number: trackingNumber }
-      });
-
-      if (error || !response?.success) return;
-
-      const allDocs = response.data.documents || [];
-
-      const customerDocs = allDocs.filter((doc: any) =>
-        doc.type_document !== 'carte_grise_finale' &&
-        !doc.type_document?.startsWith('admin_')
-      );
-
-      setDocuments(customerDocs);
-
-      const adminDocs = allDocs.filter((doc: any) =>
-        doc.type_document?.startsWith('admin_')
-      );
-      setAdminDocuments(adminDocs);
-
-      setAdminSentDocuments(response.data.adminDocuments || []);
-    } catch (err) {
-      console.error('Error loading documents:', err);
+      await supabase.from("guest_orders").update({ documents_complets: true, status: "en_traitement" }).eq("id", order.id);
+      if (order.email) {
+        await supabase.functions.invoke("send-guest-order-email", {
+          body: {
+            type: "documents_received",
+            orderData: {
+              tracking_number: order.tracking_number,
+              email: order.email,
+              nom: order.nom,
+              prenom: order.prenom,
+              immatriculation: order.immatriculation,
+              montant_ttc: order.montant_ttc,
+              marque: order.marque,
+              modele: order.modele,
+            },
+          },
+        });
+      }
+      toast({ title: "Documents envoyes !", description: "Vos documents ont ete soumis avec succes." });
+      setReuploadedDocs(new Set());
+      loadOrder();
+    } catch {
+      toast({ title: "Erreur", description: "Une erreur est survenue lors de l'envoi.", variant: "destructive" });
+    } finally {
+      setIsSubmittingReupload(false);
     }
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case "en_attente":
-        return { label: "En attente de paiement", color: "bg-yellow-400", textColor: "text-yellow-700", bgLight: "bg-yellow-50", icon: Clock };
-      case "paye":
-        return { label: "Paiement recu", color: "bg-blue-400", textColor: "text-blue-700", bgLight: "bg-blue-50", icon: CheckCircle };
-      case "en_traitement":
-        return { label: "En traitement", color: "bg-blue-400", textColor: "text-blue-700", bgLight: "bg-blue-50", icon: Package };
-      case "valide":
-        return { label: "Valide", color: "bg-emerald-400", textColor: "text-emerald-700", bgLight: "bg-emerald-50", icon: FileCheck };
-      case "finalise":
-        return { label: "Termine", color: "bg-emerald-500", textColor: "text-emerald-700", bgLight: "bg-emerald-50", icon: Truck };
-      case "refuse":
-        return { label: "Refuse", color: "bg-red-400", textColor: "text-red-700", bgLight: "bg-red-50", icon: Clock };
-      default:
-        return { label: status, color: "bg-gray-400", textColor: "text-gray-700", bgLight: "bg-gray-50", icon: Clock };
-    }
-  };
-
-  const getSteps = () => {
-    return [
-      { label: "Commande creee", status: order?.created_at ? "completed" : "pending", date: order?.created_at },
-      { label: "Paiement recu", status: order?.paye ? "completed" : "pending", date: order?.paid_at },
-      { label: "En traitement", status: ["en_traitement", "valide", "finalise"].includes(order?.status) ? "completed" : "pending", date: null },
-      { label: "Valide", status: ["valide", "finalise"].includes(order?.status) ? "completed" : "pending", date: order?.validated_at },
-      { label: "Termine", status: order?.status === "finalise" ? "completed" : "pending", date: null },
-    ];
-  };
+  /* ---- loading / not found ---- */
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-[#1B2A4A] mx-auto" />
+          <p className="text-sm text-gray-500">Chargement de votre commande...</p>
+        </div>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-[#FDF8F0]">
-        <Navbar />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <div className="max-w-md mx-auto bg-white rounded-3xl p-10 shadow-sm border border-gray-100">
-            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-red-500" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande introuvable</h1>
-            <p className="text-gray-500">Verifiez votre numero de suivi et reessayez</p>
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
+          <h1 className="text-2xl font-bold text-[#1B2A4A]">Commande introuvable</h1>
+          <p className="text-gray-500">Verifiez votre numero de suivi et reessayez.</p>
+          <a
+            href="/recherche-suivi"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#1B2A4A] text-white rounded-full text-sm font-medium hover:bg-[#263a5e] transition-colors"
+          >
+            Nouvelle recherche
+          </a>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  const statusInfo = getStatusInfo(order.status);
-  const StatusIcon = statusInfo.icon;
-  const steps = getSteps();
+  /* ---- derived data ---- */
 
-  const groupedDocuments = documents.reduce((acc: any[], doc) => {
-    if (doc.side === 'verso' && !doc.url) return acc;
-    acc.push(doc);
-    return acc;
-  }, []);
+  const timeline = buildTimeline(order);
 
-  const rejectedDocTypes = [...new Set(
-    documents
-      .filter(doc => doc.validation_status === 'rejected')
-      .map(doc => doc.type_document)
-  )];
+  const rejectedDocs = [
+    ...new Set(documents.filter((d) => d.validation_status === "rejected").map((d) => d.type_document)),
+  ];
+
+  const groupedDocuments = documents.filter((d) => !(d.side === "verso" && !d.url));
+
+  /* ---- render ---- */
 
   return (
-    <div className="min-h-screen bg-[#FDF8F0]">
-      <Navbar />
+    <div className="min-h-screen bg-gray-50/50">
+      {/* ===== CSS for pulse animation ===== */}
+      <style>{`
+        @keyframes pulse-ring {
+          0% { transform: scale(0.9); opacity: 1; }
+          80%, 100% { transform: scale(1.8); opacity: 0; }
+        }
+        .timeline-pulse::before {
+          content: '';
+          position: absolute;
+          inset: -4px;
+          border-radius: 9999px;
+          background: rgba(59, 130, 246, 0.3);
+          animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}</style>
 
-      <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Suivi de commande</h1>
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-full border-2 border-amber-300 shadow-sm">
-              <span className="text-sm text-gray-500">N de suivi</span>
-              <span className="text-lg font-bold text-amber-600">{order.tracking_number}</span>
-            </div>
+      {/* ===== Header ===== */}
+      <header className="bg-[#1B2A4A] text-white">
+        <div className="max-w-3xl mx-auto px-4 py-10 md:py-14 text-center">
+          <p className="text-blue-300 text-sm font-medium tracking-wide uppercase mb-2">Suivi de commande</p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-4">Suivi de votre commande</h1>
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/10 backdrop-blur rounded-full border border-white/20">
+            <span className="text-sm text-blue-200">N. de suivi</span>
+            <span className="text-lg font-mono font-bold tracking-wider">{order.tracking_number}</span>
           </div>
-
-          {/* Status Card */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <div className="flex items-center justify-center gap-4">
-              <div className={`w-14 h-14 ${statusInfo.color} rounded-2xl flex items-center justify-center shadow-sm`}>
-                <StatusIcon className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-2xl font-bold text-gray-900">{statusInfo.label}</p>
-                  {order.demarche_type && order.demarche_type !== 'CG' && (
-                    <span className="px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
-                      {order.demarche_type === 'DA' ? "Declaration d'achat" :
-                       order.demarche_type === 'DC' ? "Declaration de cession" : ""}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Immatriculation: {order.immatriculation}
-                </p>
-              </div>
-            </div>
+          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-blue-300">
+            <RefreshCw className="w-3 h-3" />
+            Mise a jour auto &middot; {lastRefresh.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
           </div>
+        </div>
+      </header>
 
-          {/* Timeline */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-6">Progression de votre commande</h2>
-            <div className="space-y-0">
-              {steps.map((step, index) => {
-                const isCompleted = step.status === "completed";
-                const isLast = index === steps.length - 1;
-                return (
-                  <div key={index} className="flex items-start gap-4">
-                    <div className="relative flex flex-col items-center">
+      <div className="max-w-3xl mx-auto px-4 -mt-6 pb-16 space-y-6">
+        {/* ===== Visual Timeline ===== */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+          <h2 className="text-lg font-bold text-[#1B2A4A] mb-8">Progression</h2>
+
+          <div className="relative">
+            {timeline.map((step, i) => {
+              const isLast = i === timeline.length - 1;
+              const isCompleted = step.state === "completed";
+              const isCurrent = step.state === "current";
+              const isFuture = step.state === "future";
+
+              return (
+                <div key={step.key} className="flex gap-4 md:gap-6">
+                  {/* Circle + line */}
+                  <div className="relative flex flex-col items-center">
+                    <div
+                      className={cn(
+                        "relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0 transition-all",
+                        isCompleted && "bg-emerald-500 text-white shadow-md shadow-emerald-200",
+                        isCurrent && "bg-blue-500 text-white shadow-md shadow-blue-200 timeline-pulse",
+                        isFuture && "bg-gray-100 text-gray-400 border-2 border-gray-200"
+                      )}
+                    >
+                      {isCompleted ? <CheckCircle className="w-5 h-5" /> : <span className="text-base">{step.icon}</span>}
+                    </div>
+                    {!isLast && (
                       <div
                         className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors",
-                          isCompleted
-                            ? "bg-emerald-500 border-emerald-500 text-white"
-                            : "bg-white border-gray-200 text-gray-400"
+                          "w-0.5 flex-1 min-h-[40px]",
+                          isCompleted ? "bg-emerald-300" : "bg-gray-200"
                         )}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className="w-5 h-5" />
-                        ) : (
-                          <span className="text-sm font-semibold">{index + 1}</span>
-                        )}
-                      </div>
-                      {!isLast && (
-                        <div className={cn(
-                          "w-0.5 h-10",
-                          isCompleted ? "bg-emerald-400" : "bg-gray-200"
-                        )} />
-                      )}
-                    </div>
-                    <div className="flex-1 pb-6">
-                      <p className={cn("font-semibold", isCompleted ? "text-gray-900" : "text-gray-400")}>{step.label}</p>
-                      {step.date && (
-                        <p className="text-sm text-gray-400 mt-0.5">
-                          {new Date(step.date).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      )}
-                    </div>
+                      />
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Contact & Address */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Mail className="w-4 h-4 text-blue-600" />
+                  {/* Content */}
+                  <div className={cn("pb-8", isLast && "pb-0")}>
+                    <p
+                      className={cn(
+                        "font-semibold leading-tight",
+                        isCompleted && "text-[#1B2A4A]",
+                        isCurrent && "text-blue-600",
+                        isFuture && "text-gray-400"
+                      )}
+                    >
+                      {step.label}
+                    </p>
+                    {step.date && (
+                      <p className="text-sm text-gray-400 mt-1">{formatDate(step.date)}</p>
+                    )}
+                    {isCurrent && step.subtitle && (
+                      <span className="inline-flex items-center gap-1.5 mt-1.5 px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full">
+                        <Clock className="w-3 h-3" />
+                        {step.subtitle}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <h3 className="font-bold text-gray-900">Contact</h3>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ===== Order Details Card ===== */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+          <h2 className="text-lg font-bold text-[#1B2A4A] mb-5">Details de la commande</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: "Demarche", value: getDemarcheLabel(order.demarche_type || "CG") },
+              { label: "Immatriculation", value: order.immatriculation },
+              { label: "Montant", value: `${Number(order.montant_ttc || 0).toFixed(2)} EUR` },
+              { label: "Date de commande", value: order.created_at ? new Date(order.created_at).toLocaleDateString("fr-FR") : "-" },
+            ].map((item) => (
+              <div key={item.label} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{item.label}</p>
+                <p className="font-semibold text-[#1B2A4A]">{item.value}</p>
               </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p><span className="font-medium text-gray-800">Nom:</span> {order.prenom} {order.nom}</p>
-                <p><span className="font-medium text-gray-800">Email:</span> {order.email}</p>
-                <p className="flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-gray-400" />
-                  {order.telephone}
+            ))}
+          </div>
+        </section>
+
+        {/* ===== Document Alert (rejected) ===== */}
+        {rejectedDocs.length > 0 && (
+          <section className="bg-red-50 rounded-2xl border border-red-200 p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-700 mb-1">
+                  {rejectedDocs.length === 1 ? "Un document a ete refuse" : `${rejectedDocs.length} documents ont ete refuses`}
+                </h3>
+                <p className="text-sm text-red-600 mb-4">
+                  Veuillez renvoyer les documents ci-dessous pour que votre dossier puisse etre traite.
                 </p>
+
+                {order.requires_resubmission_payment && !order.resubmission_paid ? (
+                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl mb-4">
+                    <div className="flex items-start gap-3">
+                      <Ban className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-orange-700 mb-2">
+                          Paiement de {order.resubmission_payment_amount || 10} EUR requis avant renvoi.
+                        </p>
+                        <button
+                          onClick={handleResubmissionPayment}
+                          disabled={isProcessingPayment}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-full text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50"
+                        >
+                          {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                          {isProcessingPayment ? "Chargement..." : `Payer ${order.resubmission_payment_amount || 10} EUR`}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {rejectedDocs.map((docType) => {
+                  const isBlocked = order.requires_resubmission_payment && !order.resubmission_paid;
+                  const isReuploaded = reuploadedDocs.has(docType);
+                  const newDoc = documents.find((d) => d.type_document === docType && d.validation_status === "pending");
+                  const rejectedDoc = documents.find((d) => d.type_document === docType && d.validation_status === "rejected");
+
+                  return (
+                    <div
+                      key={docType}
+                      className={cn(
+                        "mb-3 p-4 rounded-xl border transition-colors",
+                        isReuploaded || newDoc ? "bg-emerald-50 border-emerald-200" : "bg-white border-red-200"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-medium text-[#1B2A4A] flex items-center gap-2">
+                          {docType}
+                          {(isReuploaded || newDoc) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                              <CheckCircle2 className="w-3 h-3" /> Ajoute
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      {rejectedDoc?.rejection_reason && !isReuploaded && !newDoc && (
+                        <p className="text-sm text-red-500 mb-3">Raison : {rejectedDoc.rejection_reason}</p>
+                      )}
+                      {!isReuploaded && !newDoc && (
+                        <GuestDocumentUpload
+                          orderId={order.id}
+                          documentType={docType}
+                          label={`Renvoyer : ${docType}`}
+                          existingFiles={[]}
+                          isBlocked={isBlocked}
+                          blockedMessage={`Veuillez payer ${order.resubmission_payment_amount || 10} EUR pour renvoyer.`}
+                          onUploadComplete={() => {
+                            setReuploadedDocs((prev) => new Set([...prev, docType]));
+                            loadOrder();
+                            toast({ title: "Document telecharge", description: "Cliquez sur 'Valider' pour envoyer." });
+                          }}
+                        />
+                      )}
+                      {(isReuploaded || newDoc) && newDoc && (
+                        <div className="flex items-center gap-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <FileCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="text-sm text-emerald-700">{newDoc.nom_fichier}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {!(order.requires_resubmission_payment && !order.resubmission_paid) && reuploadedDocs.size > 0 && (
+                  <button
+                    onClick={handleValidateReupload}
+                    disabled={isSubmittingReupload}
+                    className="w-full mt-2 h-12 rounded-full font-semibold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSubmittingReupload ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Envoi en cours...</>
+                    ) : (
+                      <><Send className="w-4 h-4" /> Valider et envoyer ({reuploadedDocs.size}/{rejectedDocs.length})</>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
+          </section>
+        )}
 
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-purple-600" />
-                </div>
-                <h3 className="font-bold text-gray-900">Adresse</h3>
-              </div>
-              <div className="text-sm text-gray-600">
-                <p>{order.adresse}</p>
-                <p>{order.code_postal} {order.ville}</p>
-              </div>
+        {/* ===== Admin comment ===== */}
+        {order.commentaire && (
+          <section className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
+            <h3 className="font-semibold text-amber-700 mb-2">Message de l'administration</h3>
+            <p className="text-gray-700 text-sm">{order.commentaire}</p>
+          </section>
+        )}
+
+        {/* ===== Carte Grise available ===== */}
+        {carteGriseUrl && (
+          <section className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border-2 border-emerald-300 p-8 text-center">
+            <div className="mx-auto w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
+              <FileCheck className="w-7 h-7 text-white" />
             </div>
-          </div>
+            <h2 className="text-xl font-bold text-emerald-700 mb-2">Votre carte grise est disponible !</h2>
+            <p className="text-gray-600 mb-6">Felicitations ! Vous pouvez la telecharger ci-dessous.</p>
+            <a
+              href={carteGriseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-emerald-500 text-white rounded-full font-semibold hover:bg-emerald-600 transition-colors shadow-md"
+            >
+              <Download className="w-5 h-5" /> Telecharger ma carte grise
+            </a>
+          </section>
+        )}
 
-          {/* Options */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Options souscrites</h2>
+        {/* ===== Admin Documents ===== */}
+        {adminSentDocuments.length > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <h2 className="text-lg font-bold text-[#1B2A4A] mb-4">Documents de l'administration</h2>
             <div className="space-y-3">
-              {order.dossier_prioritaire && (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-orange-50 border border-orange-100">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 text-xs font-semibold bg-orange-400 text-white rounded-full">Prioritaire</span>
-                    <span className="text-sm text-gray-700">Dossier Prioritaire</span>
+              {adminSentDocuments.map((doc: any) => (
+                <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100">
+                  <div>
+                    <p className="font-medium text-[#1B2A4A]">{doc.nom_fichier}</p>
+                    {doc.description && <p className="text-sm text-gray-500">{doc.description}</p>}
+                    <p className="text-xs text-gray-400 mt-1">
+                      Envoye le {new Date(doc.created_at).toLocaleDateString("fr-FR")}
+                    </p>
                   </div>
-                  <span className="text-sm text-orange-600 font-semibold">+5,00 EUR</span>
-                </div>
-              )}
-
-              {order.certificat_non_gage && (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 text-xs font-semibold bg-blue-400 text-white rounded-full">Non-gage</span>
-                    <span className="text-sm text-gray-700">Certificat de non-gage</span>
-                  </div>
-                  <span className="text-sm text-blue-600 font-semibold">+10,00 EUR</span>
-                </div>
-              )}
-
-              {order.email_notifications ? (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-400 text-white rounded-full">Email</span>
-                    <span className="text-sm text-gray-700">Suivi par email</span>
-                  </div>
-                  <span className="text-sm text-emerald-600 font-semibold">Gratuit</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 text-xs font-medium bg-gray-200 text-gray-500 rounded-full">Email</span>
-                    <span className="text-sm text-gray-400">Suivi par email</span>
-                  </div>
-                  <span className="text-sm text-gray-400">Non souscrit</span>
-                </div>
-              )}
-
-              {order.sms_notifications ? (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 text-xs font-semibold bg-amber-400 text-white rounded-full">SMS</span>
-                    <span className="text-sm text-gray-700">Suivi par SMS</span>
-                  </div>
-                  <span className="text-sm text-amber-600 font-semibold">5,00 EUR</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 text-xs font-medium bg-gray-200 text-gray-500 rounded-full">SMS</span>
-                    <span className="text-sm text-gray-400">Suivi par SMS</span>
-                  </div>
-                  <span className="text-sm text-gray-400">Non souscrit</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Additional Info */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Informations complementaires</h2>
-            {order.has_cotitulaire && (
-              <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 mb-4">
-                <p className="text-sm font-semibold text-purple-700 mb-1">Co-titulaire</p>
-                <p className="font-medium text-gray-800">{order.cotitulaire_prenom} {order.cotitulaire_nom}</p>
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { label: "Vehicule achete chez un pro", value: order.vehicule_pro },
-                { label: "Leasing/LLD/LOA", value: order.vehicule_leasing },
-                { label: "Mineur (-18 ans)", value: order.is_mineur },
-                { label: "Heberge", value: order.is_heberge },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 border border-gray-100">
-                  <span className="text-sm text-gray-600">{item.label}</span>
-                  <span className={cn(
-                    "px-2.5 py-1 text-xs font-semibold rounded-full",
-                    item.value ? "bg-amber-100 text-amber-700" : "bg-gray-200 text-gray-500"
-                  )}>
-                    {item.value ? "Oui" : "Non"}
-                  </span>
+                  <SimpleDownloadButton
+                    url={doc.url}
+                    filename={doc.nom_fichier}
+                    trackingNumber={trackingNumber}
+                    variant="default"
+                    size="default"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-full hover:bg-[#263a5e] transition-colors text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4" /> Telecharger
+                  </SimpleDownloadButton>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
+        )}
 
-          {/* Processing info */}
-          {order.status !== "finalise" && (
-            <div className="bg-amber-50 rounded-3xl border border-amber-200 p-6">
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+        {/* ===== Facture ===== */}
+        {factureUrl && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-gray-600" />
+                </div>
                 <div>
-                  <p className="font-semibold text-gray-800 mb-1">Delai de traitement</p>
-                  <p className="text-sm text-gray-600">
-                    Votre carte grise sera traitee sous 24h ouvrees maximum apres validation de votre dossier.
-                    Vous recevrez un email de confirmation a chaque etape.
-                  </p>
+                  <p className="font-semibold text-[#1B2A4A]">Facture</p>
+                  <p className="text-sm text-gray-400">Telecharger votre facture</p>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Admin comment */}
-          {order.commentaire && (
-            <div className="bg-yellow-50 rounded-3xl border border-yellow-200 p-6">
-              <h3 className="font-semibold text-yellow-700 mb-2">Message de l'administration</h3>
-              <p className="text-gray-700">{order.commentaire}</p>
-            </div>
-          )}
-
-          {/* Facture */}
-          {factureUrl && (
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-gray-600" />
-                </div>
-                <h3 className="font-bold text-gray-900">Facture</h3>
               </div>
               <a
                 href={factureUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors font-medium text-sm shadow-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1B2A4A] text-white rounded-full hover:bg-[#263a5e] transition-colors text-sm font-medium"
               >
-                <Download className="w-4 h-4" />
-                Telecharger ma facture
+                <Download className="w-4 h-4" /> Telecharger
               </a>
             </div>
-          )}
+          </section>
+        )}
 
-          {/* Admin Documents */}
-          {(adminDocuments.length > 0 || adminSentDocuments.length > 0) && (
-            <div className="bg-white rounded-3xl shadow-sm border-2 border-amber-300 p-6 md:p-8">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
-                  <FileCheck className="w-4 h-4 text-amber-600" />
-                </div>
-                <h3 className="font-bold text-gray-900">Documents de l'administration</h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">Documents envoyes par notre equipe pour votre dossier</p>
-              <div className="space-y-3">
-                {adminSentDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{doc.nom_fichier}</p>
-                      {doc.description && <p className="text-sm text-gray-500">{doc.description}</p>}
-                      <p className="text-xs text-gray-400 mt-1">
-                        Envoye le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
-                    <SimpleDownloadButton
-                      url={doc.url}
-                      filename={doc.nom_fichier}
-                      trackingNumber={trackingNumber}
-                      variant="default"
-                      size="default"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors text-sm font-medium"
-                    >
-                      <Download className="w-4 h-4" />
-                      Telecharger
-                    </SimpleDownloadButton>
+        {/* ===== My Documents ===== */}
+        {groupedDocuments.length > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+            <h2 className="text-lg font-bold text-[#1B2A4A] mb-5">Mes documents</h2>
+            <div className="space-y-3">
+              {groupedDocuments.map((doc: any) => (
+                <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[#1B2A4A] truncate">{doc.type_document}</p>
+                    {doc.side && <p className="text-xs text-gray-400 capitalize">{doc.side}</p>}
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(doc.created_at).toLocaleDateString("fr-FR")}
+                    </p>
                   </div>
-                ))}
-                {adminDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{doc.type_document.replace('admin_', '')}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Envoye le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {doc.validation_status === "pending" && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
+                        <Clock className="w-3 h-3" /> En attente
+                      </span>
+                    )}
+                    {doc.validation_status === "approved" && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
+                        <CheckCircle className="w-3 h-3" /> Valide
+                      </span>
+                    )}
+                    {doc.validation_status === "rejected" && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                        <AlertCircle className="w-3 h-3" /> Refuse
+                      </span>
+                    )}
                     <SimpleDownloadButton
                       url={doc.url}
                       filename={doc.nom_fichier || doc.type_document}
-                      trackingNumber={trackingNumber}
-                      variant="default"
-                      size="default"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-full hover:bg-amber-600 transition-colors text-sm font-medium"
-                    >
-                      <Download className="w-4 h-4" />
-                      Telecharger
-                    </SimpleDownloadButton>
+                      trackingNumber={order.tracking_number}
+                      variant="ghost"
+                      size="icon"
+                    />
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Carte Grise Finale */}
-          {carteGriseUrl && (
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl border-2 border-emerald-300 p-8 text-center shadow-sm">
-              <div className="mx-auto w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mb-4 shadow-md">
-                <FileCheck className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-emerald-700 mb-2">
-                Votre carte grise est disponible !
-              </h2>
-              <p className="text-gray-600 text-lg mb-6">
-                Felicitations ! Votre carte grise a ete traitee et est maintenant disponible au telechargement.
-              </p>
-              <a
-                href={carteGriseUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-full hover:bg-emerald-600 transition-all font-semibold text-lg shadow-md hover:shadow-lg"
-              >
-                <Download className="w-6 h-6" />
-                Telecharger ma carte grise
-              </a>
-              <p className="text-sm text-gray-500 mt-4">
-                Conservez precieusement ce document.
-              </p>
-            </div>
-          )}
-
-          {/* My Documents */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center">
-                <FileText className="w-4 h-4 text-gray-600" />
-              </div>
-              <h3 className="font-bold text-gray-900">Mes documents</h3>
-            </div>
-            <div className="space-y-4">
-              {groupedDocuments.length > 0 ? (
-                groupedDocuments.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{doc.type_document}</p>
-                      {doc.side && <p className="text-sm text-gray-400 capitalize">{doc.side}</p>}
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Envoye le {new Date(doc.created_at).toLocaleDateString('fr-FR')}
-                      </p>
-                      {doc.rejection_reason && (
-                        <div className="mt-2 p-2.5 bg-red-50 border border-red-100 rounded-xl">
-                          <p className="text-xs font-semibold text-red-600">Raison du rejet:</p>
-                          <p className="text-xs text-red-500">{doc.rejection_reason}</p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {doc.validation_status === 'pending' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-gray-200 text-gray-600 rounded-full">
-                          <Clock className="w-3 h-3" />
-                          En attente
-                        </span>
-                      )}
-                      {doc.validation_status === 'approved' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
-                          <CheckCircle className="w-3 h-3" />
-                          Valide
-                        </span>
-                      )}
-                      {doc.validation_status === 'rejected' && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-                          <AlertCircle className="w-3 h-3" />
-                          Refuse
-                        </span>
-                      )}
-                      <SimpleDownloadButton
-                        url={doc.url}
-                        filename={doc.nom_fichier || doc.type_document}
-                        trackingNumber={order.tracking_number}
-                        variant="ghost"
-                        size="icon"
-                      />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-400 py-8">
-                  Aucun document envoye pour le moment
-                </p>
-              )}
-
-              {/* Rejected docs re-upload */}
-              {rejectedDocTypes.length > 0 && (
-                <div className={cn(
-                  "mt-6 p-5 rounded-2xl border transition-all duration-500",
-                  reuploadedDocs.size === rejectedDocTypes.length
-                    ? "bg-emerald-50 border-emerald-200"
-                    : "bg-red-50 border-red-200"
-                )}>
-                  <h3 className={cn(
-                    "font-semibold mb-2 flex items-center gap-2 transition-colors duration-300",
-                    reuploadedDocs.size === rejectedDocTypes.length
-                      ? "text-emerald-700"
-                      : "text-red-700"
-                  )}>
-                    {reuploadedDocs.size === rejectedDocTypes.length ? (
-                      <>
-                        <CheckCircle2 className="w-5 h-5" />
-                        Documents prets a etre envoyes
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-5 h-5" />
-                        Documents a renvoyer ({reuploadedDocs.size}/{rejectedDocTypes.length})
-                      </>
-                    )}
-                  </h3>
-
-                  {order.requires_resubmission_payment && !order.resubmission_paid ? (
-                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-2xl mb-4">
-                      <div className="flex items-start gap-3">
-                        <Ban className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-semibold text-orange-700 mb-2">
-                            Paiement requis pour renvoyer vos documents
-                          </p>
-                          <p className="text-sm text-orange-600 mb-4">
-                            Suite a des documents non conformes, un paiement de <strong>{order.resubmission_payment_amount || 10} EUR</strong> est
-                            requis avant de pouvoir soumettre de nouveaux documents.
-                          </p>
-                          <button
-                            onClick={handleResubmissionPayment}
-                            disabled={isProcessingPayment}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors font-medium text-sm disabled:opacity-50"
-                          >
-                            {isProcessingPayment ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Chargement...
-                              </>
-                            ) : (
-                              <>
-                                <CreditCard className="w-4 h-4" />
-                                Payer {order.resubmission_payment_amount || 10} EUR pour renvoyer
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 mb-4">
-                      {reuploadedDocs.size === rejectedDocTypes.length
-                        ? "Tous les documents ont ete telecharges. Cliquez sur 'Valider' pour les envoyer."
-                        : "Certains documents ont ete refuses. Veuillez les renvoyer ci-dessous."}
-                    </p>
-                  )}
-
-                  {rejectedDocTypes.map(docType => {
-                    const isBlocked = order.requires_resubmission_payment && !order.resubmission_paid;
-                    const isReuploaded = reuploadedDocs.has(docType);
-                    const newDoc = documents.find(d =>
-                      d.type_document === docType &&
-                      d.validation_status === 'pending'
-                    );
-                    const rejectedDoc = documents.find(d =>
-                      d.type_document === docType &&
-                      d.validation_status === 'rejected'
-                    );
-
-                    return (
-                      <div
-                        key={docType}
-                        className={cn(
-                          "mb-4 p-4 rounded-2xl border transition-all duration-500",
-                          isReuploaded || newDoc
-                            ? "bg-emerald-50 border-emerald-200"
-                            : "bg-white border-red-200"
-                        )}
-                      >
-                        <div className="mb-2 flex items-center justify-between">
-                          <div>
-                            <p className="font-medium flex items-center gap-2 text-gray-800">
-                              {docType}
-                              {(isReuploaded || newDoc) && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Nouveau fichier ajoute
-                                </span>
-                              )}
-                            </p>
-                            {rejectedDoc?.rejection_reason && !isReuploaded && !newDoc && (
-                              <p className="text-sm text-red-500 mt-1">
-                                Raison: {rejectedDoc.rejection_reason}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {!isReuploaded && !newDoc && (
-                          <GuestDocumentUpload
-                            orderId={order.id}
-                            documentType={docType}
-                            label={`Renvoyer: ${docType}`}
-                            existingFiles={[]}
-                            isBlocked={isBlocked}
-                            blockedMessage={`Veuillez payer ${order.resubmission_payment_amount || 10} EUR pour pouvoir renvoyer ce document.`}
-                            onUploadComplete={() => {
-                              setReuploadedDocs(prev => new Set([...prev, docType]));
-                              loadDocuments();
-                              loadOrder();
-                              toast({
-                                title: "Document telecharge",
-                                description: "N'oubliez pas de cliquer sur 'Valider' pour envoyer vos documents.",
-                              });
-                            }}
-                          />
-                        )}
-
-                        {(isReuploaded || newDoc) && newDoc && (
-                          <div className="flex items-center gap-2 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200">
-                            <FileCheck className="w-4 h-4 text-emerald-600" />
-                            <span className="text-sm text-emerald-700">{newDoc.nom_fichier}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Validate button */}
-                  {!(order.requires_resubmission_payment && !order.resubmission_paid) && reuploadedDocs.size > 0 && (
-                    <div className="mt-4 pt-4 border-t border-emerald-200">
-                      <button
-                        onClick={async () => {
-                          setIsSubmittingReupload(true);
-                          try {
-                            await supabase
-                              .from('guest_orders')
-                              .update({
-                                documents_complets: true,
-                                status: 'en_traitement'
-                              })
-                              .eq('id', order.id);
-
-                            if (order.email) {
-                              await supabase.functions.invoke('send-guest-order-email', {
-                                body: {
-                                  type: 'documents_received',
-                                  orderData: {
-                                    tracking_number: order.tracking_number,
-                                    email: order.email,
-                                    nom: order.nom,
-                                    prenom: order.prenom,
-                                    immatriculation: order.immatriculation,
-                                    montant_ttc: order.montant_ttc,
-                                    marque: order.marque,
-                                    modele: order.modele,
-                                  }
-                                }
-                              });
-                            }
-
-                            toast({
-                              title: "Documents envoyes !",
-                              description: "Vos documents ont ete soumis avec succes.",
-                            });
-
-                            setReuploadedDocs(new Set());
-                            loadDocuments();
-                            loadOrder();
-                          } catch (error) {
-                            console.error('Error submitting:', error);
-                            toast({
-                              title: "Erreur",
-                              description: "Une erreur est survenue lors de l'envoi.",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsSubmittingReupload(false);
-                          }
-                        }}
-                        disabled={isSubmittingReupload || reuploadedDocs.size === 0}
-                        className={cn(
-                          "w-full h-12 rounded-full font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50",
-                          reuploadedDocs.size === rejectedDocTypes.length
-                            ? "bg-emerald-500 hover:bg-emerald-600"
-                            : "bg-amber-500 hover:bg-amber-600"
-                        )}
-                      >
-                        {isSubmittingReupload ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Envoi en cours...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-4 h-4" />
-                            Valider et envoyer mes documents ({reuploadedDocs.size}/{rejectedDocTypes.length})
-                          </>
-                        )}
-                      </button>
-                      {reuploadedDocs.size < rejectedDocTypes.length && (
-                        <p className="text-xs text-gray-400 text-center mt-2">
-                          Vous pouvez valider maintenant ou ajouter les autres documents
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
-              )}
+              ))}
             </div>
+          </section>
+        )}
+
+        {/* ===== Need Help ===== */}
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+          <h2 className="text-lg font-bold text-[#1B2A4A] mb-5">Besoin d'aide ?</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <a
+              href={`mailto:${siteConfig.emails.support}`}
+              className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 transition-colors group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <Mail className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium text-[#1B2A4A] text-sm">Email</p>
+                <p className="text-xs text-gray-400">{siteConfig.emails.support}</p>
+              </div>
+            </a>
+            <a
+              href="/faq"
+              className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:bg-blue-50/50 transition-colors group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                <HelpCircle className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-medium text-[#1B2A4A] text-sm">FAQ</p>
+                <p className="text-xs text-gray-400">Questions frequentes</p>
+              </div>
+            </a>
           </div>
+        </section>
+
+        {/* ===== Footer branding ===== */}
+        <div className="text-center py-4">
+          <p className="text-xs text-gray-400">
+            {siteConfig.siteName} &middot; {siteConfig.domain}
+          </p>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

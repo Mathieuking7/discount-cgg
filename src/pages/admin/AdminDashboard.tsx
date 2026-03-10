@@ -4,27 +4,65 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, FileText, DollarSign, Mail, Calculator, ShoppingCart, UserCog, Wrench, Bell, AlertCircle, RefreshCw, Loader2, Euro, ClipboardList } from "lucide-react";
+import {
+  ArrowLeft,
+  Euro,
+  ClipboardList,
+  PlusCircle,
+  Link,
+  CreditCard,
+  TrendingUp,
+  Settings,
+  Loader2,
+  Clock,
+  ChevronRight,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import RevenueStats from "@/components/admin/RevenueStats";
-import AnnouncementManager from "@/components/admin/AnnouncementManager";
 import { siteConfig } from "@/config/site.config";
+
+interface QuickStat {
+  label: string;
+  value: string | number;
+  sublabel: string;
+  color: string;
+}
+
+interface RecentOrder {
+  id: string;
+  type: string;
+  status: string;
+  created_at: string;
+  nom?: string;
+  prenom?: string;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  en_attente: "bg-amber-100 text-amber-800",
+  en_cours: "bg-blue-100 text-blue-800",
+  finalise: "bg-green-100 text-green-800",
+  refuse: "bg-red-100 text-red-800",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  en_attente: "En attente",
+  en_cours: "En cours",
+  finalise: "Finalise",
+  refuse: "Refuse",
+};
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [regeneratingFactures, setRegeneratingFactures] = useState(false);
-  const [stats, setStats] = useState({
-    totalGarages: 0,
-    totalDemarches: 0,
-    demarchesATraiter: 0,
-    demarchesNonVues: 0,
-    totalPaiements: 0,
-    garagesAVerifier: 0
-  });
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    revenuDuJour: 0,
+    commandesEnCours: 0,
+    commandesATraiter: 0,
+    liensActifs: 0,
+  });
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -42,315 +80,296 @@ export default function AdminDashboard() {
     if (!user) return;
 
     const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
 
-    const hasAdminRole = roles?.some(r => r.role === 'admin');
+    const hasAdminRole = roles?.some((r) => r.role === "admin");
 
     if (!hasAdminRole) {
-      navigate("/dashboard");
+      navigate("/mon-espace");
       return;
     }
 
     setIsAdmin(true);
 
-    const { data: garages } = await supabase
-      .from('garages')
-      .select('id, verification_requested_at, is_verified, verification_admin_viewed');
+    // Fetch stats in parallel
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
 
-    const { data: demarches } = await supabase
-      .from('demarches')
-      .select('status, montant_ttc, is_draft, paye, is_free_token, admin_viewed');
+    const [
+      { data: todayPaiements },
+      { data: guestOrders },
+      { data: paymentLinks },
+      { data: recent },
+    ] = await Promise.all([
+      supabase
+        .from("paiements")
+        .select("montant, status, created_at")
+        .eq("status", "valide")
+        .gte("created_at", todayISO),
+      supabase
+        .from("guest_orders")
+        .select("id, status"),
+      supabase
+        .from("payment_links")
+        .select("id, status")
+        .eq("status", "active"),
+      supabase
+        .from("guest_orders")
+        .select("id, demarche_type, status, created_at, nom, prenom")
+        .order("created_at", { ascending: false })
+        .limit(5),
+    ]);
 
-    const { data: paiementsWithDemarches } = await supabase
-      .from('paiements')
-      .select(`
-        montant,
-        status,
-        demarches!inner(
-          paid_with_tokens,
-          is_free_token,
-          frais_dossier,
-          type
-        )
-      `);
+    const revenuDuJour =
+      todayPaiements?.reduce((sum, p) => sum + Number(p.montant), 0) || 0;
+    const commandesEnCours =
+      guestOrders?.filter(
+        (o) => o.status !== "finalise" && o.status !== "refuse"
+      ).length || 0;
+    const commandesATraiter =
+      guestOrders?.filter((o) => o.status === "en_attente").length || 0;
+    const liensActifs = paymentLinks?.length || 0;
 
-    const { data: tokenPurchases } = await supabase
-      .from('token_purchases')
-      .select('amount');
-
-    const demarchesATraiter = demarches?.filter(d =>
-      d.is_draft === false && (d.paye === true || d.is_free_token === true) && d.status !== 'finalise' && d.status !== 'refuse'
-    ) || [];
-
-    const demarchesNonVues = demarchesATraiter.filter(d => !d.admin_viewed);
-
-    const garagesAVerifier = garages?.filter(g =>
-      g.verification_requested_at && !g.is_verified && !g.verification_admin_viewed
-    ) || [];
-
-    const paiementsTotal = paiementsWithDemarches?.filter(p =>
-      p.status === 'valide' &&
-      !p.demarches?.paid_with_tokens &&
-      !p.demarches?.is_free_token
-    ).reduce((sum, p) => {
-      if (p.demarches?.type === 'CG' || p.demarches?.type === 'CG_DA' || p.demarches?.type === 'CG_IMPORT') {
-        return sum + Number(p.demarches.frais_dossier || 20);
-      }
-      return sum + Number(p.montant);
-    }, 0) || 0;
-
-    const creditsTotal = tokenPurchases?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
-
-    setStats({
-      totalGarages: garages?.length || 0,
-      totalDemarches: demarches?.length || 0,
-      demarchesATraiter: demarchesATraiter.length,
-      demarchesNonVues: demarchesNonVues.length,
-      totalPaiements: paiementsTotal + creditsTotal,
-      garagesAVerifier: garagesAVerifier.length
-    });
+    setStats({ revenuDuJour, commandesEnCours, commandesATraiter, liensActifs });
+    setRecentOrders(
+      (recent || []).map((r) => ({
+        id: r.id,
+        type: r.demarche_type || "—",
+        status: r.status,
+        created_at: r.created_at,
+        nom: r.nom,
+        prenom: r.prenom,
+      }))
+    );
 
     setLoading(false);
   };
 
-  const handleRegenerateAllFactures = async () => {
-    setRegeneratingFactures(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('regenerate-all-factures', {});
-
-      if (error) throw error;
-
-      toast({
-        title: "Succes",
-        description: data?.message || "Toutes les factures ont ete regenerees",
-      });
-    } catch (error: any) {
-      console.error('Error regenerating factures:', error);
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de regenerer les factures",
-        variant: "destructive"
-      });
-    } finally {
-      setRegeneratingFactures(false);
-    }
-  };
-
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-500">Chargement...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-[#1B2A4A] mx-auto" />
+          <p className="mt-4 text-gray-500 text-sm">Chargement...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  if (!isAdmin) return null;
 
-  const navItems = [
-    { label: "Toutes les demarches", icon: FileText, path: "/admin/demarches", badge: stats.demarchesNonVues > 0 ? stats.demarchesNonVues : undefined, badgeColor: "bg-red-100 text-red-700" },
-    { label: "Gerer les garages", icon: Building2, path: "/admin/manage-garages", badge: stats.garagesAVerifier > 0 ? stats.garagesAVerifier : undefined, badgeColor: "bg-orange-100 text-orange-700" },
-    { label: "Gestion des comptes", icon: Building2, path: "/admin/manage-accounts" },
-    { label: "Notifications", icon: Bell, path: "/admin/notifications" },
-    { label: "Historique paiements", icon: DollarSign, path: "/admin/historique-paiements" },
-    { label: "Achats jetons", icon: Euro, path: "/admin/token-purchases" },
-    { label: "Administrateurs", icon: UserCog, path: "/admin/users" },
-    { label: "Templates Email", icon: Mail, path: "/admin/email-templates" },
-    { label: "Test Email", icon: Mail, path: "/admin/test-email" },
+  const quickStats: QuickStat[] = [
+    {
+      label: "Revenu du jour",
+      value: `${stats.revenuDuJour.toFixed(2)} \u20AC`,
+      sublabel: "Paiements valides aujourd'hui",
+      color: "border-l-emerald-500",
+    },
+    {
+      label: "Commandes en cours",
+      value: stats.commandesEnCours,
+      sublabel: "Non finalisees",
+      color: "border-l-blue-500",
+    },
+    {
+      label: "A traiter",
+      value: stats.commandesATraiter,
+      sublabel: "En attente de traitement",
+      color: "border-l-amber-500",
+    },
+    {
+      label: "Liens actifs",
+      value: stats.liensActifs,
+      sublabel: "Liens de paiement actifs",
+      color: "border-l-purple-500",
+    },
   ];
 
-  const particulierItems = [
-    { label: "Simulateur Particulier", icon: Calculator, path: "/admin/pricing-config" },
-    { label: "Commandes Particuliers", icon: ShoppingCart, path: "/admin/guest-orders" },
-    { label: "Actions rapides Particuliers", icon: ClipboardList, path: "/admin/guest-actions" },
+  const quickActions = [
+    {
+      icon: ClipboardList,
+      title: "Demarches en cours",
+      description: "Voir toutes les demarches en cours",
+      path: "/dashboard/guest-orders",
+      badge: stats.commandesATraiter > 0 ? stats.commandesATraiter : undefined,
+    },
+    {
+      icon: PlusCircle,
+      title: "Creer une demarche",
+      description: "Creer une demarche pour un client",
+      path: "/dashboard/create-demarche",
+    },
+    {
+      icon: Link,
+      title: "Creer un lien de paiement",
+      description: "Lien simple, QR code, envoi par mail",
+      path: "/dashboard/payment-links",
+    },
+    {
+      icon: CreditCard,
+      title: "Mes paiements",
+      description: "Voir tous les achats et paiements",
+      path: "/dashboard/historique-paiements",
+    },
+    {
+      icon: TrendingUp,
+      title: "Revenus",
+      description: "Tableau de bord des revenus",
+      path: "/dashboard/revenus",
+    },
+    {
+      icon: Settings,
+      title: "Configuration",
+      description: "Prix, demarches, documents requis",
+      path: "/dashboard/pricing-config",
+    },
   ];
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="mb-6 rounded-md hover:bg-gray-50"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au tableau de bord
-        </Button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-1">Administration</h1>
-          <p className="text-gray-500">
-            Vue d'ensemble de la plateforme {siteConfig.siteName}
-          </p>
-        </div>
-
-        {/* Alerte demarches a traiter */}
-        {stats.demarchesNonVues > 0 && (
-          <div
-            className="mb-6 border-l-4 border-red-500 bg-white p-5 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => navigate("/admin/demarches")}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <div>
-                  <p className="font-semibold text-red-800">
-                    {stats.demarchesNonVues} nouvelle{stats.demarchesNonVues > 1 ? 's' : ''} demarche{stats.demarchesNonVues > 1 ? 's' : ''} a traiter !
-                  </p>
-                  <p className="text-sm text-red-600">
-                    Cliquez pour voir les demarches en attente
-                  </p>
-                </div>
-              </div>
-              <Button className="rounded-md bg-red-600 hover:bg-red-700 text-white shadow-sm">
-                <Bell className="h-4 w-4 mr-2" />
-                Voir maintenant
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Alerte garages a verifier */}
-        {stats.garagesAVerifier > 0 && (
-          <div
-            className="mb-6 border-l-4 border-amber-500 bg-white p-5 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => navigate("/admin/manage-garages")}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-amber-600" />
-                <div>
-                  <p className="font-semibold text-amber-800">
-                    {stats.garagesAVerifier} garage{stats.garagesAVerifier > 1 ? 's' : ''} a verifier !
-                  </p>
-                  <p className="text-sm text-amber-600">
-                    Cliquez pour verifier les documents soumis
-                  </p>
-                </div>
-              </div>
-              <Button className="rounded-md bg-amber-600 hover:bg-amber-700 text-white shadow-sm">
-                <Bell className="h-4 w-4 mr-2" />
-                Verifier
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <div className="bg-white border border-gray-200 border-l-4 border-l-green-500 rounded-md p-5">
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Revenus</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalPaiements.toFixed(2)} &euro;</p>
-            <p className="text-xs text-gray-500 mt-1">Revenu total plateforme</p>
-          </div>
-
-          <div
-            className="bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-md p-5 cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => navigate("/admin/demarches")}
-          >
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-1 flex items-center gap-2">
-              A traiter
-              {stats.demarchesNonVues > 0 && (
-                <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold animate-pulse">
-                  {stats.demarchesNonVues}
-                </span>
-              )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/mon-espace")}
+              className="mb-2 -ml-2 text-gray-500 hover:text-gray-700"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Retour
+            </Button>
+            <h1 className="text-2xl font-bold text-[#1B2A4A]">
+              Tableau de bord
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {siteConfig.siteName} — Administration
             </p>
-            <p className="text-2xl font-bold text-gray-900">{stats.demarchesATraiter}</p>
-            <p className="text-xs text-gray-500 mt-1">Demarches payees/jeton</p>
-          </div>
-
-          <div className="bg-white border border-gray-200 border-l-4 border-l-purple-500 rounded-md p-5">
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Garages</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalGarages}</p>
-            <p className="text-xs text-gray-500 mt-1">Entreprises inscrites</p>
-          </div>
-
-          <div className="bg-white border border-gray-200 border-l-4 border-l-amber-500 rounded-md p-5">
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Total demarches</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalDemarches}</p>
-            <p className="text-xs text-gray-500 mt-1">Toutes demarches</p>
           </div>
         </div>
 
-        {/* Revenue Stats - Link to full page */}
-        <div
-          className="mb-8 bg-white border border-gray-200 rounded-md p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-          onClick={() => navigate("/admin/revenus")}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-serif font-semibold text-gray-900">Revenus</h2>
-              <p className="text-sm text-gray-500">Revenu total: {stats.totalPaiements.toFixed(2)} &euro;</p>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {quickStats.map((stat) => (
+            <div
+              key={stat.label}
+              className={`bg-white rounded-lg border border-gray-200 border-l-4 ${stat.color} p-4`}
+            >
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                {stat.label}
+              </p>
+              <p className="text-2xl font-bold text-[#1B2A4A] mt-1">
+                {stat.value}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">{stat.sublabel}</p>
             </div>
-            <Button variant="outline" size="sm" className="rounded-md">
-              Voir les statistiques detaillees &rarr;
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+            Actions rapides
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {quickActions.map((action) => (
+              <button
+                key={action.path}
+                onClick={() => navigate(action.path)}
+                className="group relative bg-white rounded-lg border border-gray-200 p-4 sm:p-5 text-left hover:border-[#1B2A4A]/30 hover:shadow-md transition-all duration-200 min-h-[48px]"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="h-10 w-10 rounded-lg bg-[#1B2A4A]/5 flex items-center justify-center group-hover:bg-[#1B2A4A]/10 transition-colors">
+                    <action.icon className="h-5 w-5 text-[#1B2A4A]" />
+                  </div>
+                  {action.badge && (
+                    <Badge className="bg-amber-100 text-amber-800 border-0 text-xs font-bold">
+                      {action.badge}
+                    </Badge>
+                  )}
+                </div>
+                <h3 className="font-semibold text-[#1B2A4A] mt-3 text-sm">
+                  {action.title}
+                </h3>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                  {action.description}
+                </p>
+                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300 group-hover:text-[#1B2A4A]/50 group-hover:translate-x-0.5 transition-all" />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-semibold text-[#1B2A4A]">
+                Activite recente
+              </h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard/guest-orders")}
+              className="text-xs text-gray-500 hover:text-[#1B2A4A]"
+            >
+              Voir tout
+              <ChevronRight className="ml-1 h-3 w-3" />
             </Button>
           </div>
-        </div>
 
-        {/* Section Particuliers */}
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Espace Particuliers</p>
-          <div className="divide-y divide-gray-100 border border-gray-200 rounded-md">
-            {particulierItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-              >
-                <item.icon className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Annonces generales */}
-        <div className="mb-8">
-          <AnnouncementManager />
-        </div>
-
-        {/* Section Garages */}
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Espace Garages</p>
-          <div className="divide-y divide-gray-100 border border-gray-200 rounded-md">
-            {navItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className="relative flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-              >
-                {item.badge && (
-                  <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-xs font-bold ${item.badgeColor || 'bg-red-100 text-red-700'}`}>
-                    {item.badge}
-                  </span>
-                )}
-                <item.icon className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">{item.label}</span>
-              </button>
-            ))}
-            <button
-              onClick={handleRegenerateAllFactures}
-              disabled={regeneratingFactures}
-              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
-            >
-              {regeneratingFactures ? (
-                <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 text-gray-400" />
-              )}
-              <span className="text-sm font-medium text-gray-700">
-                {regeneratingFactures ? "Regeneration..." : "Regenerer factures"}
-              </span>
-            </button>
-          </div>
+          {recentOrders.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-gray-400">
+              Aucune commande recente
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {recentOrders.map((order) => (
+                <button
+                  key={order.id}
+                  onClick={() => navigate(`/dashboard/guest-orders`)}
+                  className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-5 py-3 min-h-[48px] hover:bg-gray-50 transition-colors text-left gap-1 sm:gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-sm">
+                      <span className="font-medium text-[#1B2A4A]">
+                        {order.prenom} {order.nom}
+                      </span>
+                      <span className="text-gray-400 ml-2 text-xs">
+                        {order.type}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-xs text-gray-400">
+                      {formatDate(order.created_at)}
+                    </span>
+                    <Badge
+                      className={`text-xs border-0 ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}
+                    >
+                      {STATUS_LABELS[order.status] || order.status}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

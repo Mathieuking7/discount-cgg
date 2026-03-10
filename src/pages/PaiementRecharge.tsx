@@ -128,7 +128,9 @@ export default function PaiementRecharge() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Derived values from validated pack
-  const creditAmount = pack?.quantity || 0;
+  const baseCreditAmount = pack?.quantity || 0;
+  const bonusCredits = Math.ceil(baseCreditAmount * 0.20);
+  const creditAmount = baseCreditAmount + bonusCredits;
   const price = pack?.price || 0;
 
   useEffect(() => {
@@ -273,7 +275,6 @@ export default function PaiementRecharge() {
     navigate("/");
   };
 
-  const discount = Math.round(((creditAmount - price) / creditAmount) * 100);
   const canUsePayPal4x = price >= 30;
 
   if (authLoading || isLoading) {
@@ -311,7 +312,7 @@ export default function PaiementRecharge() {
                   Support
                 </Button>
                 {isAdmin && (
-                  <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
+                  <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
                     <Settings className="mr-2 h-4 w-4" />
                     Administration
                   </Button>
@@ -478,34 +479,34 @@ export default function PaiementRecharge() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Crédit ajouté</span>
-                    <span className="font-medium">{creditAmount}€</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Prix normal</span>
-                    <span className="font-medium line-through text-muted-foreground">{creditAmount}€</span>
+                    <span className="text-muted-foreground">Credit de base</span>
+                    <span className="font-medium">{formatPrice(baseCreditAmount)}€</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground flex items-center gap-1">
-                      <Percent className="w-3 h-3" />
-                      Remise ({discount}%)
+                      <Percent className="w-3 h-3 text-amber-500" />
+                      Bonus +20% offert
                     </span>
-                    <span className="font-medium text-green-600">-{formatPrice(creditAmount - price)}€</span>
+                    <span className="font-medium text-amber-600">+{formatPrice(bonusCredits)}€</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-semibold border-t pt-2">
+                    <span>Credit total</span>
+                    <span className="text-green-600">{formatPrice(creditAmount)}€</span>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center">
-                    <span className="text-base font-semibold">À payer</span>
+                    <span className="text-base font-semibold">A payer</span>
                     <span className="text-2xl font-bold text-primary">
                       {formatPrice(price)}€
                     </span>
                   </div>
                 </div>
 
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mt-4">
-                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                    🎉 Vous économisez {formatPrice(creditAmount - price)}€ !
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-4">
+                  <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                    +{formatPrice(bonusCredits)}€ de credit offerts avec cette recharge !
                   </p>
                 </div>
 

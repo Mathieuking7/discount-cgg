@@ -32,6 +32,11 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
+import SEOHead from "@/components/SEOHead";
+import SchemaOrg, {
+  sivflowDemarcheServiceSchema,
+  sivflowBreadcrumbSchema,
+} from "@/components/SchemaOrg";
 
 const DEMARCHE_CONFIG: Record<string, { code: string; icon: any; color: string }> = {
   'carte-grise': { code: 'CG', icon: Car, color: 'blue' },
@@ -234,6 +239,26 @@ const DemarcheParticulier = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F9FB]">
+      <SEOHead
+        title={`${demarcheData.titre} - SIVFlow`}
+        description={demarcheData.description}
+        canonicalUrl={`https://sivflow.fr/demarches/${slug}`}
+      />
+      <SchemaOrg
+        schema={[
+          sivflowDemarcheServiceSchema({
+            titre: demarcheData.titre,
+            description: demarcheData.description,
+            prix_base: demarcheData.prix_base,
+            slug: slug || "",
+          }),
+          sivflowBreadcrumbSchema([
+            { name: "Accueil", url: "https://sivflow.fr/" },
+            { name: "Demarches", url: "https://sivflow.fr/#demarches-particulier" },
+            { name: demarcheData.titre, url: `https://sivflow.fr/demarches/${slug}` },
+          ]),
+        ]}
+      />
       <Navbar />
 
       {/* Trust bar */}
@@ -258,12 +283,12 @@ const DemarcheParticulier = () => {
         </div>
       </div>
 
-      <main className="flex-1 px-4 py-6 sm:py-10">
+      <main id="main-content" className="flex-1 px-4 py-6 sm:py-10">
         <div className="max-w-3xl mx-auto">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-1.5 text-xs text-encre/40 mb-6">
+          <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-xs text-encre/70 mb-6">
             <Link to="/" className="hover:text-bleu-france transition-colors">Accueil</Link>
-            <ChevronRight size={12} />
+            <ChevronRight size={12} aria-hidden="true" />
             <span className="text-encre/70">{demarcheData.titre}</span>
           </nav>
 
@@ -286,7 +311,7 @@ const DemarcheParticulier = () => {
               </div>
 
               {/* Price badge */}
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex flex-wrap items-center gap-3 mb-6">
                 <div className="inline-flex items-baseline gap-1 bg-[#1B2A4A] text-white px-4 py-2 rounded-xl">
                   <span className="text-2xl font-bold">{demarcheData.prix_base}</span>
                   <span className="text-sm text-white/60">EUR</span>
@@ -294,11 +319,11 @@ const DemarcheParticulier = () => {
                 {isCG && (
                   <span className="text-xs text-amber-600 font-medium">+ taxe regionale</span>
                 )}
-                <div className="flex items-center gap-3 ml-auto">
-                  <span className="flex items-center gap-1 text-[10px] text-encre/40">
+                <div className="flex items-center gap-3 sm:ml-auto">
+                  <span className="flex items-center gap-1 text-xs text-encre/70">
                     <ShieldCheck size={12} /> ANTS
                   </span>
-                  <span className="flex items-center gap-1 text-[10px] text-encre/40">
+                  <span className="flex items-center gap-1 text-xs text-encre/70">
                     <Clock size={12} /> 24h
                   </span>
                 </div>
@@ -312,7 +337,7 @@ const DemarcheParticulier = () => {
             {requiredDocs.length > 0 && (
               <div className="p-6 sm:p-8 pb-0">
                 <h2 className="text-sm font-semibold text-encre mb-3 flex items-center gap-2">
-                  <FileText size={15} className="text-encre/40" />
+                  <FileText size={15} className="text-encre/70" />
                   Documents necessaires
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -335,7 +360,7 @@ const DemarcheParticulier = () => {
                 /* Carte grise → simulateur pour calculer le prix */
                 <button
                   onClick={() => navigate("/simulateur")}
-                  className="w-full h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-base transition flex items-center justify-center gap-2"
+                  className="w-full min-h-[48px] h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2"
                 >
                   Calculer le prix de ma carte grise <ArrowRight size={18} />
                 </button>
@@ -358,7 +383,7 @@ const DemarcheParticulier = () => {
                   <button
                     onClick={handleCommencer}
                     disabled={submitting}
-                    className="w-full h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-base transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="w-full min-h-[48px] h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2 disabled:opacity-60"
                   >
                     {submitting ? (
                       <Loader2 className="w-5 h-5 animate-spin" />

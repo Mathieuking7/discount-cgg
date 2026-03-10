@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Car,
@@ -43,9 +44,10 @@ import FAQ from "@/components/FAQ";
 import { SimulateurSection } from "@/components/SimulateurSection";
 import SEOHead from "@/components/SEOHead";
 import SchemaOrg, {
-  sivflowSoftwareSchema,
   sivflowOrganizationSchema,
-  sivflowFAQSchema,
+  sivflowWebSiteSchema,
+  sivflowServiceSchema,
+  sivflowBreadcrumbSchema,
 } from "@/components/SchemaOrg";
 import { siteConfig } from "@/config/site.config";
 
@@ -150,8 +152,43 @@ const testimonials = [
   },
 ];
 
+const useHorizontalScroll = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [updateScrollState]);
+
+  const scroll = useCallback((direction: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = 280;
+    el.scrollBy({ left: direction === "left" ? -amount : amount, behavior: "smooth" });
+  }, []);
+
+  return { scrollRef, canScrollLeft, canScrollRight, scroll };
+};
+
 const Index = () => {
   const navigate = useNavigate();
+  const { scrollRef, canScrollLeft, canScrollRight, scroll } = useHorizontalScroll();
 
   return (
     <div className="min-h-screen font-sans bg-white">
@@ -162,9 +199,12 @@ const Index = () => {
       />
       <SchemaOrg
         schema={[
-          sivflowSoftwareSchema,
           sivflowOrganizationSchema,
-          sivflowFAQSchema,
+          sivflowWebSiteSchema,
+          sivflowServiceSchema,
+          sivflowBreadcrumbSchema([
+            { name: "Accueil", url: "https://sivflow.fr/" },
+          ]),
         ]}
       />
 
@@ -181,11 +221,11 @@ const Index = () => {
       <div className="bg-[#1B2A4A] text-white/80 py-2.5 px-4">
         <div className="max-w-6xl mx-auto flex items-center justify-center gap-6 text-xs">
           <span className="flex items-center gap-1.5">
-            <ShieldCheck size={14} /> Habilite par le Ministere de l'Interieur
+            <ShieldCheck size={14} aria-hidden="true" /> Habilite par le Ministere de l'Interieur
           </span>
           <span className="hidden sm:inline text-white/30">|</span>
           <span className="hidden sm:flex items-center gap-1.5">
-            <BadgeCheck size={14} /> Agree Tresor Public
+            <BadgeCheck size={14} aria-hidden="true" /> Agree Tresor Public
           </span>
           <span className="hidden sm:inline text-white/30">|</span>
           <span className="hidden sm:flex items-center gap-1.5">
@@ -195,7 +235,7 @@ const Index = () => {
       </div>
 
       {/* ── 01. HERO ── Simulateur-first approach */}
-      <section className="px-4 pt-12 pb-20 bg-gradient-to-b from-[#F0F4F8] to-white">
+      <section id="main-content" className="px-4 pt-12 pb-20 bg-gradient-to-b from-[#F0F4F8] to-white">
         <div className="max-w-6xl mx-auto text-center mb-10">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -219,7 +259,7 @@ const Index = () => {
 
         {/* Social proof counters */}
         <motion.div
-          className="max-w-xl mx-auto mt-8 flex items-center justify-center gap-8 text-sm text-encre/50"
+          className="max-w-xl mx-auto mt-8 flex items-center justify-center gap-8 text-sm text-encre/70"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
@@ -241,9 +281,9 @@ const Index = () => {
         </motion.div>
       </section>
 
-      {/* ── 02. DEMARCHES PARTICULIER ── Clickable cards grid */}
-      <section id="demarches-particulier" className="px-4 py-20 bg-white">
-        <div className="max-w-6xl mx-auto">
+      {/* ── 02. DEMARCHES PARTICULIER ── Horizontal scroll carousel */}
+      <section id="demarches-particulier" className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <motion.h2
               className="text-2xl md:text-4xl font-serif font-bold text-encre"
@@ -266,30 +306,76 @@ const Index = () => {
               Choisissez votre demarche et laissez-vous guider
             </motion.p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {demarchesParticulier.map((d, i) => (
-              <motion.button
-                key={i}
-                onClick={() => navigate(`/demarches/${d.slug}`)}
-                className="group relative flex flex-col items-center text-center p-5 bg-[#F8F9FB] hover:bg-white border border-transparent hover:border-bleu-france/20 rounded-2xl hover:shadow-md transition-all"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={Math.min(i, 6) * 0.5}
-                variants={fadeUp}
-              >
-                <div className="w-12 h-12 rounded-xl bg-bleu-france/10 flex items-center justify-center mb-3 group-hover:bg-bleu-france/15 transition-colors">
-                  <d.icon size={22} className="text-bleu-france" />
-                </div>
-                <h3 className="font-semibold text-encre text-sm leading-tight mb-1">
-                  {d.title}
-                </h3>
-                <p className="text-[11px] text-encre/50 leading-snug line-clamp-2">{d.desc}</p>
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition">
-                  <ArrowRight size={14} className="text-bleu-france" />
-                </div>
-              </motion.button>
-            ))}
+
+          {/* Scroll container with gradient fades and arrow buttons */}
+          <div className="relative group/carousel">
+            {/* Left gradient fade */}
+            <div
+              className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
+              style={{
+                background: "linear-gradient(to right, white 0%, transparent 100%)",
+                opacity: canScrollLeft ? 1 : 0,
+              }}
+            />
+            {/* Right gradient fade */}
+            <div
+              className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10 transition-opacity duration-300"
+              style={{
+                background: "linear-gradient(to left, white 0%, transparent 100%)",
+                opacity: canScrollRight ? 1 : 0,
+              }}
+            />
+
+            {/* Left arrow */}
+            <button
+              onClick={() => scroll("left")}
+              aria-label="Defiler vers la gauche"
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-20 w-10 h-10 rounded-full bg-[#1B2A4A] text-white shadow-lg items-center justify-center hover:bg-[#1B2A4A]/80 transition-all disabled:opacity-0 disabled:pointer-events-none"
+              disabled={!canScrollLeft}
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            {/* Right arrow */}
+            <button
+              onClick={() => scroll("right")}
+              aria-label="Defiler vers la droite"
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-20 w-10 h-10 rounded-full bg-[#1B2A4A] text-white shadow-lg items-center justify-center hover:bg-[#1B2A4A]/80 transition-all disabled:opacity-0 disabled:pointer-events-none"
+              disabled={!canScrollRight}
+            >
+              <ChevronRight size={20} />
+            </button>
+
+            {/* Scrollable row */}
+            <div
+              ref={scrollRef}
+              className="overflow-x-auto flex gap-4 snap-x snap-mandatory pb-4 -mx-4 px-4 scrollbar-hide"
+              style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {demarchesParticulier.map((d, i) => (
+                <motion.button
+                  key={d.slug}
+                  onClick={() => navigate(`/demarches/${d.slug}`)}
+                  className="group relative min-w-[260px] snap-start flex-shrink-0 flex flex-col items-center text-center p-5 bg-[#F8F9FB] hover:bg-white border border-transparent hover:border-amber-400/30 rounded-2xl hover:shadow-md transition-all"
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  custom={Math.min(i, 4) * 0.5}
+                  variants={fadeUp}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-[#1B2A4A]/10 flex items-center justify-center mb-3 group-hover:bg-amber-400/15 transition-colors">
+                    <d.icon size={22} className="text-[#1B2A4A] group-hover:text-amber-600 transition-colors" />
+                  </div>
+                  <h3 className="font-semibold text-encre text-sm leading-tight mb-1">
+                    {d.title}
+                  </h3>
+                  <p className="text-[11px] text-encre/70 leading-snug line-clamp-2">{d.desc}</p>
+                  <div className="mt-3 text-[10px] font-semibold text-amber-600 uppercase tracking-wider opacity-0 group-hover:opacity-100 transition flex items-center gap-1">
+                    Commencer <ArrowRight size={12} />
+                  </div>
+                </motion.button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -357,7 +443,7 @@ const Index = () => {
               Pourquoi {siteConfig.siteName} ?
             </motion.h2>
             <motion.p
-              className="text-white/60 mt-3"
+              className="text-white/80 mt-3"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -380,7 +466,7 @@ const Index = () => {
               >
                 <f.icon size={24} className="text-white/80 mb-4" />
                 <h3 className="font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-sm text-white/60 leading-relaxed">{f.desc}</p>
+                <p className="text-sm text-white/80 leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -406,7 +492,7 @@ const Index = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
             <div className="md:col-span-6">
-              <h3 className="text-sm font-semibold text-encre/40 uppercase tracking-wider mb-6">Demarches disponibles</h3>
+              <h3 className="text-sm font-semibold text-encre/70 uppercase tracking-wider mb-6">Demarches disponibles</h3>
               <div className="divide-y divide-encre/10">
                 {demarchesPro.map((d, i) => (
                   <motion.div
@@ -421,7 +507,7 @@ const Index = () => {
                     <d.icon size={18} className="text-bleu-france mt-0.5 shrink-0" />
                     <div>
                       <h4 className="text-sm font-semibold text-encre">{d.title}</h4>
-                      <p className="text-xs text-encre/50 mt-0.5">{d.desc}</p>
+                      <p className="text-xs text-encre/70 mt-0.5">{d.desc}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -429,7 +515,7 @@ const Index = () => {
             </div>
 
             <div className="md:col-span-6">
-              <h3 className="text-sm font-semibold text-encre/40 uppercase tracking-wider mb-6">Vos outils</h3>
+              <h3 className="text-sm font-semibold text-encre/70 uppercase tracking-wider mb-6">Vos outils</h3>
               <div className="divide-y divide-encre/10">
                 {featuresPro.map((f, i) => (
                   <motion.div
@@ -444,7 +530,7 @@ const Index = () => {
                     <f.icon size={18} className="text-bleu-france mt-0.5 shrink-0" />
                     <div>
                       <h4 className="text-sm font-semibold text-encre">{f.title}</h4>
-                      <p className="text-xs text-encre/50 mt-0.5">{f.desc}</p>
+                      <p className="text-xs text-encre/70 mt-0.5">{f.desc}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -459,7 +545,7 @@ const Index = () => {
             >
               Creer mon espace pro <ArrowRight size={16} />
             </button>
-            <p className="text-xs text-encre/40">
+            <p className="text-xs text-encre/70">
               Paiement a la demarche. Pas d'abonnement, pas d'engagement.
             </p>
           </div>
@@ -516,7 +602,7 @@ const Index = () => {
                 </blockquote>
                 <div className="border-t border-encre/10 pt-4">
                   <span className="text-sm font-semibold text-encre block">{t.name}</span>
-                  <span className="text-xs text-encre/40">{t.role}</span>
+                  <span className="text-xs text-encre/70">{t.role}</span>
                 </div>
               </motion.div>
             ))}
@@ -538,7 +624,7 @@ const Index = () => {
           <motion.h2 variants={fadeUp} custom={0} className="text-2xl md:text-4xl font-serif font-bold text-white mb-4">
             Pret a simplifier vos demarches ?
           </motion.h2>
-          <motion.p variants={fadeUp} custom={1} className="text-white/50 mb-10 max-w-md mx-auto">
+          <motion.p variants={fadeUp} custom={1} className="text-white/80 mb-10 max-w-md mx-auto">
             Particulier ou professionnel, commencez votre demarche en quelques clics.
           </motion.p>
           <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row gap-4 justify-center">

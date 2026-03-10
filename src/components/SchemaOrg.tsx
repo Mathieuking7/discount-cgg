@@ -28,121 +28,101 @@ export default SchemaOrg;
 
 // --- Schemas pre-configures pour SIVFlow ---
 
-export const sivflowSoftwareSchema = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "SIVFlow",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  description:
-    "Plateforme SIV pour professionnels automobile. Carte grise, declaration d'achat et de cession en ligne.",
-  url: "https://sivflow.fr",
-  offers: {
-    "@type": "AggregateOffer",
-    priceCurrency: "EUR",
-    lowPrice: "10",
-    highPrice: "30",
-    offerCount: "3",
-  },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    ratingCount: "150",
-  },
-  featureList: [
-    "Carte grise en ligne",
-    "Declaration d'achat (DA)",
-    "Declaration de cession (DC)",
-    "Simulateur de prix carte grise",
-    "Suivi de dossier en temps reel",
-  ],
-};
-
 export const sivflowOrganizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "SIVFlow",
+  legalName: "SIVFlow SAS",
   url: "https://sivflow.fr",
   logo: "https://sivflow.fr/logo.png",
   description:
-    "Service professionnel de carte grise et demarches SIV en ligne pour garages, negociants VO et experts automobile.",
+    "Service habilite par le Ministere de l'Interieur et l'ANTS pour les demarches de carte grise et immatriculation en ligne.",
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
+    email: "contact@sivflow.fr",
     availableLanguage: "French",
   },
   sameAs: [],
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    bestRating: "5",
+    ratingCount: "4839",
+  },
 };
 
-export const sivflowFAQSchema = {
+export const sivflowWebSiteSchema = {
   "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "Combien coute une carte grise pour un professionnel automobile ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Avec SIVFlow, le service de carte grise professionnel est a 30EUR. Les declarations d'achat et de cession sont a 10EUR chacune. Les taxes departementales s'ajoutent selon le departement et la puissance fiscale du vehicule.",
-      },
+  "@type": "WebSite",
+  name: "SIVFlow",
+  url: "https://sivflow.fr",
+  description:
+    "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Agree par le Ministere de l'Interieur.",
+  publisher: {
+    "@type": "Organization",
+    name: "SIVFlow",
+    url: "https://sivflow.fr",
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://sivflow.fr/simulateur?q={search_term_string}",
     },
-    {
-      "@type": "Question",
-      name: "Comment faire une declaration d'achat en ligne en tant que garage ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Sur SIVFlow, selectionnez 'Declaration d'achat', entrez l'immatriculation du vehicule, telechargez les documents requis et validez. Le traitement est effectue sous 24h ouvrees.",
+    "query-input": "required name=search_term_string",
+  },
+};
+
+export const sivflowServiceSchema = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Carte grise en ligne",
+  description:
+    "Service de carte grise et demarches d'immatriculation en ligne. Habilite par le Ministere de l'Interieur et agree ANTS.",
+  provider: {
+    "@type": "Organization",
+    name: "SIVFlow",
+    url: "https://sivflow.fr",
+  },
+  serviceType: "Demarches d'immatriculation de vehicules",
+  areaServed: {
+    "@type": "Country",
+    name: "France",
+  },
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Demarches carte grise",
+    itemListElement: [
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Carte grise - Changement de titulaire",
+        },
+        price: "29.90",
+        priceCurrency: "EUR",
       },
-    },
-    {
-      "@type": "Question",
-      name: "Quels documents fournir pour une carte grise professionnelle ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Vous devez fournir : un Kbis de moins de 3 mois, une piece d'identite du gerant, le certificat de cession du vehicule, le controle technique valide et un mandat de representation.",
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Declaration de cession",
+        },
+        price: "29.90",
+        priceCurrency: "EUR",
       },
-    },
-    {
-      "@type": "Question",
-      name: "Quel est le delai pour recevoir une carte grise en ligne ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Les dossiers sont traites en moins de 24 heures ouvrees des reception de l'ensemble des pieces justificatives. Vous recevez des notifications a chaque etape.",
+      {
+        "@type": "Offer",
+        itemOffered: {
+          "@type": "Service",
+          name: "Changement d'adresse carte grise",
+        },
+        price: "29.90",
+        priceCurrency: "EUR",
       },
-    },
-    {
-      "@type": "Question",
-      name: "Comment obtenir l'habilitation SIV pour mon garage ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "L'habilitation SIV s'obtient aupres de la prefecture. Avec SIVFlow, meme sans habilitation, vous pouvez realiser vos demarches carte grise via notre plateforme agreee.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Peut-on faire une carte grise sans se deplacer en prefecture ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Oui, depuis la mise en place du SIV, toutes les demarches de carte grise se font en ligne. SIVFlow vous permet de realiser 100% des demarches sans deplacement.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "La declaration de cession est-elle obligatoire pour les professionnels ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Oui, la declaration de cession est obligatoire lors de la vente d'un vehicule. Elle doit etre realisee dans les 15 jours suivant la cession sous peine d'amende.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Comment calculer le prix d'une carte grise par departement ?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Le prix depend de la puissance fiscale du vehicule et du tarif du cheval fiscal de votre departement. Utilisez notre simulateur gratuit pour obtenir un calcul precis et instantane.",
-      },
-    },
-  ],
+    ],
+  },
 };
 
 export const sivflowBreadcrumbSchema = (
@@ -156,4 +136,35 @@ export const sivflowBreadcrumbSchema = (
     name: item.name,
     item: item.url,
   })),
+});
+
+/**
+ * Genere un schema Service pour une demarche specifique.
+ */
+export const sivflowDemarcheServiceSchema = (demarche: {
+  titre: string;
+  description: string;
+  prix_base: number;
+  slug: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: demarche.titre,
+  description: demarche.description,
+  provider: {
+    "@type": "Organization",
+    name: "SIVFlow",
+    url: "https://sivflow.fr",
+  },
+  areaServed: {
+    "@type": "Country",
+    name: "France",
+  },
+  url: `https://sivflow.fr/demarches/${demarche.slug}`,
+  offers: {
+    "@type": "Offer",
+    price: String(demarche.prix_base),
+    priceCurrency: "EUR",
+    availability: "https://schema.org/InStock",
+  },
 });

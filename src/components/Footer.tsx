@@ -7,9 +7,9 @@ const Footer = () => {
   const navigate = useNavigate();
 
   const linkClass =
-    "text-sm text-white/60 hover:text-white transition-colors";
+    "text-sm text-white/80 hover:text-white transition-colors";
   const headingClass =
-    "text-xs uppercase tracking-widest font-sans text-white/40 mb-4";
+    "text-xs uppercase tracking-widest font-sans text-white/70 mb-4";
 
   return (
     <footer className="bg-encre text-white">
@@ -20,7 +20,7 @@ const Footer = () => {
             <span className="font-serif font-bold text-xl text-white tracking-tight">
               {siteConfig.siteName}
             </span>
-            <p className="text-sm text-white/50 leading-relaxed">
+            <p className="text-sm text-white/80 leading-relaxed">
               Vos demarches d'immatriculation simplifiees. Service rapide,
               professionnel et 100% securise.
             </p>
@@ -28,32 +28,36 @@ const Footer = () => {
               {siteConfig.social.facebook && (
                 <a
                   href={siteConfig.social.facebook}
-                  className="text-white/40 hover:text-white transition-colors"
+                  aria-label="Facebook"
+                  className="text-white/70 hover:text-white transition-colors"
                 >
-                  <Facebook className="w-4 h-4" />
+                  <Facebook className="w-4 h-4" aria-hidden="true" />
                 </a>
               )}
               {siteConfig.social.instagram && (
                 <a
                   href={siteConfig.social.instagram}
-                  className="text-white/40 hover:text-white transition-colors"
+                  aria-label="Instagram"
+                  className="text-white/70 hover:text-white transition-colors"
                 >
-                  <Instagram className="w-4 h-4" />
+                  <Instagram className="w-4 h-4" aria-hidden="true" />
                 </a>
               )}
               {siteConfig.social.linkedin && (
                 <a
                   href={siteConfig.social.linkedin}
-                  className="text-white/40 hover:text-white transition-colors"
+                  aria-label="LinkedIn"
+                  className="text-white/70 hover:text-white transition-colors"
                 >
-                  <Linkedin className="w-4 h-4" />
+                  <Linkedin className="w-4 h-4" aria-hidden="true" />
                 </a>
               )}
               <a
                 href={`mailto:${siteConfig.emails.contact}`}
-                className="text-white/40 hover:text-white transition-colors"
+                aria-label="Email"
+                className="text-white/70 hover:text-white transition-colors"
               >
-                <Mail className="w-4 h-4" />
+                <Mail className="w-4 h-4" aria-hidden="true" />
               </a>
             </div>
           </div>
@@ -120,22 +124,34 @@ const Footer = () => {
             <h4 className={headingClass}>Legal</h4>
             <ul className="space-y-2.5">
               <li>
-                <a href="#" className={linkClass}>
+                <button
+                  onClick={() => navigate("/mentions-legales")}
+                  className={linkClass}
+                >
                   Mentions legales
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className={linkClass}>
+                <button
+                  onClick={() => navigate("/cgv")}
+                  className={linkClass}
+                >
                   CGV
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className={linkClass}>
+                <button
+                  onClick={() => navigate("/politique-confidentialite")}
+                  className={linkClass}
+                >
                   Politique de confidentialite
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className={linkClass}>
+                <a
+                  href={`mailto:${siteConfig.emails.contact}`}
+                  className={linkClass}
+                >
                   Contact
                 </a>
               </li>
@@ -144,7 +160,7 @@ const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
+        <div className="border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/70">
           <p>
             &copy; {currentYear} {siteConfig.siteName}. Tous droits reserves.
           </p>

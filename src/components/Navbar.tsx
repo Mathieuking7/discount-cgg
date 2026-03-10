@@ -17,6 +17,9 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-[#1B2A4A] focus:rounded focus:shadow-lg focus:font-semibold">
+        Aller au contenu principal
+      </a>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center justify-between">
         {/* Logo */}
         <button
