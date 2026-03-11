@@ -10,11 +10,11 @@ interface PaymentLinkData {
   amount: number;
   description: string;
   status: string;
-  client_name: string | null;
-  client_email: string | null;
-  demarche_type_id: string | null;
+  recipient_name: string | null;
+  recipient_email: string | null;
+  demarche_type: string | null;
   expires_at: string;
-  guest_order_id: string | null;
+  order_id: string | null;
 }
 
 export default function PayerLink() {
@@ -61,7 +61,7 @@ export default function PayerLink() {
 
     // If this payment link is tied to a demarche type, create/find a guest order
     // and redirect to the full demarche flow at /commander/:orderId
-    if (linkData.status === "active" && linkData.demarche_type_id) {
+    if (linkData.status === "active" && linkData.demarche_type) {
       await redirectToDemarcheFlow(linkData);
       return;
     }
@@ -71,9 +71,9 @@ export default function PayerLink() {
   };
 
   const redirectToDemarcheFlow = async (linkData: PaymentLinkData) => {
-    // Check if we already have a guest_order_id linked
-    if (linkData.guest_order_id) {
-      navigate(`/commander/${linkData.guest_order_id}`, { replace: true });
+    // Check if we already have an order_id linked
+    if (linkData.order_id) {
+      navigate(`/commander/${linkData.order_id}`, { replace: true });
       return;
     }
 
@@ -81,7 +81,7 @@ export default function PayerLink() {
     const { data: demarcheType } = await supabase
       .from("guest_demarche_types")
       .select("code")
-      .eq("id", linkData.demarche_type_id!)
+      .eq("id", linkData.demarche_type!)
       .single();
 
     if (!demarcheType) {
@@ -95,15 +95,15 @@ export default function PayerLink() {
       .from("guest_orders")
       .insert({
         demarche_type: demarcheType.code,
-        immatriculation: null,
-        nom: linkData.client_name || null,
-        prenom: "",
-        email: linkData.client_email || null,
-        telephone: "",
-        adresse: "",
-        code_postal: "",
-        ville: "",
-        status: "brouillon",
+        immatriculation: "A_REMPLIR",
+        nom: linkData.recipient_name || "A_REMPLIR",
+        prenom: "A_REMPLIR",
+        email: linkData.recipient_email || "a@remplir.com",
+        telephone: "0000000000",
+        adresse: "A remplir",
+        code_postal: "00000",
+        ville: "A remplir",
+        status: "en_attente",
         commentaire: null,
       })
       .select("id")
@@ -118,7 +118,7 @@ export default function PayerLink() {
     // Link the guest order back to the payment link
     await supabase
       .from("payment_links")
-      .update({ guest_order_id: order.id })
+      .update({ order_id: order.id })
       .eq("id", linkData.id);
 
     navigate(`/commander/${order.id}`, { replace: true });
@@ -219,9 +219,9 @@ export default function PayerLink() {
           <p className="text-4xl font-bold text-gray-900">{link.amount.toFixed(2)} <span className="text-lg">EUR</span></p>
         </div>
 
-        {link.client_name && (
+        {link.recipient_name && (
           <p className="text-center text-sm text-gray-500">
-            Client : <strong>{link.client_name}</strong>
+            Client : <strong>{link.recipient_name}</strong>
           </p>
         )}
 

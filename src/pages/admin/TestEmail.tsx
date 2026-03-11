@@ -26,6 +26,18 @@ export default function TestEmail() {
         navigate("/login");
         return;
       }
+
+      // Check admin role
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
+
+      if (!roles?.some((r) => r.role === "admin")) {
+        navigate("/");
+        return;
+      }
+
       setIsAuthenticated(true);
       setCheckingAuth(false);
     };

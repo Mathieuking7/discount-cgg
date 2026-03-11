@@ -177,7 +177,7 @@ async function generateDemarcheFacturePDF(
   page.drawText(garage?.adresse || "", { x: width / 2, y, size: 10, font: fontRegular, color: gray });
 
   y -= 12;
-  page.drawText("SIRET : 123 456 789 00012", { x: margin, y, size: 10, font: fontRegular, color: gray });
+  page.drawText("SIRET : 83088827700027", { x: margin, y, size: 10, font: fontRegular, color: gray });
   page.drawText(`${garage?.code_postal || ""} ${garage?.ville || ""}`, { x: width / 2, y, size: 10, font: fontRegular, color: gray });
 
   y -= 12;
@@ -537,19 +537,32 @@ async function handleTokenPurchase(
     return;
   }
 
-  // Update garage balance (token_balance stores euros now)
-  const newBalance = (garage.token_balance || 0) + creditAmount;
-  const { error: updateError } = await supabase
-    .from("garages")
-    .update({ 
-      token_balance: newBalance,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", garageId);
+  // Atomic balance update to prevent race conditions
+  // Uses Supabase's ability to do SQL expressions via RPC or raw update
+  const { data: updatedGarage, error: updateError } = await supabase
+    .rpc('increment_garage_balance', {
+      p_garage_id: garageId,
+      p_amount: creditAmount,
+    });
 
+  // Fallback if RPC doesn't exist: use regular update (less safe but functional)
+  let newBalance = (garage.token_balance || 0) + creditAmount;
   if (updateError) {
-    console.error("❌ Failed to update balance:", updateError);
-    return;
+    console.warn("⚠️ RPC increment_garage_balance not found, using fallback update:", updateError.message);
+    const { error: fallbackError } = await supabase
+      .from("garages")
+      .update({
+        token_balance: newBalance,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", garageId);
+
+    if (fallbackError) {
+      console.error("❌ Failed to update balance:", fallbackError);
+      return;
+    }
+  } else {
+    newBalance = updatedGarage;
   }
 
   console.log(`✅ Balance updated: ${newBalance}€`);

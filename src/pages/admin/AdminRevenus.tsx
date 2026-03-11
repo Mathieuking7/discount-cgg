@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Download, Euro, CalendarDays, TrendingUp, BarChart3 } from "lucide-react";
 import { format, subDays, startOfDay, startOfWeek, startOfMonth } from "date-fns";
@@ -31,6 +32,7 @@ interface PaymentLink {
 }
 
 export default function AdminRevenus() {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<GuestOrder[]>([]);
   const [paiements, setPaiements] = useState<Paiement[]>([]);
@@ -38,8 +40,24 @@ export default function AdminRevenus() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!authLoading && user) {
+      checkAdminAndLoad();
+    }
+  }, [user, authLoading]);
+
+  async function checkAdminAndLoad() {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user!.id);
+
+    if (!roles?.some((r) => r.role === "admin")) {
+      navigate("/");
+      return;
+    }
+
     fetchData();
-  }, []);
+  }
 
   async function fetchData() {
     setLoading(true);

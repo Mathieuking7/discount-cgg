@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 
 // Keep landing page in main bundle
@@ -33,7 +33,6 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
 
 // Lazy-loaded user pages
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const NouvelleDemarche = lazy(() => import("./pages/NouvelleDemarche"));
 const MesDemarches = lazy(() => import("./pages/MesDemarches"));
 const MesFactures = lazy(() => import("./pages/MesFactures"));
@@ -57,6 +56,7 @@ const Simulateur = lazy(() => import("./pages/Simulateur"));
 const ResultatCarteGrise = lazy(() => import("./pages/ResultatCarteGrise"));
 const DemarcheSimple = lazy(() => import("./pages/DemarcheSimple"));
 const DemarcheParticulier = lazy(() => import("./pages/DemarcheParticulier"));
+const PaiementGuestSucces = lazy(() => import("./pages/PaiementGuestSucces"));
 const PayerLink = lazy(() => import("./pages/PayerLink"));
 const CompleterDemarchePro = lazy(() => import("./pages/CompleterDemarchePro"));
 const MentionsLegales = lazy(() => import("./pages/MentionsLegales"));
@@ -86,6 +86,7 @@ const AdminRevenus = lazy(() => import("./pages/admin/AdminRevenus"));
 const ManageGuestActions = lazy(() => import("./pages/admin/ManageGuestActions"));
 const PaymentLinkCreator = lazy(() => import("./pages/admin/PaymentLinkCreator"));
 const CreateDemarche = lazy(() => import("./pages/admin/CreateDemarche"));
+const ManageSubscriptions = lazy(() => import("./pages/admin/ManageSubscriptions"));
 
 const queryClient = new QueryClient();
 
@@ -113,9 +114,10 @@ const App = () => (
               <Route path="/paiement/:orderId" element={<PaiementGuestOrder />} />
               <Route path="/paiement-demarche/:demarcheId" element={<PaiementDemarche />} />
               <Route path="/paiement-succes/:demarcheId" element={<PaiementSucces />} />
+              <Route path="/paiement-guest-succes/:orderId" element={<PaiementGuestSucces />} />
               <Route path="/recherche-suivi" element={<RechercheSuivi />} />
               <Route path="/suivi/:trackingNumber" element={<SuiviCommande />} />
-              <Route path="/mon-espace" element={<Dashboard />} />
+              <Route path="/mon-espace" element={<Navigate to="/dashboard" replace />} />
               <Route path="/nouvelle-demarche" element={<NouvelleDemarche />} />
               <Route path="/nouvelle-demarche/:draftId" element={<NouvelleDemarche />} />
               <Route path="/mes-demarches" element={<MesDemarches />} />
@@ -146,6 +148,7 @@ const App = () => (
               <Route path="/dashboard/guest-actions" element={<ManageGuestActions />} />
               <Route path="/dashboard/payment-links" element={<PaymentLinkCreator />} />
               <Route path="/dashboard/create-demarche" element={<CreateDemarche />} />
+              <Route path="/dashboard/subscriptions" element={<ManageSubscriptions />} />
               <Route path="/payer/:shortCode" element={<PayerLink />} />
               <Route path="/completer-demarche/:linkId" element={<CompleterDemarchePro />} />
               <Route path="/sivflow" element={<SIVFlowLanding />} />

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ interface EditableDemarcheType extends DemarcheType {
 }
 
 const ManagePricingConfig = () => {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [demarcheTypes, setDemarcheTypes] = useState<EditableDemarcheType[]>([]);
@@ -72,8 +74,24 @@ const ManagePricingConfig = () => {
   const [activeSection, setActiveSection] = useState<"types" | "tarifs">("types");
 
   useEffect(() => {
+    if (!authLoading && user) {
+      checkAdminAndLoad();
+    }
+  }, [user, authLoading]);
+
+  const checkAdminAndLoad = async () => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user!.id);
+
+    if (!roles?.some((r) => r.role === "admin")) {
+      navigate("/");
+      return;
+    }
+
     loadData();
-  }, []);
+  };
 
   const loadData = async () => {
     try {
@@ -430,9 +448,8 @@ const ManagePricingConfig = () => {
                       const isExpanded = expandedType === type.id;
 
                       return (
-                        <>
+                        <React.Fragment key={type.id}>
                           <TableRow
-                            key={type.id}
                             className={`${!type.actif ? "opacity-50" : ""} ${isExpanded ? "bg-blue-50/50" : "hover:bg-gray-50"} cursor-pointer`}
                             onClick={() => setExpandedType(isExpanded ? null : type.id)}
                           >
@@ -492,7 +509,7 @@ const ManagePricingConfig = () => {
 
                           {/* Expandable documents section */}
                           {isExpanded && (
-                            <TableRow key={`${type.id}-docs`}>
+                            <TableRow>
                               <TableCell colSpan={7} className="bg-blue-50/30 p-0">
                                 <div className="px-6 py-4 space-y-3">
                                   <div className="flex items-center justify-between">
@@ -558,7 +575,7 @@ const ManagePricingConfig = () => {
                               </TableCell>
                             </TableRow>
                           )}
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </TableBody>

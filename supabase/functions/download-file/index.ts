@@ -31,6 +31,55 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // For non-guest-order buckets, require authentication
+    if (bucket !== "guest-order-documents") {
+      const authHeader = req.headers.get("authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !user) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      // Check if admin or garage owner
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+
+      if (!roleData) {
+        // Not admin - check garage ownership for demarche-documents
+        if (bucket === "demarche-documents") {
+          const { data: garageData } = await supabase
+            .from("garages")
+            .select("id")
+            .eq("user_id", user.id);
+
+          const garageIds = (garageData || []).map((g: any) => g.id);
+          const pathBelongsToGarage = garageIds.some((id: string) => path.startsWith(id + "/") || path.includes("/" + id + "/"));
+          if (!pathBelongsToGarage) {
+            return new Response(JSON.stringify({ error: "Forbidden" }), {
+              status: 403,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+        }
+      }
+
+      console.log("✅ Authenticated user authorized for download");
+    }
+
     // Verify access for guest orders
     if (bucket === "guest-order-documents" && trackingNumber) {
       const { data: orderData } = await supabase

@@ -43,8 +43,8 @@ import {
 
 interface DemarcheType {
   id: string;
-  name: string;
-  slug: string;
+  code: string;
+  titre: string;
 }
 
 interface PaymentLink {
@@ -52,9 +52,9 @@ interface PaymentLink {
   short_code: string;
   amount: number;
   description: string;
-  demarche_type_id: string | null;
-  client_name: string | null;
-  client_email: string | null;
+  demarche_type: string | null;
+  recipient_name: string | null;
+  recipient_email: string | null;
   status: string;
   expires_at: string;
   created_at: string;
@@ -144,8 +144,9 @@ export default function PaymentLinkCreator() {
   const loadDemarcheTypes = async () => {
     const { data } = await supabase
       .from("guest_demarche_types")
-      .select("id, name, slug")
-      .order("name");
+      .select("id, code, titre")
+      .eq("actif", true)
+      .order("ordre");
     if (data) setDemarcheTypes(data);
   };
 
@@ -170,9 +171,9 @@ export default function PaymentLinkCreator() {
       short_code: shortCode,
       amount: parseFloat(amount),
       description,
-      demarche_type_id: demarcheTypeId || null,
-      client_name: clientName || null,
-      client_email: clientEmail || null,
+      demarche_type: demarcheTypeId || null,
+      recipient_name: clientName || null,
+      recipient_email: clientEmail || null,
       status: "active",
       expires_at: new Date(expiresAt).toISOString(),
       created_by: user!.id,
@@ -327,7 +328,7 @@ export default function PaymentLinkCreator() {
                 <SelectContent>
                   {demarcheTypes.map((dt) => (
                     <SelectItem key={dt.id} value={dt.id}>
-                      {dt.name}
+                      {dt.titre}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -458,7 +459,7 @@ export default function PaymentLinkCreator() {
                         <TableCell className="font-mono text-sm">{link.short_code}</TableCell>
                         <TableCell>{link.amount.toFixed(2)} EUR</TableCell>
                         <TableCell className="max-w-[200px] truncate">{link.description}</TableCell>
-                        <TableCell>{link.client_name || "-"}</TableCell>
+                        <TableCell>{link.recipient_name || "-"}</TableCell>
                         <TableCell>{statusBadge(link.status)}</TableCell>
                         <TableCell className="text-sm text-gray-500">
                           {new Date(link.created_at).toLocaleDateString("fr-FR")}
@@ -489,14 +490,14 @@ export default function PaymentLinkCreator() {
                             >
                               <QrCode className="h-4 w-4" />
                             </Button>
-                            {link.client_email && link.status === "active" && (
+                            {link.recipient_email && link.status === "active" && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8"
                                 title="Envoyer par email"
                                 onClick={() =>
-                                  sendEmail(link.short_code, link.client_email!, link.amount, link.description)
+                                  sendEmail(link.short_code, link.recipient_email!, link.amount, link.description)
                                 }
                               >
                                 <Mail className="h-4 w-4" />

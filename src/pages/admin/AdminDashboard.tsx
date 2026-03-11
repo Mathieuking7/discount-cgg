@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft,
-  Euro,
+  LogOut,
   ClipboardList,
   PlusCircle,
   Link,
@@ -16,6 +15,7 @@ import {
   Loader2,
   Clock,
   ChevronRight,
+  Home,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { siteConfig } from "@/config/site.config";
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
     const hasAdminRole = roles?.some((r) => r.role === "admin");
 
     if (!hasAdminRole) {
-      navigate("/mon-espace");
+      navigate("/nouvelle-demarche");
       return;
     }
 
@@ -278,21 +278,35 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/mon-espace")}
-              className="mb-2 -ml-2 text-gray-500 hover:text-gray-700"
-            >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Retour
-            </Button>
             <h1 className="text-2xl font-bold text-[#1B2A4A]">
               Tableau de bord
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {siteConfig.siteName} — Administration
             </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/")}
+              className="text-gray-600"
+            >
+              <Home className="mr-1.5 h-4 w-4" />
+              Site
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate("/");
+              }}
+              className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            >
+              <LogOut className="mr-1.5 h-4 w-4" />
+              Déconnexion
+            </Button>
           </div>
         </div>
 

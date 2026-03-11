@@ -24,8 +24,8 @@ serve(async (req) => {
       );
     }
 
-    // Basic tracking number format validation (TRK-XXXXXXXX)
-    const trackingRegex = /^TRK-[A-Z0-9]{8}$/;
+    // Tracking number format validation (SIV-XXXXXX or legacy TRK-XXXXXXXX)
+    const trackingRegex = /^(SIV-[A-Z0-9]{6}|TRK-[A-Z0-9]{8})$/;
     if (!trackingRegex.test(tracking_number)) {
       console.error('Invalid tracking number format:', tracking_number);
       return new Response(
