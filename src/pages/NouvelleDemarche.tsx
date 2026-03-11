@@ -394,7 +394,7 @@ export default function NouvelleDemarche() {
 
   // CG payment link URL
   const cgPaymentUrl = clientPaymentLinkId
-    ? `${window.location.origin}/payer/${clientPaymentLinkId}`
+    ? `${window.location.origin}/completer-demarche/${clientPaymentLinkId}`
     : "";
 
   // Generate QR code for CG payment link

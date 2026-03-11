@@ -45,7 +45,7 @@ const RechercheSuivi = () => {
               <input
                 id="tracking"
                 type="text"
-                placeholder="TRK-2025-000007"
+                placeholder="SIV-ABC123"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 className="w-full h-14 px-5 text-lg bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30 focus:border-[#1B2A4A] transition-all placeholder:text-gray-400 font-mono"

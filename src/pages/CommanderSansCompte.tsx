@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { GuestPaymentDetailsSummary, calculateGuestOrderTTC } from "@/components/payment/GuestPaymentDetailsSummary";
+import { GuestPaymentDetailsSummary } from "@/components/payment/GuestPaymentDetailsSummary";
 
 const STEPS = [
   { id: 1, label: "Informations", icon: User },
@@ -56,11 +56,16 @@ const CommanderSansCompte = () => {
   }, [orderId]);
 
   useEffect(() => {
-    if (order?.demarche_type) {
-      loadRequiredDocuments(order.demarche_type);
-      loadDemarcheInfo(order.demarche_type);
+    if (order) {
+      if (order.demarche_type) {
+        loadRequiredDocuments(order.demarche_type);
+        loadDemarcheInfo(order.demarche_type);
+      } else {
+        // Fallback: load all active documents if no demarche_type on order
+        loadRequiredDocuments("");
+      }
     }
-  }, [order?.demarche_type]);
+  }, [order?.id, order?.demarche_type]);
 
   const loadOrder = async () => {
     if (!orderId) return;
@@ -101,13 +106,29 @@ const CommanderSansCompte = () => {
   };
 
   const loadRequiredDocuments = async (demarcheType: string) => {
-    const { data: docsData } = await supabase
+    if (demarcheType) {
+      // Try loading documents filtered by demarche type first
+      const { data: typedDocs } = await supabase
+        .from("guest_order_required_documents")
+        .select("*")
+        .eq("actif", true)
+        .eq("demarche_type_code", demarcheType)
+        .order("ordre");
+
+      if (typedDocs && typedDocs.length > 0) {
+        setDocuments(typedDocs);
+        return;
+      }
+    }
+
+    // Fallback: load all active documents (original behavior when no
+    // demarche_type_code filtering is configured in the database)
+    const { data: allDocs } = await supabase
       .from("guest_order_required_documents")
       .select("*")
       .eq("actif", true)
-      .eq("demarche_type_code", demarcheType)
       .order("ordre");
-    setDocuments(docsData || []);
+    setDocuments(allDocs || []);
   };
 
   const handleFileChange = (documentName: string, file: File | null) => {
@@ -288,7 +309,7 @@ const CommanderSansCompte = () => {
         }
 
         toast({ title: "Commande validee", description: "Votre commande a ete enregistree avec succes" });
-        navigate(`/suivi/${order.tracking_number}`);
+        navigate(`/paiement-guest-succes/${orderId}`);
       } else {
         if (formData.email_notifications) {
           await supabase.functions.invoke('send-email', {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import DOMPurify from "dompurify";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ interface EmailTemplate {
 }
 
 const ManageEmailTemplates = () => {
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +33,24 @@ const ManageEmailTemplates = () => {
   const [previewHtml, setPreviewHtml] = useState("");
 
   useEffect(() => {
+    if (!authLoading && user) {
+      checkAdminAndLoad();
+    }
+  }, [user, authLoading]);
+
+  const checkAdminAndLoad = async () => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user!.id);
+
+    if (!roles?.some((r) => r.role === "admin")) {
+      navigate("/");
+      return;
+    }
+
     loadTemplates();
-  }, []);
+  };
 
   const loadTemplates = async () => {
     try {

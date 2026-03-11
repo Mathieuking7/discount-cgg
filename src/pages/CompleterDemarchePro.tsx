@@ -189,7 +189,7 @@ const CompleterDemarchePro = () => {
           .from("guest-order-documents")
           .getPublicUrl(fileName);
 
-        await supabase.from("demarche_documents").insert({
+        await supabase.from("documents").insert({
           demarche_id: demarche.id,
           type_document: key,
           nom_fichier: file.name,
@@ -212,7 +212,7 @@ const CompleterDemarchePro = () => {
           .from("guest-order-documents")
           .getPublicUrl(fileName);
 
-        await supabase.from("demarche_documents").insert({
+        await supabase.from("documents").insert({
           demarche_id: demarche.id,
           type_document: `Document supplementaire ${doc.name}`,
           nom_fichier: doc.file.name,

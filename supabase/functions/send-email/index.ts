@@ -66,6 +66,17 @@ const validateAuth = async (req: Request): Promise<boolean> => {
   return false;
 };
 
+// Escape HTML to prevent XSS in email templates
+const escapeHtml = (str: string): string => {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 interface EmailAttachment {
   filename: string;
   content: string; // base64 encoded
@@ -577,10 +588,10 @@ const getEmailTemplate = (type: string, data: any) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h1 style="color: #3b82f6;">📬 Notification</h1>
-            <p>Bonjour ${data.customerName || 'Client'},</p>
-            
+            <p>Bonjour ${escapeHtml(data.customerName || 'Client')},</p>
+
             <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0; white-space: pre-wrap;">
-              ${data.message}
+              ${escapeHtml(data.message)}
             </div>
 
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
@@ -642,7 +653,7 @@ const getEmailTemplate = (type: string, data: any) => {
     case "simple_text":
       return {
         subject: data.subject || "Message",
-        html: data.html || `<div style="font-family: Arial, sans-serif;">${data.message || ''}</div>`,
+        html: data.html || `<div style="font-family: Arial, sans-serif;">${escapeHtml(data.message || '')}</div>`,
       };
 
     default:
