@@ -98,6 +98,7 @@ export default function AdminCreerDemarche() {
       const { data, error } = await supabase
         .from("guest_demarche_types")
         .select("id, code, titre, prix_base")
+        .eq("actif", true)
         .order("titre");
       if (error) {
         toast({ title: "Erreur", description: "Impossible de charger les types de démarche.", variant: "destructive" });
