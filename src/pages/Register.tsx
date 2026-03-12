@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { signUp, signInWithGoogle, user } = useAuth();
+  const { signUp, signIn, signInWithGoogle, user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -63,10 +63,23 @@ export default function Register() {
         description: getSupabaseErrorMessage(error),
         variant: "destructive"
       });
+      setLoading(false);
+      return;
+    }
+
+    // Auto-connexion après inscription (contourne la confirmation email)
+    const { error: signInError } = await signIn(formData.email, formData.password);
+
+    if (signInError) {
+      toast({
+        title: "Compte créé",
+        description: "Votre compte a été créé. Connectez-vous pour accéder à votre espace.",
+      });
+      navigate("/login");
     } else {
       toast({
-        title: "Compte créé avec succès",
-        description: "Redirection vers votre espace..."
+        title: "Bienvenue !",
+        description: "Votre compte professionnel est prêt."
       });
       navigate("/dashboard");
     }
