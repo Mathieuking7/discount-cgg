@@ -58,6 +58,13 @@ interface UploadedDoc {
   required_doc_id?: string;
 }
 
+interface ExtraSlot {
+  slotId: string;
+  nom: string;
+  uploading: boolean;
+  uploaded?: UploadedDoc;
+}
+
 type Mode = "client" | "admin" | null;
 type ClientType = "particulier" | "pro" | null;
 
@@ -115,10 +122,8 @@ export default function CreateDemarche() {
   // Uploaded docs (keyed by required_doc_id for required ones, free for extras)
   const [docs, setDocs] = useState<UploadedDoc[]>([]);
 
-  // Upload form for extra doc
-  const [docName, setDocName] = useState("");
-  const [docFile, setDocFile] = useState<File | null>(null);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
+  // Extra doc slots (dynamic +1 +2 +3...)
+  const [extraSlots, setExtraSlots] = useState<ExtraSlot[]>([]);
 
   // Per-required-doc upload state
   const [uploadingReqDoc, setUploadingReqDoc] = useState<string | null>(null);
@@ -210,6 +215,7 @@ export default function CreateDemarche() {
     };
     loadRequiredDocs();
     setDocs([]);
+    setExtraSlots([]);
   }, [selectedType, clientType, mode]);
 
   const paymentUrl = createdOrderId
@@ -257,26 +263,47 @@ export default function CreateDemarche() {
     }
   };
 
-  // Upload an extra (free) doc
-  const handleUploadExtraDoc = async () => {
-    if (!docName.trim() || !docFile) return;
-    setUploadingDoc(true);
+  const addExtraSlot = () => {
+    setExtraSlots((prev) => [
+      ...prev,
+      { slotId: crypto.randomUUID(), nom: "", uploading: false },
+    ]);
+  };
+
+  const removeExtraSlot = async (slotId: string) => {
+    const slot = extraSlots.find((s) => s.slotId === slotId);
+    if (slot?.uploaded) {
+      await supabase.storage.from("guest-documents").remove([slot.uploaded.path]);
+      setDocs((prev) => prev.filter((d) => d.path !== slot.uploaded!.path));
+    }
+    setExtraSlots((prev) => prev.filter((s) => s.slotId !== slotId));
+  };
+
+  const handleExtraSlotNom = (slotId: string, nom: string) => {
+    setExtraSlots((prev) => prev.map((s) => s.slotId === slotId ? { ...s, nom } : s));
+  };
+
+  const handleExtraSlotFile = async (slotId: string, file: File) => {
+    const slot = extraSlots.find((s) => s.slotId === slotId);
+    if (!slot) return;
+    const nom = slot.nom.trim() || file.name.replace(/\.[^.]+$/, "");
+    setExtraSlots((prev) => prev.map((s) => s.slotId === slotId ? { ...s, uploading: true } : s));
     try {
-      const path = `admin/pending/${Date.now()}_${docFile.name}`;
+      const path = `admin/pending/${Date.now()}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from("guest-documents")
-        .upload(path, docFile, { upsert: true });
+        .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-
       const { data: urlData } = supabase.storage.from("guest-documents").getPublicUrl(path);
-      setDocs((prev) => [...prev, { nom: docName.trim(), url: urlData.publicUrl, path }]);
-      setDocName("");
-      setDocFile(null);
-      toast({ title: "Document ajouté" });
+      const uploaded: UploadedDoc = { nom, url: urlData.publicUrl, path };
+      setDocs((prev) => [...prev, uploaded]);
+      setExtraSlots((prev) => prev.map((s) =>
+        s.slotId === slotId ? { ...s, nom, uploading: false, uploaded } : s
+      ));
+      toast({ title: "Document ajouté", description: nom });
     } catch (err: any) {
       toast({ title: "Erreur upload", description: err.message, variant: "destructive" });
-    } finally {
-      setUploadingDoc(false);
+      setExtraSlots((prev) => prev.map((s) => s.slotId === slotId ? { ...s, uploading: false } : s));
     }
   };
 
@@ -405,8 +432,7 @@ export default function CreateDemarche() {
     setQrDataUrl("");
     setCopied(false);
     setDocs([]);
-    setDocName("");
-    setDocFile(null);
+    setExtraSlots([]);
   };
 
   if (loading) {
@@ -771,56 +797,96 @@ export default function CreateDemarche() {
                           </div>
                         )}
 
-                        {/* Extra docs */}
+                        {/* Extra docs — dynamic slots */}
                         <div className="border-t pt-4 mt-4">
-                          <p className="text-sm font-medium text-gray-600 mb-3">Ajouter un document supplémentaire (optionnel)</p>
-                          <Card className="p-4 rounded-xl space-y-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label>Nom du document</Label>
-                                <Input
-                                  placeholder="Ex: Justificatif de domicile..."
-                                  value={docName}
-                                  onChange={(e) => setDocName(e.target.value)}
-                                />
-                              </div>
-                              <div>
-                                <Label>Fichier</Label>
-                                <Input type="file" accept="image/*,.pdf" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
-                              </div>
-                            </div>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-medium text-gray-600">
+                              Documents supplémentaires
+                              {extraSlots.length > 0 && (
+                                <span className="ml-2 text-xs text-gray-400">({extraSlots.filter(s => s.uploaded).length}/{extraSlots.length} uploadés)</span>
+                              )}
+                            </p>
                             <Button
                               size="sm"
-                              disabled={!docName.trim() || !docFile || uploadingDoc}
-                              onClick={handleUploadExtraDoc}
-                              className="bg-[#1B2A4A] hover:bg-[#1B2A4A]/90"
+                              variant="outline"
+                              onClick={addExtraSlot}
+                              className="border-dashed border-[#1B2A4A]/40 text-[#1B2A4A] hover:bg-[#1B2A4A]/5 h-8 text-xs"
                             >
-                              {uploadingDoc ? (
-                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Upload...</>
-                              ) : (
-                                <><Upload className="w-4 h-4 mr-2" /> Ajouter</>
-                              )}
+                              <Plus className="w-3.5 h-3.5 mr-1" />
+                              Ajouter +{extraSlots.length + 1}
                             </Button>
-                          </Card>
+                          </div>
 
-                          {/* Extra docs list */}
-                          {docs.filter((d) => !d.required_doc_id).length > 0 && (
-                            <div className="space-y-2 mt-3">
-                              {docs.filter((d) => !d.required_doc_id).map((doc) => (
-                                <div key={doc.path} className="flex items-center justify-between bg-white border rounded-lg px-4 py-2">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-gray-400" />
-                                    <span className="text-sm font-medium text-[#1B2A4A]">{doc.nom}</span>
-                                    <a href={doc.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 underline">Voir</a>
+                          {extraSlots.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic">Aucun document supplémentaire. Cliquez sur "+ Ajouter" si besoin.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {extraSlots.map((slot, idx) => (
+                                <div
+                                  key={slot.slotId}
+                                  className={`rounded-xl border px-4 py-3 transition-colors ${
+                                    slot.uploaded ? "bg-green-50 border-green-200" : "bg-white border-gray-200"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    {/* Number badge */}
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                                      slot.uploaded ? "bg-green-500 text-white" : "bg-gray-200 text-gray-600"
+                                    }`}>
+                                      {slot.uploaded ? <Check className="w-3 h-3" /> : idx + 1}
+                                    </span>
+
+                                    {slot.uploaded ? (
+                                      // Uploaded state
+                                      <div className="flex-1 flex items-center gap-2 min-w-0">
+                                        <span className="text-sm font-medium text-[#1B2A4A] truncate">{slot.uploaded.nom}</span>
+                                        <a href={slot.uploaded.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 underline shrink-0">Voir</a>
+                                      </div>
+                                    ) : (
+                                      // Edit state
+                                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <Input
+                                          placeholder={`Nom du document +${idx + 1}`}
+                                          value={slot.nom}
+                                          onChange={(e) => handleExtraSlotNom(slot.slotId, e.target.value)}
+                                          className="h-8 text-sm"
+                                        />
+                                        <label className="cursor-pointer">
+                                          <input
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            className="hidden"
+                                            disabled={slot.uploading}
+                                            onChange={(e) => {
+                                              const f = e.target.files?.[0];
+                                              if (f) handleExtraSlotFile(slot.slotId, f);
+                                            }}
+                                          />
+                                          <span className={`flex items-center justify-center gap-1 text-xs px-3 h-8 rounded-lg font-medium w-full transition-colors ${
+                                            slot.uploading
+                                              ? "bg-gray-100 text-gray-400"
+                                              : "bg-[#1B2A4A]/10 text-[#1B2A4A] hover:bg-[#1B2A4A]/20"
+                                          }`}>
+                                            {slot.uploading ? (
+                                              <><Loader2 className="w-3 h-3 animate-spin" /> Upload...</>
+                                            ) : (
+                                              <><Upload className="w-3 h-3" /> Choisir fichier</>
+                                            )}
+                                          </span>
+                                        </label>
+                                      </div>
+                                    )}
+
+                                    {/* Remove button */}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0 shrink-0"
+                                      onClick={() => removeExtraSlot(slot.slotId)}
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </Button>
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="text-red-400 hover:text-red-600 hover:bg-red-50"
-                                    onClick={() => handleRemoveDoc(doc)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
                                 </div>
                               ))}
                             </div>
