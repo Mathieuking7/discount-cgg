@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CheckCircle2, XCircle, FileText, User, Car, MapPin, Mail, Phone, Calendar, Euro, Download, Eye, AlertCircle, Send, FileCheck, Ban, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, FileText, User, Car, MapPin, Mail, Phone, Calendar, Euro, Download, Eye, AlertCircle, Send, FileCheck, Ban, Loader2, Trash2 } from "lucide-react";
 import { SecureDownloadButton } from "@/components/SecureDownloadButton";
 import { Textarea as TextareaInput } from "@/components/ui/textarea";
 import {
@@ -1563,6 +1563,44 @@ function DocumentValidationCard({
     }
   };
 
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDelete = async () => {
+    setIsProcessing(true);
+    try {
+      // Delete from storage
+      if (doc.url) {
+        const path = doc.url.split("/guest-order-documents/").pop();
+        if (path) {
+          await supabase.storage.from("guest-order-documents").remove([decodeURIComponent(path)]);
+        }
+      }
+      // Delete from DB
+      const { error } = await supabase
+        .from("guest_order_documents")
+        .delete()
+        .eq("id", doc.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Document supprimé",
+        description: "Le document a été supprimé définitivement",
+      });
+      setShowDeleteDialog(false);
+      onValidationChange();
+    } catch (error) {
+      console.error("Error:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusBadge = () => {
     if (doc.validation_status === 'approved') {
       return <Badge className="bg-green-500">Validé</Badge>;
@@ -1626,6 +1664,15 @@ function DocumentValidationCard({
                 </Button>
               </>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isProcessing}
+              title="Supprimer le document"
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </Button>
           </div>
         </div>
       </div>
@@ -1646,12 +1693,34 @@ function DocumentValidationCard({
           />
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleReject}
               disabled={!rejectionReason.trim() || isProcessing}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Confirmer le refus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irreversible. Le document sera supprime du stockage et de la base de donnees.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isProcessing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Supprimer definitivement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

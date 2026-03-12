@@ -2,7 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, XCircle, Clock, CreditCard, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, CreditCard, AlertTriangle, Lock } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 interface PaymentLinkData {
   id: string;
@@ -126,8 +131,16 @@ export default function PayerLink() {
 
   const handlePay = async () => {
     if (!link) return;
-    setPaying(true);
 
+    // If Stripe is available, we use the StripePaymentForm component instead
+    // This fallback is for when Stripe is not configured (dev mode)
+    if (stripePromise) {
+      // Stripe mode: show the card form (handled by StripePaymentForm below)
+      return;
+    }
+
+    // No Stripe: simulate payment (dev/test only)
+    setPaying(true);
     const { error: err } = await supabase
       .from("payment_links")
       .update({ status: "paid", paid_at: new Date().toISOString() })
@@ -225,23 +238,127 @@ export default function PayerLink() {
           </p>
         )}
 
-        <Button
-          className="w-full h-12 text-base"
-          onClick={handlePay}
-          disabled={paying}
-        >
-          {paying ? (
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          ) : (
-            <CreditCard className="h-5 w-5 mr-2" />
-          )}
-          Payer {link.amount.toFixed(2)} EUR
-        </Button>
+        {stripePromise ? (
+          <Elements stripe={stripePromise}>
+            <StripePaymentForm link={link} onSuccess={() => setLink({ ...link, status: "paid" })} />
+          </Elements>
+        ) : (
+          <Button
+            className="w-full h-12 text-base"
+            onClick={handlePay}
+            disabled={paying}
+          >
+            {paying ? (
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            ) : (
+              <CreditCard className="h-5 w-5 mr-2" />
+            )}
+            Payer {link.amount.toFixed(2)} EUR
+          </Button>
+        )}
 
-        <p className="text-xs text-gray-400 text-center">
-          Paiement securise par SIVFlow
-        </p>
+        <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+          <Lock className="h-3 w-3" />
+          <span>Paiement securise par Stripe</span>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Stripe Card Payment Form for simple payment links
+function StripePaymentForm({ link, onSuccess }: { link: PaymentLinkData; onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Create payment intent via edge function
+      const { data: paymentData, error: piError } = await supabase.functions.invoke(
+        "create-payment-intent",
+        {
+          body: {
+            amount: Math.round(link.amount * 100),
+            metadata: {
+              payment_link_id: link.id,
+              type: "payment_link",
+            },
+          },
+        }
+      );
+
+      if (piError) throw piError;
+
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) throw new Error("Erreur carte");
+
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        paymentData.clientSecret,
+        {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: link.recipient_name || undefined,
+              email: link.recipient_email || undefined,
+            },
+          },
+        }
+      );
+
+      if (stripeError) throw new Error(stripeError.message);
+
+      if (paymentIntent?.status === "succeeded") {
+        await supabase
+          .from("payment_links")
+          .update({ status: "paid", paid_at: new Date().toISOString() })
+          .eq("id", link.id);
+
+        onSuccess();
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur lors du paiement");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="border rounded-lg p-3">
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: "16px",
+                color: "#1a1a1a",
+                "::placeholder": { color: "#9ca3af" },
+              },
+            },
+            hidePostalCode: true,
+          }}
+        />
+      </div>
+      {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+      <Button
+        type="submit"
+        className="w-full h-12 text-base"
+        disabled={!stripe || isProcessing}
+      >
+        {isProcessing ? (
+          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+        ) : (
+          <CreditCard className="h-5 w-5 mr-2" />
+        )}
+        Payer {link.amount.toFixed(2)} EUR
+      </Button>
+    </form>
   );
 }
