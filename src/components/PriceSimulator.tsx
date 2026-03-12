@@ -58,6 +58,8 @@ export const PriceSimulator = () => {
             adresse: "",
             code_postal: "",
             ville: "",
+            status: "en_attente",
+            demarche_type: "CG",
           }])
           .select()
           .single();

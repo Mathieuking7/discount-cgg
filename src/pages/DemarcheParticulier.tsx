@@ -286,10 +286,10 @@ const DemarcheParticulier = () => {
       <main id="main-content" className="flex-1 px-4 py-6 sm:py-10">
         <div className="max-w-3xl mx-auto">
           {/* Breadcrumb */}
-          <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-xs text-encre/70 mb-6">
-            <Link to="/" className="hover:text-bleu-france transition-colors">Accueil</Link>
+          <nav aria-label="Fil d'Ariane" className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/70 mb-6">
+            <Link to="/" className="hover:text-[#002395] transition-colors">Accueil</Link>
             <ChevronRight size={12} aria-hidden="true" />
-            <span className="text-encre/70">{demarcheData.titre}</span>
+            <span className="text-[#1A1A1A]/70">{demarcheData.titre}</span>
           </nav>
 
           {/* Main card - everything compact */}
@@ -301,10 +301,10 @@ const DemarcheParticulier = () => {
                   <Icon className={`w-6 h-6 ${colors.text}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-encre leading-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-[#1A1A1A] leading-tight">
                     {demarcheData.titre}
                   </h1>
-                  <p className="text-sm text-encre/50 mt-1 leading-relaxed">
+                  <p className="text-sm text-[#1A1A1A]/50 mt-1 leading-relaxed">
                     {demarcheData.description}
                   </p>
                 </div>
@@ -320,10 +320,10 @@ const DemarcheParticulier = () => {
                   <span className="text-xs text-amber-600 font-medium">+ taxe regionale</span>
                 )}
                 <div className="flex items-center gap-3 sm:ml-auto">
-                  <span className="flex items-center gap-1 text-xs text-encre/70">
+                  <span className="flex items-center gap-1 text-xs text-[#1A1A1A]/70">
                     <ShieldCheck size={12} /> ANTS
                   </span>
-                  <span className="flex items-center gap-1 text-xs text-encre/70">
+                  <span className="flex items-center gap-1 text-xs text-[#1A1A1A]/70">
                     <Clock size={12} /> 24h
                   </span>
                 </div>
@@ -336,15 +336,15 @@ const DemarcheParticulier = () => {
             {/* Documents requis */}
             {requiredDocs.length > 0 && (
               <div className="p-6 sm:p-8 pb-0">
-                <h2 className="text-sm font-semibold text-encre mb-3 flex items-center gap-2">
-                  <FileText size={15} className="text-encre/70" />
+                <h2 className="text-sm font-semibold text-[#1A1A1A] mb-3 flex items-center gap-2">
+                  <FileText size={15} className="text-[#1A1A1A]/70" />
                   Documents necessaires
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {requiredDocs.map((doc, i) => (
                     <div key={i} className="flex items-center gap-2.5 py-2 px-3 bg-[#F8F9FB] rounded-lg">
                       <CheckCircle size={14} className="text-green-500 flex-shrink-0" />
-                      <span className="text-sm text-encre/80">{doc.nom_document}</span>
+                      <span className="text-sm text-[#1A1A1A]/80">{doc.nom_document}</span>
                     </div>
                   ))}
                 </div>
@@ -360,7 +360,7 @@ const DemarcheParticulier = () => {
                 /* Carte grise → simulateur pour calculer le prix */
                 <button
                   onClick={() => navigate("/simulateur")}
-                  className="w-full min-h-[48px] h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2"
+                  className="w-full min-h-[48px] h-14 bg-[#002395] hover:bg-[#002395]/90 text-white font-semibold rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2"
                 >
                   Calculer le prix de ma carte grise <ArrowRight size={18} />
                 </button>
@@ -369,7 +369,7 @@ const DemarcheParticulier = () => {
                 <div className="space-y-3">
                   {needsPlate && (
                     <div>
-                      <label className="text-sm font-medium text-encre/60 mb-1.5 block">
+                      <label className="text-sm font-medium text-[#1A1A1A]/60 mb-1.5 block">
                         Immatriculation du vehicule
                       </label>
                       <Input
@@ -383,7 +383,7 @@ const DemarcheParticulier = () => {
                   <button
                     onClick={handleCommencer}
                     disabled={submitting}
-                    className="w-full min-h-[48px] h-14 bg-bleu-france hover:bg-bleu-france/90 text-white font-semibold rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="w-full min-h-[48px] h-14 bg-[#002395] hover:bg-[#002395]/90 text-white font-semibold rounded-xl text-sm sm:text-base transition flex items-center justify-center gap-2 disabled:opacity-60"
                   >
                     {submitting ? (
                       <Loader2 className="w-5 h-5 animate-spin" />

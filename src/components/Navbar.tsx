@@ -26,7 +26,7 @@ const Navbar = () => {
           onClick={() => navigate("/")}
           className="flex items-center gap-1.5"
         >
-          <span className="font-serif font-bold text-xl text-bleu-france tracking-tight">
+          <span className="font-serif font-bold text-xl text-[#002395] tracking-tight">
             {siteConfig.siteName}
           </span>
         </button>
@@ -37,7 +37,7 @@ const Navbar = () => {
             <a
               key={link.href}
               href={link.href}
-              className="text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors"
+              className="text-xs uppercase tracking-widest font-sans text-[#1A1A1A] hover:text-[#002395] transition-colors"
             >
               {link.label}
             </a>
@@ -48,13 +48,13 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-4">
           <button
             onClick={() => navigate("/recherche-suivi")}
-            className="text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors"
+            className="text-xs uppercase tracking-widest font-sans text-[#1A1A1A] hover:text-[#002395] transition-colors"
           >
             Suivi
           </button>
           <button
             onClick={() => navigate("/login")}
-            className="text-xs uppercase tracking-widest font-sans bg-bleu-france text-white px-5 py-2.5 hover:bg-bleu-france/90 transition-colors flex items-center gap-2"
+            className="text-xs uppercase tracking-widest font-sans bg-[#002395] text-white px-5 py-2.5 hover:bg-[#002395]/90 transition-colors flex items-center gap-2"
           >
             <LogIn size={13} />
             Espace Pro
@@ -63,7 +63,7 @@ const Navbar = () => {
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden p-2 text-encre"
+          className="md:hidden p-2 text-[#1A1A1A]"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Menu"
         >
@@ -85,7 +85,7 @@ const Navbar = () => {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="py-2.5 text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors"
+                  className="py-2.5 text-xs uppercase tracking-widest font-sans text-[#1A1A1A] hover:text-[#002395] transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
                   {link.label}
@@ -97,7 +97,7 @@ const Navbar = () => {
                   setIsOpen(false);
                   navigate("/recherche-suivi");
                 }}
-                className="py-2.5 text-xs uppercase tracking-widest font-sans text-encre hover:text-bleu-france transition-colors text-left"
+                className="py-2.5 text-xs uppercase tracking-widest font-sans text-[#1A1A1A] hover:text-[#002395] transition-colors text-left"
               >
                 Suivi de commande
               </button>
@@ -106,7 +106,7 @@ const Navbar = () => {
                   setIsOpen(false);
                   navigate("/login");
                 }}
-                className="mt-2 text-xs uppercase tracking-widest font-sans bg-bleu-france text-white text-center py-3 flex items-center justify-center gap-2 hover:bg-bleu-france/90 transition-colors"
+                className="mt-2 text-xs uppercase tracking-widest font-sans bg-[#002395] text-white text-center py-3 flex items-center justify-center gap-2 hover:bg-[#002395]/90 transition-colors"
               >
                 <LogIn size={13} />
                 Espace Pro

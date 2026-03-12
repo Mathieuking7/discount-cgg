@@ -173,9 +173,9 @@ const Index = () => {
 
       {/* Tricolor bar */}
       <div className="h-1.5 flex">
-        <div className="flex-1 bg-bleu-france" />
+        <div className="flex-1 bg-[#002395]" />
         <div className="flex-1 bg-white" />
-        <div className="flex-1 bg-rouge-france" />
+        <div className="flex-1 bg-[#ED2939]" />
       </div>
 
       <Navbar />
@@ -204,15 +204,15 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-encre leading-[1.1] mb-4"
+            className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-[#1A1A1A] leading-[1.1] mb-4"
           >
-            Votre <span className="text-bleu-france">carte grise</span> en ligne
+            Votre <span className="text-[#002395]">carte grise</span> en ligne
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-encre/60 text-lg max-w-xl mx-auto"
+            className="text-[#1A1A1A]/60 text-lg max-w-xl mx-auto"
           >
             Service agree et habilite par le Ministere de l'Interieur. Calculez le prix de votre carte grise instantanement.
           </motion.p>
@@ -222,23 +222,23 @@ const Index = () => {
 
         {/* Social proof counters */}
         <motion.div
-          className="max-w-xl mx-auto mt-8 flex items-center justify-center gap-8 text-sm text-encre/70"
+          className="max-w-xl mx-auto mt-8 flex items-center justify-center gap-8 text-sm text-[#1A1A1A]/70"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           <div className="text-center">
-            <div className="text-2xl font-bold text-encre">12 847</div>
+            <div className="text-2xl font-bold text-[#1A1A1A]">12 847</div>
             <div>demarches traitees</div>
           </div>
-          <div className="w-px h-8 bg-encre/10" />
+          <div className="w-px h-8 bg-[#1A1A1A]/10" />
           <div className="text-center">
-            <div className="text-2xl font-bold text-encre">4.8/5</div>
+            <div className="text-2xl font-bold text-[#1A1A1A]">4.8/5</div>
             <div>satisfaction client</div>
           </div>
-          <div className="w-px h-8 bg-encre/10" />
+          <div className="w-px h-8 bg-[#1A1A1A]/10" />
           <div className="text-center">
-            <div className="text-2xl font-bold text-encre">24h</div>
+            <div className="text-2xl font-bold text-[#1A1A1A]">24h</div>
             <div>traitement moyen</div>
           </div>
         </motion.div>
@@ -249,7 +249,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <motion.h2
-              className="text-2xl md:text-4xl font-serif font-bold text-encre"
+              className="text-2xl md:text-4xl font-serif font-bold text-[#1A1A1A]"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -259,7 +259,7 @@ const Index = () => {
               Toutes nos demarches
             </motion.h2>
             <motion.p
-              className="text-encre/60 mt-3"
+              className="text-[#1A1A1A]/60 mt-3"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -285,10 +285,10 @@ const Index = () => {
                 >
                   <d.icon size={22} style={{ color: d.color }} />
                 </div>
-                <h3 className="font-semibold text-encre text-sm leading-tight mb-1">
+                <h3 className="font-semibold text-[#1A1A1A] text-sm leading-tight mb-1">
                   {d.title}
                 </h3>
-                <p className="text-[11px] text-encre/70 leading-snug line-clamp-2">{d.desc}</p>
+                <p className="text-[11px] text-[#1A1A1A]/70 leading-snug line-clamp-2">{d.desc}</p>
                 <div
                   className="mt-3 text-[10px] font-semibold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition flex items-center gap-1"
                   style={{ color: d.color }}
@@ -302,11 +302,11 @@ const Index = () => {
       </section>
 
       {/* ── 03. COMMENT CA MARCHE ── Horizontal cards */}
-      <section id="fonctionnement" className="px-4 py-20 bg-cream">
+      <section id="fonctionnement" className="px-4 py-20 bg-[#F7F4EF]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <motion.h2
-              className="text-2xl md:text-4xl font-serif font-bold text-encre"
+              className="text-2xl md:text-4xl font-serif font-bold text-[#1A1A1A]"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -316,7 +316,7 @@ const Index = () => {
               Comment ca marche ?
             </motion.h2>
             <motion.p
-              className="text-encre/60 mt-3"
+              className="text-[#1A1A1A]/60 mt-3"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -337,12 +337,12 @@ const Index = () => {
                 custom={i}
                 variants={fadeUp}
               >
-                <div className="w-10 h-10 rounded-full bg-bleu-france text-white flex items-center justify-center font-bold text-sm mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#002395] text-white flex items-center justify-center font-bold text-sm mb-4">
                   {String(i + 1).padStart(2, "0")}
                 </div>
-                <step.icon size={24} className="text-bleu-france mb-3" />
-                <h3 className="font-semibold text-encre mb-1">{step.title}</h3>
-                <p className="text-sm text-encre/60">{step.desc}</p>
+                <step.icon size={24} className="text-[#002395] mb-3" />
+                <h3 className="font-semibold text-[#1A1A1A] mb-1">{step.title}</h3>
+                <p className="text-sm text-[#1A1A1A]/60">{step.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -350,7 +350,7 @@ const Index = () => {
       </section>
 
       {/* ── 04. AVANTAGES ── bleu-france dark bg with icon cards */}
-      <section id="features" className="px-4 py-20 bg-bleu-france">
+      <section id="features" className="px-4 py-20 bg-[#002395]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <motion.h2
@@ -403,18 +403,18 @@ const Index = () => {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <motion.h2 variants={fadeUp} custom={0} className="text-2xl md:text-4xl font-serif font-bold text-encre">
+            <motion.h2 variants={fadeUp} custom={0} className="text-2xl md:text-4xl font-serif font-bold text-[#1A1A1A]">
               La plateforme SIV des pros de l'auto
             </motion.h2>
-            <motion.p variants={fadeUp} custom={1} className="text-encre/60 mt-3 max-w-xl">
+            <motion.p variants={fadeUp} custom={1} className="text-[#1A1A1A]/60 mt-3 max-w-xl">
               Gerez toutes vos demarches SIV depuis un seul espace. Dashboard, paiements, documents — tout est centralise.
             </motion.p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
             <div className="md:col-span-6">
-              <h3 className="text-sm font-semibold text-encre/70 uppercase tracking-wider mb-6">Demarches disponibles</h3>
-              <div className="divide-y divide-encre/10">
+              <h3 className="text-sm font-semibold text-[#1A1A1A]/70 uppercase tracking-wider mb-6">Demarches disponibles</h3>
+              <div className="divide-y divide-[#1A1A1A]/10">
                 {demarchesPro.map((d, i) => (
                   <motion.div
                     key={i}
@@ -425,10 +425,10 @@ const Index = () => {
                     custom={i * 0.5}
                     variants={fadeUp}
                   >
-                    <d.icon size={18} className="text-bleu-france mt-0.5 shrink-0" />
+                    <d.icon size={18} className="text-[#002395] mt-0.5 shrink-0" />
                     <div>
-                      <h4 className="text-sm font-semibold text-encre">{d.title}</h4>
-                      <p className="text-xs text-encre/70 mt-0.5">{d.desc}</p>
+                      <h4 className="text-sm font-semibold text-[#1A1A1A]">{d.title}</h4>
+                      <p className="text-xs text-[#1A1A1A]/70 mt-0.5">{d.desc}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -436,8 +436,8 @@ const Index = () => {
             </div>
 
             <div className="md:col-span-6">
-              <h3 className="text-sm font-semibold text-encre/70 uppercase tracking-wider mb-6">Vos outils</h3>
-              <div className="divide-y divide-encre/10">
+              <h3 className="text-sm font-semibold text-[#1A1A1A]/70 uppercase tracking-wider mb-6">Vos outils</h3>
+              <div className="divide-y divide-[#1A1A1A]/10">
                 {featuresPro.map((f, i) => (
                   <motion.div
                     key={i}
@@ -448,10 +448,10 @@ const Index = () => {
                     custom={i * 0.5}
                     variants={fadeUp}
                   >
-                    <f.icon size={18} className="text-bleu-france mt-0.5 shrink-0" />
+                    <f.icon size={18} className="text-[#002395] mt-0.5 shrink-0" />
                     <div>
-                      <h4 className="text-sm font-semibold text-encre">{f.title}</h4>
-                      <p className="text-xs text-encre/70 mt-0.5">{f.desc}</p>
+                      <h4 className="text-sm font-semibold text-[#1A1A1A]">{f.title}</h4>
+                      <p className="text-xs text-[#1A1A1A]/70 mt-0.5">{f.desc}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -459,14 +459,14 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="border-t border-encre/10 pt-10 flex flex-col sm:flex-row items-center gap-4">
+          <div className="border-t border-[#1A1A1A]/10 pt-10 flex flex-col sm:flex-row items-center gap-4">
             <button
               onClick={() => navigate("/register")}
-              className="bg-encre text-white px-8 py-4 font-medium hover:bg-encre/90 transition inline-flex items-center gap-2 rounded-xl"
+              className="bg-[#1A1A1A] text-white px-8 py-4 font-medium hover:bg-[#1A1A1A]/90 transition inline-flex items-center gap-2 rounded-xl"
             >
               Creer mon espace pro <ArrowRight size={16} />
             </button>
-            <p className="text-xs text-encre/70">
+            <p className="text-xs text-[#1A1A1A]/70">
               Paiement a la demarche. Pas d'abonnement, pas d'engagement.
             </p>
           </div>
@@ -478,7 +478,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <motion.h2
-              className="text-2xl md:text-4xl font-serif font-bold text-encre"
+              className="text-2xl md:text-4xl font-serif font-bold text-[#1A1A1A]"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
@@ -498,7 +498,7 @@ const Index = () => {
               {Array.from({ length: 5 }).map((_, j) => (
                 <Star key={j} size={20} className="fill-amber-400 text-amber-400" />
               ))}
-              <span className="ml-2 text-sm text-encre/60 font-medium">4.8/5 sur 4 839 avis</span>
+              <span className="ml-2 text-sm text-[#1A1A1A]/60 font-medium">4.8/5 sur 4 839 avis</span>
             </motion.div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -517,13 +517,13 @@ const Index = () => {
                     <Star key={j} size={16} className="fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <Quote size={20} className="text-bleu-france/20 mb-3" />
-                <blockquote className="font-serif text-lg text-encre leading-relaxed mb-6">
+                <Quote size={20} className="text-[#002395]/20 mb-3" />
+                <blockquote className="font-serif text-lg text-[#1A1A1A] leading-relaxed mb-6">
                   "{t.text}"
                 </blockquote>
-                <div className="border-t border-encre/10 pt-4">
-                  <span className="text-sm font-semibold text-encre block">{t.name}</span>
-                  <span className="text-xs text-encre/70">{t.role}</span>
+                <div className="border-t border-[#1A1A1A]/10 pt-4">
+                  <span className="text-sm font-semibold text-[#1A1A1A] block">{t.name}</span>
+                  <span className="text-xs text-[#1A1A1A]/70">{t.role}</span>
                 </div>
               </motion.div>
             ))}
@@ -535,7 +535,7 @@ const Index = () => {
       <FAQ />
 
       {/* ── 08. CTA FINAL ── encre dark bg */}
-      <section className="px-4 py-20 bg-encre">
+      <section className="px-4 py-20 bg-[#1A1A1A]">
         <motion.div
           className="mx-auto max-w-4xl text-center"
           initial="hidden"
@@ -551,7 +551,7 @@ const Index = () => {
           <motion.div variants={fadeUp} custom={2} className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => navigate("/simulateur")}
-              className="bg-white text-encre px-8 py-4 font-medium hover:bg-white/90 transition inline-flex items-center justify-center gap-2 rounded-xl"
+              className="bg-white text-[#1A1A1A] px-8 py-4 font-medium hover:bg-white/90 transition inline-flex items-center justify-center gap-2 rounded-xl"
             >
               Commencer ma demarche <ArrowRight size={16} />
             </button>
@@ -563,9 +563,9 @@ const Index = () => {
             </button>
           </motion.div>
           <div className="mt-16 h-0.5 flex max-w-xs mx-auto">
-            <div className="flex-1 bg-bleu-france" />
+            <div className="flex-1 bg-[#002395]" />
             <div className="flex-1 bg-white/20" />
-            <div className="flex-1 bg-rouge-france" />
+            <div className="flex-1 bg-[#ED2939]" />
           </div>
         </motion.div>
       </section>
