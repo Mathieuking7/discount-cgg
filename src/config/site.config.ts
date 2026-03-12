@@ -5,14 +5,13 @@
 
 export const siteConfig = {
   // -- Identite
-  siteName: "King Carte Grise",
-  siteNameFull: "King Carte Grise propulse par Sivflow.fr",
+  siteName: "King Carte Grise propulse par Sivflow.fr",
   tagline: "Gerez vos demarches auto en quelques clics",
   legalName: "King Carte Grise SAS",
 
   // -- Visuels
   logo: "/logo.png",
-  logoAlt: "King Carte Grise",
+  logoAlt: "King Carte Grise propulse par Sivflow.fr",
   favicon: "/favicon.ico",
 
   // -- Domaine & URLs

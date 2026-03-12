@@ -22,7 +22,7 @@ const SIVFlowNavbar = () => {
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] flex items-center justify-center text-white font-bold text-sm">
               SF
             </div>
-            <span className="text-xl font-bold text-[#1C1917]">King Carte Grise</span>
+            <span className="text-xl font-bold text-[#1C1917]">King Carte Grise propulse par Sivflow.fr</span>
           </a>
 
           {/* Desktop links */}
