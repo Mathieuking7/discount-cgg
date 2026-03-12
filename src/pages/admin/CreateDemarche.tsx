@@ -67,6 +67,26 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   default: <FileText className="w-6 h-6" />,
 };
 
+// Map guest_demarche_types.code → actions_rapides.code (where docs live)
+const DEMARCHE_TO_ACTION_CODE: Record<string, string> = {
+  CG: "CG",
+  DA: "DA",
+  DC: "DC",
+  DUPLICATA: "DUPLICATA_CG_PRO",
+  CHGT_ADRESSE: "CHANGEMENT_ADRESSE_PRO",
+  CG_NEUF: "CG_NEUF_PRO",
+  COTITULAIRE: "COTITULAIRE_PRO",
+  QUITUS_FISCAL: "CG",        // fallback
+  MODIF_CG: "CG",             // fallback
+  SUCCESSION: "CG",           // fallback
+  DEMANDE_IMMAT: "CG_NEUF_PRO",
+  CHGT_ADRESSE_LOCATAIRE: "CHANGEMENT_ADRESSE_PRO",
+  IMMAT_CYCLO_ANCIEN: "CG_NEUF_PRO",
+  ANNULER_CPI_WW: "ANNULER_CORRIGER_DC_DA_PRO",
+  CPI_WW: "CG",
+  FIV: "DA",
+};
+
 export default function CreateDemarche() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -140,18 +160,43 @@ export default function CreateDemarche() {
     setLoading(false);
   };
 
-  // Load required docs when type + clientType are selected
+  // Load required docs via action_documents (same source as garages + particuliers)
   useEffect(() => {
     if (!selectedType || !clientType || mode !== "admin") return;
     const loadRequiredDocs = async () => {
       setLoadingRequiredDocs(true);
-      const { data, error } = await supabase
-        .from("guest_order_required_documents")
-        .select("id, nom_document, obligatoire")
-        .eq("demarche_type_code", selectedType.code)
-        .eq("actif", true)
-        .order("ordre");
-      if (!error) setRequiredDocs(data || []);
+      try {
+        // 1. Find the matching action in actions_rapides
+        const actionCode = DEMARCHE_TO_ACTION_CODE[selectedType.code] || selectedType.code;
+        const { data: actions } = await supabase
+          .from("actions_rapides")
+          .select("id")
+          .eq("code", actionCode)
+          .limit(1);
+
+        if (!actions || actions.length === 0) {
+          setRequiredDocs([]);
+          setLoadingRequiredDocs(false);
+          return;
+        }
+
+        // 2. Load action_documents for this action
+        const { data: docs } = await supabase
+          .from("action_documents")
+          .select("id, nom_document, obligatoire")
+          .eq("action_id", actions[0].id)
+          .order("ordre");
+
+        setRequiredDocs(
+          (docs || []).map((d) => ({
+            id: d.id,
+            nom_document: d.nom_document,
+            obligatoire: d.obligatoire,
+          }))
+        );
+      } catch {
+        setRequiredDocs([]);
+      }
       setLoadingRequiredDocs(false);
     };
     loadRequiredDocs();
