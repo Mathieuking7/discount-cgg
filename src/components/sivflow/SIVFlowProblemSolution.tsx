@@ -85,7 +85,7 @@ const SIVFlowProblemSolution = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Check className="w-4 h-4 text-[#0D9488]" />
-                    <span className="text-sm font-semibold text-[#0D9488]">Avec SIVFlow</span>
+                    <span className="text-sm font-semibold text-[#0D9488]">Avec King Carte Grise</span>
                   </div>
                   <p className="text-[#1C1917] text-sm font-medium">{p.solution}</p>
                 </div>

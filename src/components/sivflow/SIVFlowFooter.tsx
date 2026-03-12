@@ -13,7 +13,7 @@ const SIVFlowFooter = () => {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] flex items-center justify-center text-white text-xs font-bold">
                 SF
               </div>
-              <span className="text-lg font-bold">SIVFlow</span>
+              <span className="text-lg font-bold">King Carte Grise</span>
             </div>
             <p className="text-sm text-white/60 mb-4">
               La plateforme SIV pour les pros de l'automobile.
@@ -68,7 +68,7 @@ const SIVFlowFooter = () => {
 
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-white/40">
-            &copy; {year} SIVFlow. Tous droits reserves.
+            &copy; {year} King Carte Grise propulse par Sivflow.fr. Tous droits reserves.
           </p>
           <p className="text-xs text-white/40">
             Service habilite par le Ministere de l'Interieur

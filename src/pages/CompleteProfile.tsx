@@ -123,7 +123,7 @@ export default function CompleteProfile() {
 
       toast({
         title: "Profil complété",
-        description: "Bienvenue sur SIVFlow !"
+        description: "Bienvenue sur King Carte Grise !"
       });
       
       navigate("/dashboard");

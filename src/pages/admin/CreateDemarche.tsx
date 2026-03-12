@@ -182,7 +182,7 @@ export default function CreateDemarche() {
 <p>Pour completer votre demarche, veuillez cliquer sur le lien ci-dessous. Vous pourrez remplir vos informations, telecharger vos documents et proceder au paiement :</p>
 <p><a href="${paymentUrl}" style="display:inline-block;padding:12px 24px;background:#1B2A4A;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Completer ma demarche et payer</a></p>
 <p style="color:#888;font-size:13px;">Ou copiez ce lien : ${paymentUrl}</p>
-<p>Cordialement,<br/>SIVFlow</p>`,
+<p>Cordialement,<br/>King Carte Grise</p>`,
           },
         },
       });

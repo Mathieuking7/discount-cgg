@@ -17,7 +17,7 @@ const SEOHead = ({
   title,
   description,
   canonicalUrl,
-  ogImage = "https://sivflow.fr/og-image.png",
+  ogImage = "https://kingcartegrise.sivflow.fr/og-image.png",
   ogType = "website",
   noindex = false,
 }: SEOHeadProps) => {

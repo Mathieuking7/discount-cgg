@@ -31,9 +31,9 @@ export default SchemaOrg;
 export const sivflowOrganizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "SIVFlow",
+  name: "King Carte Grise propulse par Sivflow.fr",
   legalName: "SIVFlow SAS",
-  url: "https://sivflow.fr",
+  url: "https://kingcartegrise.sivflow.fr",
   logo: "https://sivflow.fr/logo.png",
   description:
     "Service habilite par le Ministere de l'Interieur et l'ANTS pour les demarches de carte grise et immatriculation en ligne.",
@@ -55,14 +55,14 @@ export const sivflowOrganizationSchema = {
 export const sivflowWebSiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "SIVFlow",
-  url: "https://sivflow.fr",
+  name: "King Carte Grise propulse par Sivflow.fr",
+  url: "https://kingcartegrise.sivflow.fr",
   description:
     "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Agree par le Ministere de l'Interieur.",
   publisher: {
     "@type": "Organization",
-    name: "SIVFlow",
-    url: "https://sivflow.fr",
+    name: "King Carte Grise propulse par Sivflow.fr",
+    url: "https://kingcartegrise.sivflow.fr",
   },
   potentialAction: {
     "@type": "SearchAction",
@@ -82,8 +82,8 @@ export const sivflowServiceSchema = {
     "Service de carte grise et demarches d'immatriculation en ligne. Habilite par le Ministere de l'Interieur et agree ANTS.",
   provider: {
     "@type": "Organization",
-    name: "SIVFlow",
-    url: "https://sivflow.fr",
+    name: "King Carte Grise propulse par Sivflow.fr",
+    url: "https://kingcartegrise.sivflow.fr",
   },
   serviceType: "Demarches d'immatriculation de vehicules",
   areaServed: {
@@ -153,8 +153,8 @@ export const sivflowDemarcheServiceSchema = (demarche: {
   description: demarche.description,
   provider: {
     "@type": "Organization",
-    name: "SIVFlow",
-    url: "https://sivflow.fr",
+    name: "King Carte Grise propulse par Sivflow.fr",
+    url: "https://kingcartegrise.sivflow.fr",
   },
   areaServed: {
     "@type": "Country",

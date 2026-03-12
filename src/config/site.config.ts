@@ -5,18 +5,19 @@
 
 export const siteConfig = {
   // -- Identite
-  siteName: "SIVFlow",
+  siteName: "King Carte Grise",
+  siteNameFull: "King Carte Grise propulse par Sivflow.fr",
   tagline: "Gerez vos demarches auto en quelques clics",
-  legalName: "SIVFlow SAS",
+  legalName: "King Carte Grise SAS",
 
   // -- Visuels
   logo: "/logo.png",
-  logoAlt: "SIVFlow",
+  logoAlt: "King Carte Grise",
   favicon: "/favicon.ico",
 
   // -- Domaine & URLs
-  domain: "sivflow.fr",
-  baseUrl: "https://sivflow.fr",
+  domain: "kingcartegrise.sivflow.fr",
+  baseUrl: "https://kingcartegrise.sivflow.fr",
 
   // -- Emails
   emails: {
@@ -40,11 +41,12 @@ export const siteConfig = {
     tokenSystem: true,
     proVerification: true,
     simulateur: true,
+    googleAuth: false,
   },
 
   // -- SEO
   seo: {
-    defaultTitle: "SIVFlow - Gerez vos demarches auto en quelques clics",
+    defaultTitle: "King Carte Grise propulse par Sivflow.fr - Gerez vos demarches auto en quelques clics",
     defaultDescription:
       "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Agree par le Ministere de l'Interieur.",
   },

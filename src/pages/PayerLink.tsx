@@ -223,7 +223,7 @@ export default function PayerLink() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 mb-2">
             <CreditCard className="h-7 w-7 text-blue-600" />
           </div>
-          <h1 className="text-xl font-bold">Paiement SIVFlow</h1>
+          <h1 className="text-xl font-bold">Paiement King Carte Grise</h1>
           <p className="text-gray-500 text-sm">{link.description}</p>
         </div>
 

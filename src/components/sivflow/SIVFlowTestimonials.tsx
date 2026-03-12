@@ -7,14 +7,14 @@ const testimonials = [
     role: "Gerant, Garage Moreau & Fils",
     avatar: "JP",
     rating: 5,
-    text: "Depuis qu'on utilise SIVFlow, on traite nos cartes grises en 10 minutes au lieu d'une heure. Mes mecaniciens ne perdent plus de temps sur la paperasse. Un gain de productivite enorme.",
+    text: "Depuis qu'on utilise King Carte Grise, on traite nos cartes grises en 10 minutes au lieu d'une heure. Mes mecaniciens ne perdent plus de temps sur la paperasse. Un gain de productivite enorme.",
   },
   {
     name: "Sophie Martin",
     role: "Negociante VO, AutoSelect 33",
     avatar: "SM",
     rating: 5,
-    text: "J'achete et revends une vingtaine de vehicules par mois. Avant SIVFlow je passais mes soirees sur les declarations. Maintenant tout est fait dans la journee, sans stress. Je recommande a 100%.",
+    text: "J'achete et revends une vingtaine de vehicules par mois. Avant King Carte Grise je passais mes soirees sur les declarations. Maintenant tout est fait dans la journee, sans stress. Je recommande a 100%.",
   },
   {
     name: "Marc Dupont",
@@ -39,7 +39,7 @@ const SIVFlowTestimonials = () => {
             Temoignages
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold text-[#1C1917] mb-4">
-            Ils font confiance a SIVFlow
+            Ils font confiance a King Carte Grise
           </h2>
           <p className="text-lg text-[#78716C] max-w-2xl mx-auto">
             Des professionnels de l'automobile comme vous, partout en France.
