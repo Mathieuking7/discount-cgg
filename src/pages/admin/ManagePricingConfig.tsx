@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, Calculator, Plus, Trash2, Edit, FileText, MapPin, Search, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, Calculator, Plus, Trash2, Edit, FileText, MapPin, Search, ChevronDown, ChevronRight, Users, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,9 @@ interface DemarcheType {
   titre: string;
   description: string | null;
   prix_base: number;
+  prix_pro: number;
   actif: boolean;
+  actif_pro: boolean;
   ordre: number;
   require_vehicle_info: boolean;
   require_carte_grise_price: boolean;
@@ -50,9 +52,9 @@ interface DepartmentTariff {
   tarif: number;
 }
 
-// Local editable state for inline price editing
 interface EditableDemarcheType extends DemarcheType {
-  _editedPrix?: number;
+  _editedPrixBase?: number;
+  _editedPrixPro?: number;
   _dirty?: boolean;
 }
 
@@ -120,18 +122,25 @@ const ManagePricingConfig = () => {
   };
 
   // === INLINE PRICE EDITING ===
-  const handleInlinePriceChange = (id: string, value: number) => {
+  const handleInlinePriceChange = (id: string, field: "base" | "pro", value: number) => {
     setDemarcheTypes((prev) =>
       prev.map((t) =>
-        t.id === id ? { ...t, _editedPrix: value, _dirty: true } : t
+        t.id === id
+          ? {
+              ...t,
+              _dirty: true,
+              ...(field === "base" ? { _editedPrixBase: value } : { _editedPrixPro: value }),
+            }
+          : t
       )
     );
   };
 
-  const handleToggleTypeActive = async (type: EditableDemarcheType) => {
+  const handleToggleTypeActive = async (type: EditableDemarcheType, field: "actif" | "actif_pro") => {
+    const newValue = !type[field];
     const { error } = await supabase
       .from("guest_demarche_types")
-      .update({ actif: !type.actif })
+      .update({ [field]: newValue })
       .eq("id", type.id);
 
     if (error) {
@@ -153,7 +162,10 @@ const ManagePricingConfig = () => {
       for (const type of dirtyTypes) {
         const { error } = await supabase
           .from("guest_demarche_types")
-          .update({ prix_base: type._editedPrix ?? type.prix_base })
+          .update({
+            prix_base: type._editedPrixBase ?? type.prix_base,
+            prix_pro: type._editedPrixPro ?? type.prix_pro,
+          })
           .eq("id", type.id);
         if (error) throw error;
       }
@@ -174,7 +186,9 @@ const ManagePricingConfig = () => {
       titre: "",
       description: "",
       prix_base: 0,
+      prix_pro: 0,
       actif: true,
+      actif_pro: true,
       ordre: demarcheTypes.length + 1,
       require_vehicle_info: true,
       require_carte_grise_price: false,
@@ -200,7 +214,9 @@ const ManagePricingConfig = () => {
         titre: editingType.titre,
         description: editingType.description,
         prix_base: editingType.prix_base,
+        prix_pro: editingType.prix_pro,
         actif: editingType.actif,
+        actif_pro: editingType.actif_pro,
         ordre: editingType.ordre,
         require_vehicle_info: editingType.require_vehicle_info,
         require_carte_grise_price: editingType.require_carte_grise_price,
@@ -352,7 +368,7 @@ const ManagePricingConfig = () => {
 
   return (
     <div className="min-h-screen bg-[#FDF8F0] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <Button
@@ -394,6 +410,20 @@ const ManagePricingConfig = () => {
         {/* === SECTION: DEMARCHES === */}
         {activeSection === "types" && (
           <div className="space-y-6">
+            {/* Légende */}
+            <div className="flex items-center gap-6 text-sm text-muted-foreground bg-white rounded-xl px-4 py-3 border border-gray-100 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-500" />
+                <span className="font-medium text-blue-700">Particulier</span>
+                <span>— prix et activation pour les clients particuliers</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-violet-500" />
+                <span className="font-medium text-violet-700">Pro</span>
+                <span>— prix et activation pour les garages/pros</span>
+              </div>
+            </div>
+
             {/* Pricing table card */}
             <Card className="border-0 shadow-sm">
               <CardHeader className="bg-[#1B2A4A] text-white rounded-t-lg">
@@ -401,7 +431,7 @@ const ManagePricingConfig = () => {
                   <div>
                     <CardTitle className="text-white">Types de demarches</CardTitle>
                     <CardDescription className="text-white/70">
-                      Prix, statut et configuration de chaque demarche
+                      Prix et statut pour particuliers ET professionnels
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -436,8 +466,32 @@ const ManagePricingConfig = () => {
                       <TableHead className="w-10"></TableHead>
                       <TableHead>Code</TableHead>
                       <TableHead>Nom</TableHead>
-                      <TableHead className="text-right">Prix (euros)</TableHead>
-                      <TableHead className="text-center">Actif</TableHead>
+                      {/* Particulier */}
+                      <TableHead className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Users className="h-3.5 w-3.5 text-blue-500" />
+                          <span className="text-blue-700 text-xs font-semibold">Prix Particulier (€)</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Users className="h-3.5 w-3.5 text-blue-500" />
+                          <span className="text-blue-700 text-xs font-semibold">Actif Part.</span>
+                        </div>
+                      </TableHead>
+                      {/* Pro */}
+                      <TableHead className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Building2 className="h-3.5 w-3.5 text-violet-500" />
+                          <span className="text-violet-700 text-xs font-semibold">Prix Pro (€)</span>
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Building2 className="h-3.5 w-3.5 text-violet-500" />
+                          <span className="text-violet-700 text-xs font-semibold">Actif Pro</span>
+                        </div>
+                      </TableHead>
                       <TableHead className="text-center">Docs</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -446,11 +500,12 @@ const ManagePricingConfig = () => {
                     {demarcheTypes.map((type) => {
                       const typeDocs = getDocsForType(type.code);
                       const isExpanded = expandedType === type.id;
+                      const isFullyInactive = !type.actif && !type.actif_pro;
 
                       return (
                         <React.Fragment key={type.id}>
                           <TableRow
-                            className={`${!type.actif ? "opacity-50" : ""} ${isExpanded ? "bg-blue-50/50" : "hover:bg-gray-50"} cursor-pointer`}
+                            className={`${isFullyInactive ? "opacity-40 bg-gray-50" : ""} ${isExpanded ? "bg-blue-50/50" : "hover:bg-gray-50"} cursor-pointer`}
                             onClick={() => setExpandedType(isExpanded ? null : type.id)}
                           >
                             <TableCell className="w-10 px-3">
@@ -461,7 +516,7 @@ const ManagePricingConfig = () => {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className="font-mono">
+                              <Badge variant="outline" className="font-mono text-xs">
                                 {type.code}
                               </Badge>
                             </TableCell>
@@ -469,27 +524,51 @@ const ManagePricingConfig = () => {
                               <div>
                                 <p className="font-medium text-sm">{type.titre}</p>
                                 {type.description && (
-                                  <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                  <p className="text-xs text-muted-foreground truncate max-w-[220px]">
                                     {type.description}
                                   </p>
                                 )}
                               </div>
                             </TableCell>
+
+                            {/* Prix Particulier */}
                             <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={type._editedPrix ?? type.prix_base}
-                                onChange={(e) => handleInlinePriceChange(type.id, parseFloat(e.target.value) || 0)}
-                                className={`w-24 text-right inline-block ${type._dirty ? "border-orange-400 bg-orange-50" : ""}`}
+                                value={type._editedPrixBase ?? type.prix_base}
+                                onChange={(e) => handleInlinePriceChange(type.id, "base", parseFloat(e.target.value) || 0)}
+                                className={`w-24 text-right inline-block border-blue-200 focus:border-blue-400 ${type._dirty ? "bg-blue-50 border-blue-400" : ""}`}
                               />
                             </TableCell>
+                            {/* Actif Particulier */}
                             <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                               <Switch
                                 checked={type.actif}
-                                onCheckedChange={() => handleToggleTypeActive(type)}
+                                onCheckedChange={() => handleToggleTypeActive(type, "actif")}
+                                className="data-[state=checked]:bg-blue-500"
                               />
                             </TableCell>
+
+                            {/* Prix Pro */}
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={type._editedPrixPro ?? type.prix_pro}
+                                onChange={(e) => handleInlinePriceChange(type.id, "pro", parseFloat(e.target.value) || 0)}
+                                className={`w-24 text-right inline-block border-violet-200 focus:border-violet-400 ${type._dirty ? "bg-violet-50 border-violet-400" : ""}`}
+                              />
+                            </TableCell>
+                            {/* Actif Pro */}
+                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                              <Switch
+                                checked={type.actif_pro}
+                                onCheckedChange={() => handleToggleTypeActive(type, "actif_pro")}
+                                className="data-[state=checked]:bg-violet-500"
+                              />
+                            </TableCell>
+
                             <TableCell className="text-center">
                               <Badge variant="secondary" className="text-xs">
                                 {typeDocs.filter((d) => d.actif).length}
@@ -510,7 +589,7 @@ const ManagePricingConfig = () => {
                           {/* Expandable documents section */}
                           {isExpanded && (
                             <TableRow>
-                              <TableCell colSpan={7} className="bg-blue-50/30 p-0">
+                              <TableCell colSpan={9} className="bg-blue-50/30 p-0">
                                 <div className="px-6 py-4 space-y-3">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -670,7 +749,7 @@ const ManagePricingConfig = () => {
 
       {/* Dialog Type de demarche */}
       <Dialog open={showTypeDialog} onOpenChange={setShowTypeDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingType?.id ? "Modifier le type" : "Nouveau type de demarche"}</DialogTitle>
             <DialogDescription>Configurez les details du type de demarche</DialogDescription>
@@ -686,17 +765,16 @@ const ManagePricingConfig = () => {
                     value={editingType.code}
                     onChange={(e) => setEditingType({ ...editingType, code: e.target.value.toUpperCase() })}
                     placeholder="Ex: CG, DA, DC"
-                    maxLength={10}
+                    maxLength={30}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="prix">Prix de base (euros) *</Label>
+                  <Label htmlFor="ordre">Ordre d'affichage</Label>
                   <Input
-                    id="prix"
+                    id="ordre"
                     type="number"
-                    step="0.01"
-                    value={editingType.prix_base}
-                    onChange={(e) => setEditingType({ ...editingType, prix_base: parseFloat(e.target.value) || 0 })}
+                    value={editingType.ordre}
+                    onChange={(e) => setEditingType({ ...editingType, ordre: parseInt(e.target.value) || 0 })}
                   />
                 </div>
               </div>
@@ -722,17 +800,62 @@ const ManagePricingConfig = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="ordre">Ordre d'affichage</Label>
-                <Input
-                  id="ordre"
-                  type="number"
-                  value={editingType.ordre}
-                  onChange={(e) => setEditingType({ ...editingType, ordre: parseInt(e.target.value) || 0 })}
-                />
+              {/* Pricing section */}
+              <div className="grid grid-cols-2 gap-4 border rounded-xl p-3 bg-gray-50">
+                <div className="space-y-2">
+                  <Label htmlFor="prix_base" className="flex items-center gap-1 text-blue-700">
+                    <Users className="h-3.5 w-3.5" /> Prix Particulier (€)
+                  </Label>
+                  <Input
+                    id="prix_base"
+                    type="number"
+                    step="0.01"
+                    value={editingType.prix_base}
+                    onChange={(e) => setEditingType({ ...editingType, prix_base: parseFloat(e.target.value) || 0 })}
+                    className="border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prix_pro" className="flex items-center gap-1 text-violet-700">
+                    <Building2 className="h-3.5 w-3.5" /> Prix Pro (€)
+                  </Label>
+                  <Input
+                    id="prix_pro"
+                    type="number"
+                    step="0.01"
+                    value={editingType.prix_pro}
+                    onChange={(e) => setEditingType({ ...editingType, prix_pro: parseFloat(e.target.value) || 0 })}
+                    className="border-violet-200 focus:border-violet-400"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-3 pt-2">
+              <div className="grid grid-cols-2 gap-4 border rounded-xl p-3 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="actif"
+                    checked={editingType.actif}
+                    onCheckedChange={(checked) => setEditingType({ ...editingType, actif: checked })}
+                    className="data-[state=checked]:bg-blue-500"
+                  />
+                  <Label htmlFor="actif" className="flex items-center gap-1 text-blue-700">
+                    <Users className="h-3.5 w-3.5" /> Actif Particulier
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="actif_pro"
+                    checked={editingType.actif_pro}
+                    onCheckedChange={(checked) => setEditingType({ ...editingType, actif_pro: checked })}
+                    className="data-[state=checked]:bg-violet-500"
+                  />
+                  <Label htmlFor="actif_pro" className="flex items-center gap-1 text-violet-700">
+                    <Building2 className="h-3.5 w-3.5" /> Actif Pro
+                  </Label>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-1">
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="require_vehicle"
@@ -748,14 +871,6 @@ const ManagePricingConfig = () => {
                     onCheckedChange={(checked) => setEditingType({ ...editingType, require_carte_grise_price: checked })}
                   />
                   <Label htmlFor="require_cg_price">Inclut le prix carte grise (taxe regionale)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="actif"
-                    checked={editingType.actif}
-                    onCheckedChange={(checked) => setEditingType({ ...editingType, actif: checked })}
-                  />
-                  <Label htmlFor="actif">Type actif</Label>
                 </div>
               </div>
             </div>

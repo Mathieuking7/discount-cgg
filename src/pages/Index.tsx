@@ -562,6 +562,9 @@ const Index = () => {
               <Briefcase size={16} /> Espace professionnel
             </button>
           </motion.div>
+          <motion.p variants={fadeUp} custom={3} className="mt-6 text-white/50 text-sm">
+            💳 Paiement en 4x disponible <span className="text-white/80 font-medium">(Sur demande)</span>
+          </motion.p>
           <div className="mt-16 h-0.5 flex max-w-xs mx-auto">
             <div className="flex-1 bg-[#002395]" />
             <div className="flex-1 bg-white/20" />
