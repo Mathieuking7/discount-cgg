@@ -17,7 +17,7 @@ const FAQ = () => {
     },
     {
       question: "Le paiement en ligne est-il sécurisé ?",
-      answer: "Oui, absolument. Tous nos paiements sont sécurisés par cryptage SSL et conformes aux normes PCI DSS. Nous acceptons les cartes bancaires et PayPal pour votre sécurité et votre tranquillité d'esprit."
+      answer: "Oui, absolument. Tous nos paiements sont sécurisés par cryptage SSL et conformes aux normes PCI DSS. Nous acceptons les cartes bancaires pour votre sécurité et votre tranquillité d'esprit."
     },
     {
       question: "Puis-je suivre l'avancement de mon dossier ?",

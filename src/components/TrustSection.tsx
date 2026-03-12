@@ -22,12 +22,7 @@ export const TrustSection = () => {
                 alt="Mastercard" 
                 className="h-7 object-contain"
               />
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" 
-                alt="PayPal" 
-                className="h-7 object-contain"
-              />
-              <img 
+              <img
                 src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" 
                 alt="Google Pay" 
                 className="h-7 object-contain bg-white rounded px-2 py-1"
@@ -37,9 +32,6 @@ export const TrustSection = () => {
                 alt="Apple Pay" 
                 className="h-7 object-contain bg-white rounded px-2 py-1"
               />
-              <div className="text-sm font-medium bg-primary-foreground/10 px-3 py-1 rounded-lg">
-                Paiement 4x
-              </div>
             </div>
             
             {/* Sécurité des documents */}

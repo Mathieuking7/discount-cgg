@@ -1,8 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// =============================================================================
+// MULTI-PROVIDER EMAIL SENDING
+// Priority: RESEND_API_KEY -> BREVO_API_KEY -> log only
+// See send-email/index.ts for full setup instructions.
+// =============================================================================
+
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY");
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const INTERNAL_API_KEY = Deno.env.get("INTERNAL_API_KEY");
@@ -14,7 +20,7 @@ const corsHeaders = {
 };
 
 // ---------------------------------------------------------------------------
-// Auth – mirrors send-email pattern
+// Auth
 // ---------------------------------------------------------------------------
 const validateAuth = async (req: Request): Promise<boolean> => {
   const providedKey = req.headers.get("x-internal-key");
@@ -41,6 +47,60 @@ const validateAuth = async (req: Request): Promise<boolean> => {
   }
   return false;
 };
+
+// ---------------------------------------------------------------------------
+// Provider functions
+// ---------------------------------------------------------------------------
+async function sendViaResend(params: { from: string; replyTo: string; to: string; subject: string; html: string }) {
+  const { Resend } = await import("https://esm.sh/resend@2.0.0");
+  const resend = new Resend(RESEND_API_KEY);
+  const res = await resend.emails.send({
+    from: params.from,
+    reply_to: params.replyTo,
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+  });
+  if (res.error) return { success: false, error: JSON.stringify(res.error) };
+  return { success: true, data: res.data };
+}
+
+async function sendViaBrevo(params: { from: string; replyTo: string; to: string; subject: string; html: string }) {
+  const fromMatch = params.from.match(/^(.+?)\s*<(.+?)>$/);
+  const senderName = fromMatch ? fromMatch[1].trim() : "DiscountCarteGrise";
+  const senderEmail = fromMatch ? fromMatch[2].trim() : "noreply@discountcartegrise.fr";
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": BREVO_API_KEY!,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: params.to }],
+      replyTo: { email: params.replyTo },
+      subject: params.subject,
+      htmlContent: params.html,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    return { success: false, error: `Brevo ${res.status}: ${errText}` };
+  }
+  return { success: true, data: await res.json() };
+}
+
+async function doSendEmail(params: { from: string; replyTo: string; to: string; subject: string; html: string }) {
+  if (RESEND_API_KEY) return { ...(await sendViaResend(params)), provider: "resend" };
+  if (BREVO_API_KEY) return { ...(await sendViaBrevo(params)), provider: "brevo" };
+
+  console.warn("=== EMAIL NOT SENT (no provider) ===");
+  console.log(`  To: ${params.to} | Subject: ${params.subject}`);
+  return { success: true, provider: "log_only", data: { message: "Logged only" } };
+}
 
 // ---------------------------------------------------------------------------
 // Email template helpers
@@ -277,35 +337,47 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send email via Resend
-    const emailResponse = await resend.emails.send({
+    // Send email via multi-provider
+    const result = await doSendEmail({
       from: "DiscountCarteGrise <noreply@discountcartegrise.fr>",
-      reply_to: "contact@discountcartegrise.fr",
+      replyTo: "contact@discountcartegrise.fr",
       to: order.email,
       subject: emailContent.subject,
       html: emailContent.html,
     });
 
-    console.log(`Email sent for order ${order.tracking_number} status=${new_status}:`, emailResponse);
-
     // Log to email_log table
-    await supabase.from("email_log").insert({
-      recipient_email: order.email,
-      subject: emailContent.subject,
-      template_type: `order_status_${new_status}`,
-      status: "sent",
-      order_id: order.id,
-    });
+    try {
+      await supabase.from("email_log").insert({
+        recipient_email: order.email,
+        subject: emailContent.subject,
+        template_type: `order_status_${new_status}`,
+        status: result.success ? (result.provider === "log_only" ? "logged" : "sent") : "failed",
+        error_message: result.error || null,
+        order_id: order.id,
+      });
+    } catch (e) {
+      console.error("Failed to save email_log:", e);
+    }
 
+    if (!result.success) {
+      console.error(`Email failed via ${result.provider}:`, result.error);
+    } else {
+      console.log(`Email sent for order ${order.tracking_number} status=${new_status} via ${result.provider}`);
+    }
+
+    // Always return success so the status update flow is not blocked
     return new Response(
-      JSON.stringify({ success: true, email: emailResponse }),
+      JSON.stringify({ success: true, provider: result.provider, data: result.data }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
     console.error("Error in order-status-webhook:", error);
+
+    // Never crash the status update flow
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      JSON.stringify({ success: true, warning: "Email function errored but status update continues", error: error.message }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };
