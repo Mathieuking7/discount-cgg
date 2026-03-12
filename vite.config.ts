@@ -15,4 +15,20 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tooltip', '@radix-ui/react-switch', '@radix-ui/react-tabs', '@radix-ui/react-popover'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-jspdf': ['jspdf'],
+          'vendor-html2canvas': ['html2canvas'],
+          'vendor-icons': ['lucide-react'],
+        },
+      },
+    },
+  },
 }));
