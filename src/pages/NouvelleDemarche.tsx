@@ -1528,7 +1528,7 @@ export default function NouvelleDemarche() {
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
                   <Shield className="h-5 w-5 text-green-500 shrink-0" />
-                  <span>Agréé Ministère de l'Intérieur</span>
+                  <span>Traitement rapide sous 24h</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
                   <Lock className="h-5 w-5 text-blue-500 shrink-0" />

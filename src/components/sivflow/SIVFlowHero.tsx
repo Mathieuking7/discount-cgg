@@ -20,7 +20,7 @@ const SIVFlowHero = () => {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0D9488]/10 text-[#0D9488] text-sm font-medium mb-6">
               <Shield className="w-4 h-4" />
-              Habilite par le Ministere de l'Interieur
+              +10 000 clients satisfaits
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#1C1917] leading-tight mb-6">

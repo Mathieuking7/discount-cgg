@@ -36,7 +36,7 @@ export const sivflowOrganizationSchema = {
   url: "https://kingcartegrise.sivflow.fr",
   logo: "https://sivflow.fr/logo.png",
   description:
-    "Service habilite par le Ministere de l'Interieur et l'ANTS pour les demarches de carte grise et immatriculation en ligne.",
+    "Service de carte grise en ligne rapide et securise. Traitement sous 24h, paiement SSL, +10 000 clients satisfaits.",
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",
@@ -58,7 +58,7 @@ export const sivflowWebSiteSchema = {
   name: "King Carte Grise propulse par Sivflow.fr",
   url: "https://kingcartegrise.sivflow.fr",
   description:
-    "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Agree par le Ministere de l'Interieur.",
+    "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Traitement rapide, paiement securise, satisfaction garantie.",
   publisher: {
     "@type": "Organization",
     name: "King Carte Grise propulse par Sivflow.fr",
@@ -79,7 +79,7 @@ export const sivflowServiceSchema = {
   "@type": "Service",
   name: "Carte grise en ligne",
   description:
-    "Service de carte grise et demarches d'immatriculation en ligne. Habilite par le Ministere de l'Interieur et agree ANTS.",
+    "Service de carte grise et demarches d'immatriculation en ligne. Rapide, securise, avec support client 7j/7.",
   provider: {
     "@type": "Organization",
     name: "King Carte Grise propulse par Sivflow.fr",

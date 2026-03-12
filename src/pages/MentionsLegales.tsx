@@ -48,15 +48,13 @@ const MentionsLegales = () => {
 
         <section className="mb-10">
           <h2 className="text-xl font-semibold text-[#1B2A4A] mb-4">
-            4. Habilitation ANTS
+            4. Securite et protection des donnees
           </h2>
           <p className="text-gray-700">
-            {siteConfig.legalName} est habilitee par le Ministere de l'Interieur
-            pour effectuer des demarches d'immatriculation via le Systeme
-            d'Immatriculation des Vehicules (SIV).
-          </p>
-          <p className="text-gray-700 mt-2">
-            <strong>Numero d'habilitation :</strong> N° XXXX
+            {siteConfig.legalName} assure la protection de vos donnees personnelles
+            et documents conformement au RGPD. Toutes les transmissions sont
+            chiffrees en SSL 256 bits. Vos documents sont supprimes automatiquement
+            apres le traitement de votre dossier.
           </p>
         </section>
 
