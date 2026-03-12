@@ -177,7 +177,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-xl font-bold text-[#1B2A4A]">{siteConfig.siteName}</span>
-            <span className="hidden sm:inline text-xs bg-bleu-france/10 text-bleu-france px-2 py-0.5 rounded-full font-medium">Pro</span>
+            <span className="hidden sm:inline text-xs bg-[#002395]/10 text-[#002395] px-2 py-0.5 rounded-full font-medium">Pro</span>
           </div>
           <div className="hidden md:flex items-center gap-1">
             {[
@@ -186,12 +186,12 @@ export default function Dashboard() {
               { label: 'Factures', path: '/mes-factures' },
               { label: 'Support', path: '/support' },
             ].map(link => (
-              <button key={link.path} onClick={() => navigate(link.path)} className="px-3 py-2 text-sm text-encre/60 hover:text-encre hover:bg-gray-50 rounded-lg transition">
+              <button key={link.path} onClick={() => navigate(link.path)} className="px-3 py-2 text-sm text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-gray-50 rounded-lg transition">
                 {link.label}
               </button>
             ))}
             {isAdmin && (
-              <button onClick={() => navigate('/dashboard')} className="px-3 py-2 text-sm text-rouge-france hover:bg-rouge-france/5 rounded-lg transition">
+              <button onClick={() => navigate('/dashboard')} className="px-3 py-2 text-sm text-[#ED2939] hover:bg-[#ED2939]/5 rounded-lg transition">
                 Admin
               </button>
             )}
@@ -248,7 +248,7 @@ export default function Dashboard() {
               </SheetContent>
             </Sheet>
 
-            <button onClick={handleLogout} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-encre/40 hover:text-encre hover:bg-gray-50 rounded-lg transition">
+            <button onClick={handleLogout} className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-[#1A1A1A]/40 hover:text-[#1A1A1A] hover:bg-gray-50 rounded-lg transition">
               <LogOut className="h-4 w-4" />
               Deconnexion
             </button>
@@ -295,10 +295,10 @@ export default function Dashboard() {
           {/* Token balance card (1 col) */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between">
             <div>
-              <p className="text-xs text-encre/40 font-medium uppercase tracking-wider">Solde</p>
+              <p className="text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-wider">Solde</p>
               <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-encre">{tokenBalance}</span>
-                <span className="text-lg text-encre/30">EUR</span>
+                <span className="text-4xl font-bold text-[#1A1A1A]">{tokenBalance}</span>
+                <span className="text-lg text-[#1A1A1A]/30">EUR</span>
               </div>
             </div>
             <button onClick={() => navigate('/acheter-jetons')} className="mt-5 w-full h-11 bg-[#1B2A4A] hover:bg-[#2D4A7A] text-white rounded-xl text-sm font-medium transition flex items-center justify-center gap-2">
@@ -316,8 +316,8 @@ export default function Dashboard() {
                   <AlertTriangle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-encre">Completez votre verification</p>
-                  <p className="text-sm text-encre/50">Envoyez vos documents pour activer toutes les fonctionnalites ({missingDocsCount} document{missingDocsCount > 1 ? "s" : ""} manquant{missingDocsCount > 1 ? "s" : ""})</p>
+                  <p className="font-semibold text-[#1A1A1A]">Completez votre verification</p>
+                  <p className="text-sm text-[#1A1A1A]/50">Envoyez vos documents pour activer toutes les fonctionnalites ({missingDocsCount} document{missingDocsCount > 1 ? "s" : ""} manquant{missingDocsCount > 1 ? "s" : ""})</p>
                 </div>
               </div>
               <button
@@ -337,8 +337,8 @@ export default function Dashboard() {
                 <Gift className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="font-semibold text-encre">Votre premiere demarche est offerte</p>
-                <p className="text-sm text-encre/50">Beneficiez d'une Declaration de cession ou d'achat gratuite</p>
+                <p className="font-semibold text-[#1A1A1A]">Votre premiere demarche est offerte</p>
+                <p className="text-sm text-[#1A1A1A]/50">Beneficiez d'une Declaration de cession ou d'achat gratuite</p>
               </div>
             </div>
           </motion.div>
@@ -356,12 +356,12 @@ export default function Dashboard() {
             return (
               <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs text-encre/40 font-medium uppercase tracking-wider">{s.label}</p>
+                  <p className="text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-wider">{s.label}</p>
                   <div className={`w-8 h-8 rounded-lg ${s.colorBg} flex items-center justify-center`}>
                     <Icon size={16} className={s.colorIcon} />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-encre">{s.value}</p>
+                <p className="text-3xl font-bold text-[#1A1A1A]">{s.value}</p>
               </div>
             );
           })}
@@ -376,10 +376,10 @@ export default function Dashboard() {
                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-encre text-sm">
+                  <p className="font-semibold text-[#1A1A1A] text-sm">
                     {stats.attentePaiementClient} démarche{stats.attentePaiementClient > 1 ? 's' : ''} en attente de paiement client
                   </p>
-                  <p className="text-xs text-encre/50">Le client n'a pas encore réglé le montant de la carte grise</p>
+                  <p className="text-xs text-[#1A1A1A]/50">Le client n'a pas encore réglé le montant de la carte grise</p>
                 </div>
               </div>
               <button
@@ -400,8 +400,8 @@ export default function Dashboard() {
             <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp}>
               <div className="bg-white rounded-2xl border border-gray-100">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-encre">Actions rapides</h2>
-                  <button onClick={() => navigate('/nouvelle-demarche')} className="text-sm text-bleu-france hover:underline">Voir tout &rarr;</button>
+                  <h2 className="text-lg font-bold text-[#1A1A1A]">Actions rapides</h2>
+                  <button onClick={() => navigate('/nouvelle-demarche')} className="text-sm text-[#002395] hover:underline">Voir tout &rarr;</button>
                 </div>
                 <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {actionsRapides.map((action, index) => {
@@ -418,8 +418,8 @@ export default function Dashboard() {
                         <div className={`w-10 h-10 rounded-lg ${palette.bg} flex items-center justify-center mb-3`}>
                           <FileText className={`w-5 h-5 ${palette.icon}`} />
                         </div>
-                        <p className="font-medium text-encre text-sm">{action.titre}</p>
-                        <p className="text-xs text-encre/40 mt-0.5">
+                        <p className="font-medium text-[#1A1A1A] text-sm">{action.titre}</p>
+                        <p className="text-xs text-[#1A1A1A]/40 mt-0.5">
                           {isFreeTokenEligible ? "Gratuit" : priceDisplay}
                         </p>
                         {isFreeTokenEligible && (
@@ -436,8 +436,8 @@ export default function Dashboard() {
             <motion.div initial="hidden" animate="visible" custom={4} variants={fadeUp}>
               <div className="bg-white rounded-2xl border border-gray-100">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-                  <h2 className="text-lg font-bold text-encre">Demarches recentes</h2>
-                  <button onClick={() => navigate('/mes-demarches')} className="text-sm text-bleu-france hover:underline">Tout voir &rarr;</button>
+                  <h2 className="text-lg font-bold text-[#1A1A1A]">Demarches recentes</h2>
+                  <button onClick={() => navigate('/mes-demarches')} className="text-sm text-[#002395] hover:underline">Tout voir &rarr;</button>
                 </div>
                 {recentDemarches.length > 0 ? (
                   <div className="divide-y divide-gray-50">
@@ -456,7 +456,7 @@ export default function Dashboard() {
                               <StatusIcon className={`w-4 h-4 ${config.color}`} />
                             </div>
                             <div>
-                              <p className="font-medium text-sm text-encre">
+                              <p className="font-medium text-sm text-[#1A1A1A]">
                                 {demarche.type === 'CG'
                                   ? 'Carte Grise'
                                   : demarche.type === 'DA'
@@ -465,7 +465,7 @@ export default function Dashboard() {
                                   ? 'Declaration de Cession'
                                   : demarche.type}
                               </p>
-                              <p className="text-xs text-encre/40">
+                              <p className="text-xs text-[#1A1A1A]/40">
                                 {demarche.immatriculation} · {new Date(demarche.created_at).toLocaleDateString('fr-FR')}
                               </p>
                             </div>
@@ -479,8 +479,8 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="p-8 text-center">
-                    <p className="text-encre/40">Aucune demarche recente</p>
-                    <button onClick={() => navigate("/nouvelle-demarche")} className="mt-3 border border-gray-200 text-encre text-sm px-4 py-2 rounded-xl hover:bg-gray-50 transition">
+                    <p className="text-[#1A1A1A]/40">Aucune demarche recente</p>
+                    <button onClick={() => navigate("/nouvelle-demarche")} className="mt-3 border border-gray-200 text-[#1A1A1A] text-sm px-4 py-2 rounded-xl hover:bg-gray-50 transition">
                       Creer ma premiere demarche
                     </button>
                   </div>
@@ -495,32 +495,32 @@ export default function Dashboard() {
             {garage && (
               <motion.div initial="hidden" animate="visible" custom={5} variants={fadeUp}>
                 <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <h3 className="text-xs text-encre/40 font-medium uppercase tracking-wider mb-4">Votre garage</h3>
+                  <h3 className="text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-wider mb-4">Votre garage</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-encre/30 flex-shrink-0" />
-                      <span className="text-encre/70">{garage.raison_sociale}</span>
+                      <Building2 className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" />
+                      <span className="text-[#1A1A1A]/70">{garage.raison_sociale}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Hash className="w-4 h-4 text-encre/30 flex-shrink-0" />
-                      <span className="text-encre/70">SIRET: {garage.siret}</span>
+                      <Hash className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" />
+                      <span className="text-[#1A1A1A]/70">SIRET: {garage.siret}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-encre/30 flex-shrink-0" />
-                      <span className="text-encre/70 truncate">{garage.email}</span>
+                      <Mail className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" />
+                      <span className="text-[#1A1A1A]/70 truncate">{garage.email}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-encre/30 flex-shrink-0" />
-                      <span className="text-encre/70">{garage.telephone}</span>
+                      <Phone className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" />
+                      <span className="text-[#1A1A1A]/70">{garage.telephone}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-encre/30 flex-shrink-0" />
-                      <span className="text-encre/70">{garage.adresse}, {garage.code_postal} {garage.ville}</span>
+                      <MapPin className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" />
+                      <span className="text-[#1A1A1A]/70">{garage.adresse}, {garage.code_postal} {garage.ville}</span>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate("/garage-settings")}
-                    className="w-full mt-4 h-10 border border-gray-200 text-encre/60 hover:text-encre hover:bg-gray-50 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2"
+                    className="w-full mt-4 h-10 border border-gray-200 text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-gray-50 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2"
                   >
                     <Settings className="w-4 h-4" /> Modifier
                   </button>
@@ -531,16 +531,16 @@ export default function Dashboard() {
             {/* Quick links */}
             <motion.div initial="hidden" animate="visible" custom={6} variants={fadeUp}>
               <div className="bg-white rounded-2xl border border-gray-100 p-5">
-                <h3 className="text-xs text-encre/40 font-medium uppercase tracking-wider mb-4">Liens rapides</h3>
+                <h3 className="text-xs text-[#1A1A1A]/40 font-medium uppercase tracking-wider mb-4">Liens rapides</h3>
                 <div className="space-y-1">
-                  <Link to="/support" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-encre/70 transition">
+                  <Link to="/support" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-[#1A1A1A]/70 transition">
                     <HelpCircle className="w-4 h-4" /> Support
                   </Link>
-                  <Link to="/mes-factures" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-encre/70 transition">
+                  <Link to="/mes-factures" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-[#1A1A1A]/70 transition">
                     <Receipt className="w-4 h-4" /> Mes factures
                   </Link>
                   {isAdmin && (
-                    <Link to="/dashboard" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-encre/70 transition">
+                    <Link to="/dashboard" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-sm text-[#1A1A1A]/70 transition">
                       <Shield className="w-4 h-4" /> Administration
                     </Link>
                   )}

@@ -12,7 +12,7 @@ const Footer = () => {
     "text-xs uppercase tracking-widest font-sans text-white/70 mb-4";
 
   return (
-    <footer className="bg-encre text-white">
+    <footer className="bg-[#1A1A1A] text-white">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-0">
           {/* Brand */}
@@ -170,9 +170,9 @@ const Footer = () => {
 
       {/* Tricolor bar */}
       <div className="h-1.5 flex">
-        <div className="flex-1 bg-bleu-france" />
+        <div className="flex-1 bg-[#002395]" />
         <div className="flex-1 bg-white" />
-        <div className="flex-1 bg-rouge-france" />
+        <div className="flex-1 bg-[#ED2939]" />
       </div>
     </footer>
   );
