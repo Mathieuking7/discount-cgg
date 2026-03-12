@@ -12,10 +12,14 @@ serve(async (req) => {
 
   try {
     // Use production Stripe publishable key
-    const publishableKey = Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY');
-    
+    const publishableKey = Deno.env.get('STRIPE_PUBLISHABLE_KEY') || Deno.env.get('VITE_STRIPE_PUBLISHABLE_KEY');
+
     if (!publishableKey) {
-      throw new Error('VITE_STRIPE_PUBLISHABLE_KEY not configured');
+      // Return a safe fallback instead of crashing - frontend will handle missing key gracefully
+      return new Response(
+        JSON.stringify({ publishableKey: null, warning: 'Stripe not configured' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
