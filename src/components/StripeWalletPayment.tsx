@@ -44,7 +44,6 @@ export const StripeWalletPayment = ({
 
   // Function to reset and create a new payment intent
   const resetForRetry = useCallback(() => {
-    console.log("[StripeWallet] Resetting for retry...");
     hasCreatedIntent.current = false;
     setClientSecret(null);
     clientSecretRef.current = null;
@@ -93,7 +92,6 @@ export const StripeWalletPayment = ({
       setIsCreatingIntent(true);
       
       try {
-        console.log("[StripeWallet] Creating payment intent:", { amountInCents, demarcheId, metadata, retryCount, edgeFunctionName });
         
         const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
           body: {
@@ -109,7 +107,6 @@ export const StripeWalletPayment = ({
         }
         
         if (data?.clientSecret) {
-          console.log("[StripeWallet] Payment intent created successfully");
           setClientSecret(data.clientSecret);
         } else {
           console.error("[StripeWallet] No client secret returned");
@@ -130,18 +127,14 @@ export const StripeWalletPayment = ({
   // Setup PaymentRequest when stripe and clientSecret are ready
   useEffect(() => {
     if (!stripe || !clientSecret) {
-      console.log("[StripeWallet] Waiting for stripe or clientSecret", { stripe: !!stripe, clientSecret: !!clientSecret });
       return;
     }
     
     // Don't recreate if already exists
     if (paymentRequestRef.current) {
-      console.log("[StripeWallet] PaymentRequest already exists");
       return;
     }
 
-    console.log("[StripeWallet] Setting up PaymentRequest with amount:", amountInCents);
-    console.log("[StripeWallet] Current origin:", window.location.origin);
 
     const pr = stripe.paymentRequest({
       country: "FR",
@@ -157,17 +150,10 @@ export const StripeWalletPayment = ({
     paymentRequestRef.current = pr;
 
     pr.canMakePayment().then((result) => {
-      console.log("[StripeWallet] canMakePayment result:", result);
-      console.log("[StripeWallet] Available wallets:", {
-        applePay: result?.applePay,
-        googlePay: result?.googlePay,
-        link: result?.link,
-      });
       if (result) {
         setPaymentRequest(pr);
         setCanMakePayment(true);
       } else {
-        console.log("[StripeWallet] No payment methods available - this is normal in preview/localhost or if wallets are not configured");
         setShowNotAvailable(true);
       }
     }).catch((err) => {
@@ -179,10 +165,6 @@ export const StripeWalletPayment = ({
       // Use refs to get latest values and avoid stale closures
       const currentClientSecret = clientSecretRef.current;
       
-      console.log("[StripeWallet] Payment method received:", e.paymentMethod.id);
-      console.log("[StripeWallet] Payment method type:", e.paymentMethod.type);
-      console.log("[StripeWallet] Payment method wallet:", e.walletName);
-      console.log("[StripeWallet] Client secret available:", currentClientSecret ? "yes" : "no");
       
       if (!currentClientSecret) {
         console.error("[StripeWallet] No client secret available!");
@@ -194,7 +176,6 @@ export const StripeWalletPayment = ({
       try {
         // Step 1: Confirm the payment with the payment method from Google Pay/Apple Pay
         // Using handleActions: false because we'll handle any required actions ourselves
-        console.log("[StripeWallet] Confirming payment with Stripe...");
         const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
           currentClientSecret,
           { payment_method: e.paymentMethod.id },
@@ -214,11 +195,9 @@ export const StripeWalletPayment = ({
           return;
         }
 
-        console.log("[StripeWallet] Initial payment status:", paymentIntent?.status);
 
         if (paymentIntent?.status === "requires_action") {
           // Step 2: Let Stripe.js handle the required action (3DS, etc.)
-          console.log("[StripeWallet] Payment requires action, handling...");
           e.complete("success"); // Complete the Payment Request UI first
           
           const { error: actionError, paymentIntent: confirmedIntent } = await stripe.confirmCardPayment(currentClientSecret);
@@ -232,20 +211,16 @@ export const StripeWalletPayment = ({
           }
 
           if (confirmedIntent?.status === "succeeded") {
-            console.log("[StripeWallet] Payment succeeded after action:", confirmedIntent.id);
             onSuccessRef.current();
           } else {
-            console.log("[StripeWallet] Payment status after action:", confirmedIntent?.status);
             onErrorRef.current?.("Le paiement n'a pas pu être complété");
             // Reset for retry with new payment intent
             setTimeout(() => resetForRetryRef.current(), 1000);
           }
         } else if (paymentIntent?.status === "succeeded") {
           e.complete("success");
-          console.log("[StripeWallet] Payment succeeded immediately:", paymentIntent.id);
           onSuccessRef.current();
         } else {
-          console.log("[StripeWallet] Unexpected payment status:", paymentIntent?.status);
           e.complete("fail");
           onErrorRef.current?.(`Statut inattendu: ${paymentIntent?.status}`);
           // Reset for retry with new payment intent

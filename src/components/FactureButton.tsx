@@ -65,7 +65,6 @@ export const FactureButton = ({
       // Extract clean path from pdf_url
       const path = extractPathFromUrl(facture.pdf_url);
       
-      console.log(`📄 FactureButton: Downloading facture, path="${path}"`);
       
       // Use the unique download function
       await downloadFacture(path);

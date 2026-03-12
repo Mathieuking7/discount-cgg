@@ -505,7 +505,6 @@ export default function DemarcheDetail() {
               }
             }
           });
-          console.log('Email de refus envoyé au garage');
         } catch (emailError) {
           console.error('Erreur envoi email:', emailError);
         }
@@ -628,7 +627,6 @@ export default function DemarcheDetail() {
               }
             }
           });
-          console.log('Email de demande de paiement envoyé au garage');
         } catch (emailError) {
           console.error('Erreur envoi email:', emailError);
         }
@@ -702,7 +700,6 @@ export default function DemarcheDetail() {
               }
             }
           });
-          console.log('Email de refus envoyé au garage');
         } catch (emailError) {
           console.error('Erreur envoi email:', emailError);
         }
@@ -1344,7 +1341,6 @@ export default function DemarcheDetail() {
                                   }
                                 }
                               });
-                              console.log('Email document reçu envoyé au garage');
 
                               // Email pour la démarche finalisée (avec délai pour éviter rate limiting)
                               setTimeout(async () => {
@@ -1362,7 +1358,6 @@ export default function DemarcheDetail() {
                                       }
                                     }
                                   });
-                                  console.log('Email démarche finalisée envoyé au garage');
                                 } catch (emailError) {
                                   console.error('Erreur envoi email finalisé:', emailError);
                                 }

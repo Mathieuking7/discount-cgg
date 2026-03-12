@@ -219,15 +219,6 @@ export default function NouvelleDemarche() {
     return { requiredIds, allRequiredUploaded, blockingMessage };
   }, [formData.type, questionnaireAnswerTexts, uploadedDocuments]);
 
-  useEffect(() => {
-    console.log("=== DEBUG DUPLICATA_CG_PRO ===");
-    console.log("type démarche:", formData.type);
-    console.log("demarcheId:", demarcheId);
-    console.log("questionnaireCompleted:", questionnaireCompleted);
-    console.log("isQuestionnaireBlocked:", isQuestionnaireBlocked);
-    console.log("garage:", garage?.id);
-    console.log("actionDetails:", actionDetails?.code);
-  }, [formData.type, questionnaireCompleted, demarcheId, isQuestionnaireBlocked, garage, actionDetails]);
 
   const updateDemarcheMontant = async () => {
     if (!demarcheId || !actionDetails) return;
@@ -298,14 +289,12 @@ export default function NouvelleDemarche() {
       // Filtrer les actions test_only sauf pour test@test.com
       const userEmail = user.email?.toLowerCase();
       const isTestUser = userEmail === 'test@test.com';
-      console.log('User email:', userEmail, 'Is test user:', isTestUser);
       const filteredActions = data.filter((action: any) => {
         if (action.test_only) {
           return isTestUser;
         }
         return true;
       });
-      console.log('Filtered actions:', filteredActions.length, 'Total:', data.length);
       setActionsRapides(filteredActions);
     }
   };

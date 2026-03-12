@@ -29,12 +29,44 @@ serve(async (req) => {
 
     // Handle guest orders (no auth required)
     if (metadata?.type === 'guest_order') {
-      if (!amount || !metadata.order_id) {
-        return new Response(JSON.stringify({ error: 'Amount and order_id required' }), {
+      if (!metadata.order_id) {
+        return new Response(JSON.stringify({ error: 'order_id required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      // Fetch order from database to get the authoritative amount
+      const { data: order, error: orderError } = await supabaseClient
+        .from('guest_orders')
+        .select('id, montant_ttc, tracking_number, status')
+        .eq('id', metadata.order_id)
+        .single();
+
+      if (orderError || !order) {
+        console.error('Guest order not found:', orderError);
+        return new Response(JSON.stringify({ error: 'Order not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (order.status === 'paid' || order.status === 'completed') {
+        return new Response(JSON.stringify({ error: 'Order is already paid' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const guestAmount = Math.round(Number(order.montant_ttc) * 100);
+      if (!guestAmount || guestAmount <= 0) {
+        return new Response(JSON.stringify({ error: 'Invalid order amount' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('Guest order payment amount (cents):', guestAmount, 'from DB montant_ttc:', order.montant_ttc);
 
       // Create Stripe payment intent with automatic payment methods for wallet support
       const response = await fetch('https://api.stripe.com/v1/payment_intents', {
@@ -44,12 +76,12 @@ serve(async (req) => {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          amount: amount.toString(),
+          amount: guestAmount.toString(),
           currency: 'eur',
           'automatic_payment_methods[enabled]': 'true',
           'metadata[order_id]': metadata.order_id || '',
           'metadata[guest_order_id]': metadata.order_id || '',
-          'metadata[tracking_number]': metadata.tracking_number || '',
+          'metadata[tracking_number]': order.tracking_number || '',
           'metadata[type]': 'guest_order',
         }),
       });
@@ -62,7 +94,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           clientSecret: paymentIntent.client_secret,
           paymentIntentId: paymentIntent.id
         }),

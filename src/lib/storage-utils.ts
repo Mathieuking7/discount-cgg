@@ -38,7 +38,6 @@ export const getSignedUrl = async (
     // Remove query params
     cleanPath = cleanPath.split("?")[0];
 
-    console.log(`📤 Requesting signed URL - bucket: "${bucket}", path: "${cleanPath}"`);
 
     // Get the current session for JWT
     const { data: { session } } = await supabase.auth.getSession();
@@ -73,7 +72,6 @@ export const getSignedUrl = async (
       return null;
     }
     
-    console.log("✅ Got signed URL successfully");
     return signedUrl;
   } catch (error) {
     console.error("Error in getSignedUrl:", error);
@@ -88,7 +86,6 @@ export const getSignedUrl = async (
  */
 export const downloadFacture = async (path: string): Promise<void> => {
   try {
-    console.log("📥 downloadFacture called with path:", path);
 
     const { data, error } = await supabase.functions.invoke("download-facture", {
       body: { path }
@@ -104,7 +101,6 @@ export const downloadFacture = async (path: string): Promise<void> => {
       throw new Error("URL de téléchargement non disponible");
     }
 
-    console.log("✅ Got signed URL, redirecting for download");
     
     // CRITICAL: Use window.location.href for native browser download
     window.location.href = data.url;

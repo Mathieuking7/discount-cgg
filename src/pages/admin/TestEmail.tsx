@@ -81,7 +81,6 @@ export default function TestEmail() {
         return;
       }
 
-      console.log('Sending test email to:', email, 'with fresh session');
 
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
@@ -97,7 +96,6 @@ export default function TestEmail() {
         }
       });
 
-      console.log('Email response:', { data, error });
 
       if (error) {
         console.error('Email error:', error);
