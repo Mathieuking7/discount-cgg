@@ -160,47 +160,55 @@ export default function CreateDemarche() {
     setLoading(false);
   };
 
-  // Load required docs via action_documents (same source as garages + particuliers)
+  // Load required docs — same source as existing flows:
+  // Particulier → guest_order_required_documents (same as landing page / CommanderSansCompte)
+  // Pro         → action_documents via actions_rapides (same as espace garage / NouvelleDemarche)
   useEffect(() => {
     if (!selectedType || !clientType || mode !== "admin") return;
     const loadRequiredDocs = async () => {
       setLoadingRequiredDocs(true);
       try {
-        // 1. Find the matching action in actions_rapides
-        const actionCode = DEMARCHE_TO_ACTION_CODE[selectedType.code] || selectedType.code;
-        const { data: actions } = await supabase
-          .from("actions_rapides")
-          .select("id")
-          .eq("code", actionCode)
-          .limit(1);
+        if (clientType === "particulier") {
+          // ── Particulier: same query as CommanderSansCompte ──
+          const { data } = await supabase
+            .from("guest_order_required_documents")
+            .select("id, nom_document, obligatoire")
+            .eq("actif", true)
+            .eq("demarche_type_code", selectedType.code)
+            .order("ordre");
+          setRequiredDocs(data || []);
+        } else {
+          // ── Pro: same query as NouvelleDemarche (espace garage) ──
+          const actionCode = DEMARCHE_TO_ACTION_CODE[selectedType.code] || selectedType.code;
+          const { data: actions } = await supabase
+            .from("actions_rapides")
+            .select("id")
+            .eq("code", actionCode)
+            .limit(1);
 
-        if (!actions || actions.length === 0) {
-          setRequiredDocs([]);
-          setLoadingRequiredDocs(false);
-          return;
+          if (!actions || actions.length === 0) {
+            setRequiredDocs([]);
+          } else {
+            const { data: docs } = await supabase
+              .from("action_documents")
+              .select("id, nom_document, obligatoire")
+              .eq("action_id", actions[0].id)
+              .order("ordre");
+            setRequiredDocs(
+              (docs || []).map((d) => ({
+                id: d.id,
+                nom_document: d.nom_document,
+                obligatoire: d.obligatoire,
+              }))
+            );
+          }
         }
-
-        // 2. Load action_documents for this action
-        const { data: docs } = await supabase
-          .from("action_documents")
-          .select("id, nom_document, obligatoire")
-          .eq("action_id", actions[0].id)
-          .order("ordre");
-
-        setRequiredDocs(
-          (docs || []).map((d) => ({
-            id: d.id,
-            nom_document: d.nom_document,
-            obligatoire: d.obligatoire,
-          }))
-        );
       } catch {
         setRequiredDocs([]);
       }
       setLoadingRequiredDocs(false);
     };
     loadRequiredDocs();
-    // Clear uploads when type/clientType changes
     setDocs([]);
   }, [selectedType, clientType, mode]);
 
