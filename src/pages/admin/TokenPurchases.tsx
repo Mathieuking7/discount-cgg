@@ -153,7 +153,6 @@ export default function TokenPurchases() {
 
       const path = extractPathFromUrl(purchase.facture.pdf_url);
 
-      console.log(`TokenPurchases: Downloading facture, path="${path}"`);
 
       await downloadFacture(path);
 

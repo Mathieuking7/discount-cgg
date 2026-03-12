@@ -358,7 +358,6 @@ export default function GuestOrderDetail() {
         if (emailError) {
           console.error('Erreur envoi email (error):', emailError);
         } else {
-          console.log('Email de validation envoyé avec succès:', emailResult);
         }
       } catch (emailCatchError) {
         console.error('Erreur envoi email (catch):', emailCatchError);
@@ -413,7 +412,6 @@ export default function GuestOrderDetail() {
             }
           }
         });
-        console.log('Email de refus envoyé');
       } catch (emailError) {
         console.error('Erreur envoi email:', emailError);
       }

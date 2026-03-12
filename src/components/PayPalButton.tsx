@@ -110,11 +110,9 @@ export const PayPalButton = ({ amount, onSuccess, onError }: PayPalButtonProps) 
 
       // Check if Pay Later is eligible and render button if amount >= 30
       if (amount >= 30 && paypalRef.current) {
-        console.log("Checking Pay Later eligibility for amount:", amount);
         
         // Check if Pay Later is available
         const isPayLaterEligible = window.paypal.isFundingEligible(window.paypal.FUNDING.PAYLATER);
-        console.log("Pay Later eligible:", isPayLaterEligible);
         
         if (isPayLaterEligible) {
           const payLaterContainer = document.createElement("div");
@@ -163,7 +161,6 @@ export const PayPalButton = ({ amount, onSuccess, onError }: PayPalButtonProps) 
             })
             .render(payLaterContainer);
         } else {
-          console.log("Pay Later not eligible - might not be available in your region or for your account");
         }
       }
     };

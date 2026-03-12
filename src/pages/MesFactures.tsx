@@ -83,7 +83,6 @@ export default function MesFactures() {
       // Extract clean path from pdf_url
       const path = extractPathFromUrl(facture.pdf_url);
       
-      console.log(`📄 MesFactures: Downloading facture, path="${path}"`);
       
       // Use the UNIQUE download function
       await downloadFacture(path);

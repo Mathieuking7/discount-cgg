@@ -14,13 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, demarche_id, amount } = await req.json();
+    const { order_id, demarche_id } = await req.json();
 
-    if ((!order_id && !demarche_id) || !amount) {
-      throw new Error("order_id ou demarche_id et amount sont requis");
+    if (!order_id && !demarche_id) {
+      throw new Error("order_id ou demarche_id est requis");
     }
 
-    console.log(`📦 Creating resubmission payment for ${order_id ? 'order' : 'demarche'} ${order_id || demarche_id}, amount: ${amount}€`);
+    console.log(`📦 Creating resubmission payment for ${order_id ? 'order' : 'demarche'} ${order_id || demarche_id}`);
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -38,6 +38,7 @@ serve(async (req) => {
     let successUrl: string;
     let cancelUrl: string;
     let metadata: Record<string, string>;
+    let resubmissionAmount: number;
 
     // Handle guest order resubmission
     if (order_id) {
@@ -57,6 +58,11 @@ serve(async (req) => {
 
       if (order.resubmission_paid) {
         throw new Error("Le paiement de renvoi a déjà été effectué");
+      }
+
+      resubmissionAmount = Number(order.resubmission_amount);
+      if (!resubmissionAmount || resubmissionAmount <= 0) {
+        throw new Error("Montant de renvoi invalide pour cette commande");
       }
 
       email = order.email;
@@ -87,6 +93,11 @@ serve(async (req) => {
 
       if (demarche.resubmission_paid) {
         throw new Error("Le paiement de renvoi a déjà été effectué");
+      }
+
+      resubmissionAmount = Number(demarche.resubmission_amount);
+      if (!resubmissionAmount || resubmissionAmount <= 0) {
+        throw new Error("Montant de renvoi invalide pour cette démarche");
       }
 
       email = demarche.garages?.email || "";
@@ -121,7 +132,7 @@ serve(async (req) => {
               name: 'Frais de renvoi de documents',
               description: `${order_id ? 'Commande' : 'Démarche'} ${trackingNumber} - Frais de traitement pour renvoi de documents`,
             },
-            unit_amount: Math.round(amount * 100), // Convert to cents
+            unit_amount: Math.round(resubmissionAmount * 100), // Convert to cents
           },
           quantity: 1,
         },

@@ -71,12 +71,10 @@ export function DocumentViewer({
     setError(null);
     
     try {
-      console.log(`📄 DocumentViewer: Loading signed URL for bucket="${resolvedBucket}", path="${resolvedPath}"`);
       const url = await getSignedUrl(resolvedBucket, resolvedPath, trackingNumber);
       
       if (url) {
         setSignedUrl(url);
-        console.log("✅ DocumentViewer: Got signed URL");
       } else {
         setError("Impossible de charger le document");
         console.error("❌ DocumentViewer: Failed to get signed URL");
