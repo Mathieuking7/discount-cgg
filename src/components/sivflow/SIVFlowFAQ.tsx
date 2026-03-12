@@ -8,9 +8,9 @@ import {
 
 const faqs = [
   {
-    question: "SIVFlow est-il habilite par l'Etat ?",
+    question: "King Carte Grise est-il habilite par l'Etat ?",
     answer:
-      "Oui, SIVFlow est habilite par le Ministere de l'Interieur et connecte directement au Systeme d'Immatriculation des Vehicules (SIV). Toutes les demarches sont realisees dans un cadre officiel et securise.",
+      "Oui, King Carte Grise est habilite par le Ministere de l'Interieur et connecte directement au Systeme d'Immatriculation des Vehicules (SIV). Toutes les demarches sont realisees dans un cadre officiel et securise.",
   },
   {
     question: "Combien de temps faut-il pour configurer mon compte ?",
@@ -20,7 +20,7 @@ const faqs = [
   {
     question: "Puis-je gerer plusieurs types de demarches ?",
     answer:
-      "Absolument. SIVFlow prend en charge les cartes grises, declarations d'achat, declarations de cession, changements d'adresse, duplicatas et bien d'autres demarches SIV. Tout depuis une seule interface.",
+      "Absolument. King Carte Grise prend en charge les cartes grises, declarations d'achat, declarations de cession, changements d'adresse, duplicatas et bien d'autres demarches SIV. Tout depuis une seule interface.",
   },
   {
     question: "Mes donnees sont-elles en securite ?",
@@ -38,12 +38,12 @@ const faqs = [
       "Le support est disponible par email et chat en direct du lundi au vendredi de 9h a 18h. Les clients Pro beneficient d'un support prioritaire avec un temps de reponse garanti sous 2 heures.",
   },
   {
-    question: "Puis-je essayer SIVFlow gratuitement ?",
+    question: "Puis-je essayer King Carte Grise gratuitement ?",
     answer:
       "Oui, nous proposons un essai gratuit de 14 jours avec acces complet a toutes les fonctionnalites. Aucune carte bancaire n'est requise pour demarrer.",
   },
   {
-    question: "SIVFlow est-il adapte aux petits volumes ?",
+    question: "King Carte Grise est-il adapte aux petits volumes ?",
     answer:
       "Tout a fait. Notre offre Starter est concue pour les professionnels qui traitent jusqu'a 30 dossiers par mois. C'est ideal pour un garage independant ou un negociant qui debute.",
   },

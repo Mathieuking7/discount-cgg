@@ -109,7 +109,7 @@ const BASE_URL = "https://discountcartegrise.fr";
 
 const brandHeader = `
   <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 24px; text-align: center; border-radius: 8px 8px 0 0;">
-    <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px;">SIVFlow</h2>
+    <h2 style="color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px;">King Carte Grise</h2>
     <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0; font-size: 13px;">Service de carte grise en ligne</p>
   </div>
 `;
@@ -117,7 +117,7 @@ const brandHeader = `
 const brandFooter = `
   <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
   <div style="text-align: center; color: #6b7280; font-size: 12px;">
-    <p style="margin: 4px 0;">SIVFlow &mdash; DiscountCarteGrise</p>
+    <p style="margin: 4px 0;">King Carte Grise &mdash; DiscountCarteGrise</p>
     <p style="margin: 4px 0;">contact@discountcartegrise.fr</p>
     <p style="margin: 4px 0;">Cet email a ete envoye automatiquement, merci de ne pas y repondre.</p>
   </div>

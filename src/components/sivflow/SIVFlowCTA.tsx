@@ -22,7 +22,7 @@ const SIVFlowCTA = () => {
             </h2>
             <p className="text-lg text-white/80 mb-8 max-w-xl mx-auto">
               Rejoignez plus de 1 200 professionnels qui gagnent du temps chaque jour
-              avec SIVFlow. Essai gratuit de 14 jours, sans carte bancaire.
+              avec King Carte Grise. Essai gratuit de 14 jours, sans carte bancaire.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
