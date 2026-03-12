@@ -128,7 +128,7 @@ export default function CreateDemarche() {
           adresse: "",
           code_postal: "",
           ville: "",
-          status: "brouillon",
+          status: "en_attente",
           commentaire: notesAdmin || null,
         })
         .select("id")
@@ -171,9 +171,11 @@ export default function CreateDemarche() {
     try {
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
+          type: "simple_text",
           to: clientEmail,
-          subject: `Votre demarche carte grise - ${selectedType?.titre}`,
-          html: `<p>Bonjour${clientName ? ` ${clientName}` : ""},</p>
+          data: {
+            subject: `Votre demarche carte grise - ${selectedType?.titre}`,
+            html: `<p>Bonjour${clientName ? ` ${clientName}` : ""},</p>
 <p>Votre professionnel a initie une demarche de carte grise pour vous.</p>
 <p><strong>Demarche :</strong> ${selectedType?.titre}</p>
 <p><strong>Montant :</strong> ${selectedType?.prix_base.toFixed(2)} EUR</p>
@@ -181,6 +183,7 @@ export default function CreateDemarche() {
 <p><a href="${paymentUrl}" style="display:inline-block;padding:12px 24px;background:#1B2A4A;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Completer ma demarche et payer</a></p>
 <p style="color:#888;font-size:13px;">Ou copiez ce lien : ${paymentUrl}</p>
 <p>Cordialement,<br/>SIVFlow</p>`,
+          },
         },
       });
       if (error) throw error;
