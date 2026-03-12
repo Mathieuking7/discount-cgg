@@ -71,7 +71,7 @@ const SIVFlowFooter = () => {
             &copy; {year} King Carte Grise propulse par Sivflow.fr. Tous droits reserves.
           </p>
           <p className="text-xs text-white/40">
-            Service habilite par le Ministere de l'Interieur
+            Paiement securise · Traitement sous 24h · Satisfaction garantie
           </p>
         </div>
       </div>

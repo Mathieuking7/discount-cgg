@@ -113,7 +113,7 @@ const demarchesPro = [
 
 const featuresParticulier = [
   { icon: Zap, title: "Traitement rapide", desc: "Votre demarche traitee en moins de 24h ouvrees." },
-  { icon: ShieldCheck, title: "100% conforme", desc: "Agree par le Ministere de l'Interieur et l'ANTS." },
+  { icon: ShieldCheck, title: "100% securise", desc: "Paiement crypte SSL et donnees protegees. Votre securite est notre priorite." },
   { icon: HeadphonesIcon, title: "Support humain", desc: "Une vraie personne vous repond, pas un robot." },
   { icon: CreditCard, title: "Paiement securise", desc: "Payez uniquement pour la demarche demandee." },
   { icon: Clock, title: "Disponible 24/7", desc: "Faites vos demarches quand ca vous arrange." },
@@ -126,7 +126,7 @@ const featuresPro = [
   { icon: CreditCard, title: "Paiement integre", desc: "Encaissez directement, fini les relances." },
   { icon: Bell, title: "Notifications", desc: "Alertes en temps reel pour chaque action client." },
   { icon: Users, title: "Multi-demarches", desc: "Gerez DA, DC, CG et plus depuis un seul espace." },
-  { icon: Lock, title: "Conforme ANTS", desc: "Plateforme agreee, conformite garantie." },
+  { icon: Lock, title: "Donnees protegees", desc: "Chiffrement SSL 256 bits, donnees supprimees apres traitement." },
 ];
 
 const testimonials = [
@@ -184,11 +184,11 @@ const Index = () => {
       <div className="bg-[#1B2A4A] text-white/80 py-2.5 px-4">
         <div className="max-w-6xl mx-auto flex items-center justify-center gap-6 text-xs">
           <span className="flex items-center gap-1.5">
-            <ShieldCheck size={14} aria-hidden="true" /> Habilite par le Ministere de l'Interieur
+            <ShieldCheck size={14} aria-hidden="true" /> Paiement 100% securise
           </span>
           <span className="hidden sm:inline text-white/30">|</span>
           <span className="hidden sm:flex items-center gap-1.5">
-            <BadgeCheck size={14} aria-hidden="true" /> Agree Tresor Public
+            <BadgeCheck size={14} aria-hidden="true" /> Traitement sous 24h
           </span>
           <span className="hidden sm:inline text-white/30">|</span>
           <span className="hidden sm:flex items-center gap-1.5">
@@ -214,7 +214,7 @@ const Index = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-[#1A1A1A]/60 text-lg max-w-xl mx-auto"
           >
-            Service agree et habilite par le Ministere de l'Interieur. Calculez le prix de votre carte grise instantanement.
+            Service rapide, securise et fiable. Calculez le prix de votre carte grise instantanement.
           </motion.p>
         </div>
 

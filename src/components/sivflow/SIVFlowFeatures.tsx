@@ -41,9 +41,9 @@ const features = [
   },
   {
     icon: ShieldCheck,
-    title: "Conforme et habilite",
+    title: "Securise et fiable",
     description:
-      "Connexion directe au SIV. Service habilite par le Ministere de l'Interieur. Donnees securisees.",
+      "Paiement crypte SSL 256 bits. Donnees protegees et supprimees apres traitement. Votre confidentialite garantie.",
   },
 ];
 

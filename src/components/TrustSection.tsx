@@ -59,34 +59,37 @@ export const TrustSection = () => {
             </div>
           </div>
 
-          {/* Habilitation */}
+          {/* Garanties client */}
           <div>
             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Shield className="w-5 h-5" />
-              Service habilité
+              Nos engagements
             </h3>
             <div className="bg-primary-foreground/10 p-4 rounded-xl border border-primary-foreground/20 space-y-3">
               <div className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold text-sm">Habilitation Préfecture</p>
-                  <p className="text-xs opacity-80">N° 285046</p>
+                  <p className="font-semibold text-sm">Traitement rapide sous 24h</p>
+                  <p className="text-xs opacity-80">Votre dossier traité en moins d'un jour ouvré</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold text-sm">Agrément Trésor Public</p>
-                  <p className="text-xs opacity-80">N° 63198</p>
+                  <p className="font-semibold text-sm">Satisfaction garantie</p>
+                  <p className="text-xs opacity-80">+10 000 clients satisfaits · Note 4.8/5</p>
                 </div>
               </div>
-              
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Support disponible 7j/7</p>
+                  <p className="text-xs opacity-80">Une vraie personne vous répond, pas un robot</p>
+                </div>
+              </div>
+
               {/* Bande tricolore */}
               <div className="h-1 w-full bg-gradient-to-r from-france-blue via-background to-france-red rounded-full" />
-              
-              <p className="text-xs opacity-90">
-                Membre de la Fédération Française des Professionnels de la Carte Grise en Ligne
-              </p>
             </div>
           </div>
         </div>

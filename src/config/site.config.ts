@@ -47,7 +47,7 @@ export const siteConfig = {
   seo: {
     defaultTitle: "King Carte Grise propulse par Sivflow.fr - Gerez vos demarches auto en quelques clics",
     defaultDescription:
-      "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Agree par le Ministere de l'Interieur.",
+      "Carte grise, declaration d'achat, cession... Simplifiez toutes vos demarches SIV en ligne. Traitement rapide, paiement securise, satisfaction garantie.",
   },
 
   // -- Pricing (affichage landing page)

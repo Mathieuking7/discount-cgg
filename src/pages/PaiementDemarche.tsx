@@ -594,7 +594,7 @@ const PaiementDemarche = () => {
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <Check className="h-5 w-5 text-green-500 shrink-0" />
-                <span>Agréé Ministère de l'Intérieur</span>
+                <span>Satisfaction client garantie</span>
               </div>
             </div>
           </div>

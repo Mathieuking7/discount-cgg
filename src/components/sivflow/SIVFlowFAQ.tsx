@@ -8,9 +8,9 @@ import {
 
 const faqs = [
   {
-    question: "King Carte Grise est-il habilite par l'Etat ?",
+    question: "Est-ce que mes donnees sont en securite ?",
     answer:
-      "Oui, King Carte Grise est habilite par le Ministere de l'Interieur et connecte directement au Systeme d'Immatriculation des Vehicules (SIV). Toutes les demarches sont realisees dans un cadre officiel et securise.",
+      "Absolument. Toutes vos donnees et documents sont cryptes avec un chiffrement SSL 256 bits, le meme niveau de securite que les banques. Vos documents sont automatiquement supprimes apres le traitement de votre dossier. Votre vie privee est notre priorite.",
   },
   {
     question: "Combien de temps faut-il pour configurer mon compte ?",
