@@ -155,6 +155,16 @@ const CheckoutForm = ({ order }: { order: any }) => {
           </>
         )}
       </button>
+
+      {/* Option paiement en 4x */}
+      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
+        <CreditCard className="w-4 h-4 text-gray-400 shrink-0" />
+        <span>
+          Paiement en 4x disponible{" "}
+          <span className="font-medium text-gray-700">(Sur demande)</span>
+          {" "}— Contactez-nous pour en beneficier
+        </span>
+      </div>
     </form>
   );
 };
