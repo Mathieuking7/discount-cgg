@@ -10,7 +10,7 @@ import { Elements, CardElement, useStripe, useElements } from "@stripe/react-str
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { siteConfig } from "@/config/site.config";
-import { PayPalButton } from "@/components/PayPalButton";
+
 import { StripeWalletPayment } from "@/components/StripeWalletPayment";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PaymentDetailsSummary, type PaymentCalculationResult } from "@/components/payment/PaymentDetailsSummary";
@@ -390,8 +390,6 @@ const PaiementDemarche = () => {
   // Vérifier si le paiement par solde est possible (utiliser finalAmount au lieu de calculatedTotal)
   const canPayWithBalance = garage && finalAmount > 0 && garage.token_balance >= finalAmount;
   
-  // PayPal 4x désactivé si montant < 30€
-  const canUsePayPal4x = finalAmount >= 30;
 
   return (
     <div className="min-h-screen" style={{ background: '#FDF8F0' }}>
@@ -522,69 +520,6 @@ const PaiementDemarche = () => {
                 />
               </Elements>
             </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200"></div>
-              <span className="text-xs font-medium text-gray-400 uppercase">Ou</span>
-              <div className="flex-1 h-px bg-gray-200"></div>
-            </div>
-
-            {/* PayPal */}
-            {canUsePayPal4x ? (
-              <div className="bg-white rounded-2xl border-2 border-blue-200 shadow-sm p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="inline-block text-xs font-medium text-blue-700 bg-blue-100 px-2.5 py-1 rounded-full mb-2">Recommandé</span>
-                    <h3 className="text-xl font-bold text-gray-900">Payez en 4x sans frais</h3>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">{formatPrice(finalAmount / 4)} EUR</p>
-                    <p className="text-sm text-gray-500">par mois</p>
-                  </div>
-                </div>
-
-                <p className="text-sm text-gray-500">
-                  soit 4 mensualités de <span className="font-semibold text-gray-900">{formatPrice(finalAmount / 4)} EUR</span>
-                </p>
-
-                <PayPalButton
-                  amount={finalAmount}
-                  onSuccess={handlePaymentSuccess}
-                  onError={(error) => {
-                    console.error("PayPal error:", error);
-                    toast({
-                      title: "Erreur PayPal",
-                      description: "Impossible de charger PayPal",
-                      variant: "destructive",
-                    });
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-                <div>
-                  <h3 className="font-semibold text-gray-900">PayPal</h3>
-                  <p className="text-sm text-gray-500 mt-1">Paiement sécurisé via PayPal</p>
-                </div>
-
-                <PayPalButton
-                  amount={finalAmount}
-                  onSuccess={handlePaymentSuccess}
-                  onError={(error) => {
-                    console.error("PayPal error:", error);
-                    toast({
-                      title: "Erreur PayPal",
-                      description: "Impossible de charger PayPal",
-                      variant: "destructive",
-                    });
-                  }}
-                />
-
-                <p className="text-xs text-gray-400">
-                  Le paiement en 4x est disponible à partir de 30 EUR
-                </p>
-              </div>
-            )}
 
             {/* Security message */}
             <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pt-2">

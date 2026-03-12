@@ -33,7 +33,7 @@ export default function ResultatCarteGrise() {
   const [dossierPrioritaire, setDossierPrioritaire] = useState(false);
   const [certificatNonGage, setCertificatNonGage] = useState(false);
 
-  const emailPrix = 5;
+  const emailPrix = 0;
   const dossierPrioritairePrix = 5;
   const certificatNonGagePrix = 10;
   const fraisDossier = 30;
@@ -266,7 +266,7 @@ export default function ResultatCarteGrise() {
                             <Mail className="w-4 h-4 text-amber-500" />
                             Suivi par email
                           </span>
-                          <span className="text-amber-500 font-semibold">+{emailPrix},00 EUR</span>
+                          <span className="text-emerald-500 font-semibold">Offert</span>
                         </div>
                         <p className="text-sm text-gray-400 mt-1">
                           Recevez les mises a jour de votre dossier par email

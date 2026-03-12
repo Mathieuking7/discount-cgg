@@ -7,7 +7,7 @@ import { Loader2, Car, CreditCard, ChevronLeft, Calendar, Palette, Zap, Gauge } 
 import { useToast } from "@/hooks/use-toast";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import { PayPalButton } from "@/components/PayPalButton";
+
 import { StripeWalletPayment } from "@/components/StripeWalletPayment";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -18,7 +18,7 @@ export default function DevisCarteGrise() {
   const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPayment, setSelectedPayment] = useState<"stripe" | "paypal" | "wallet" | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<"stripe" | "wallet" | null>(null);
   const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
   useEffect(() => {
@@ -68,44 +68,6 @@ export default function DevisCarteGrise() {
     navigate(`/paiement/${orderId}`);
   };
 
-  const handlePayPalSuccess = async (details: any) => {
-    try {
-      const { error } = await supabase
-        .from("guest_orders")
-        .update({
-          paye: true,
-          paid_at: new Date().toISOString(),
-          status: "paye",
-        })
-        .eq("id", orderId);
-
-      if (error) throw error;
-
-      toast({
-        title: "✅ Paiement accepté !",
-        description: "Votre paiement a été validé avec succès.",
-        variant: "success" as any,
-      });
-
-      navigate(`/commander/${orderId}`);
-    } catch (error) {
-      console.error("Error updating order:", error);
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de la mise à jour de la commande",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePayPalError = (error: any) => {
-    console.error("PayPal error:", error);
-    toast({
-      title: "Erreur PayPal",
-      description: "Une erreur est survenue lors du paiement",
-      variant: "destructive",
-    });
-  };
 
   const handleWalletSuccess = async () => {
     try {
@@ -319,24 +281,6 @@ export default function DevisCarteGrise() {
                   </div>
                 </div>
 
-                {/* PayPal */}
-                <div className="space-y-3">
-                  <h3 className="font-semibold">PayPal</h3>
-                  <PayPalButton
-                    amount={order.montant_ttc}
-                    onSuccess={handlePayPalSuccess}
-                    onError={handlePayPalError}
-                  />
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Ou</span>
-                  </div>
-                </div>
 
                 {/* Stripe (Carte bancaire) */}
                 <div className="space-y-3">

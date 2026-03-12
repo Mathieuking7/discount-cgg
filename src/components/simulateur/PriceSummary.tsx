@@ -40,7 +40,7 @@ export const PriceSummary = ({
   const [isOpen, setIsOpen] = useState(false);
 
   // Prix des options
-  const emailPrix = 5;
+  const emailPrix = 0;
   const smsPrix = 8;
   const packPrix = 10;
   const dossierPrioritairePrix = 5;
@@ -181,7 +181,7 @@ export const PriceSummary = ({
                 {!selectedOptions?.packNotifications && selectedOptions?.emailNotifications && (
                   <div className="flex justify-between items-center text-sm">
                     <span>Suivi par email</span>
-                    <span className="font-medium">{formatPrice(emailPrix)} €</span>
+                    <span className="font-medium text-emerald-600">Offert</span>
                   </div>
                 )}
                 {!selectedOptions?.packNotifications && selectedOptions?.smsNotifications && (
