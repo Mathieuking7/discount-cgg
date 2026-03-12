@@ -232,13 +232,13 @@ export default function AdminDashboard() {
     },
     {
       icon: PlusCircle,
-      title: "Creer une demarche",
-      description: "Creer une demarche pour un client",
+      title: "Creer une demarche avec lien de paiement",
+      description: "Generez un lien pour que votre client complete sa demarche",
       path: "/dashboard/create-demarche",
     },
     {
       icon: Link,
-      title: "Creer un lien de paiement",
+      title: "Demander un paiement manuellement",
       description: "Lien simple, QR code, envoi par mail",
       path: "/dashboard/payment-links",
     },
