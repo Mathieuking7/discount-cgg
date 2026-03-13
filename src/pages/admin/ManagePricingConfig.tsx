@@ -58,6 +58,26 @@ interface EditableDemarcheType extends DemarcheType {
   _dirty?: boolean;
 }
 
+// Map guest_demarche_types.code → actions_rapides.code
+const DEMARCHE_TO_ACTION_CODE: Record<string, string> = {
+  CG: "CG",
+  DA: "DA",
+  DC: "DC",
+  DUPLICATA: "DUPLICATA_CG_PRO",
+  CHGT_ADRESSE: "CHANGEMENT_ADRESSE_PRO",
+  CG_NEUF: "CG_NEUF_PRO",
+  COTITULAIRE: "COTITULAIRE_PRO",
+  QUITUS_FISCAL: "CG",
+  MODIF_CG: "CG",
+  SUCCESSION: "CG",
+  FIV: "CG",
+  CPI_WW: "CG",
+  ANNULER_CPI_WW: "CG",
+  DEMANDE_IMMAT: "CG",
+  CHGT_ADRESSE_LOCATAIRE: "CHANGEMENT_ADRESSE_PRO",
+  IMMAT_CYCLO_ANCIEN: "CG",
+};
+
 const ManagePricingConfig = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -145,9 +165,18 @@ const ManagePricingConfig = () => {
 
     if (error) {
       toast({ title: "Erreur", description: "Impossible de modifier le statut", variant: "destructive" });
-    } else {
-      await loadData();
+      return;
     }
+
+    // Sync to actions_rapides so home page & pro dashboard reflect the change
+    const actionCode = DEMARCHE_TO_ACTION_CODE[type.code] || type.code;
+    // actif = particuliers visibility, actif_pro = pro visibility → both map to actions_rapides.actif
+    await supabase
+      .from("actions_rapides")
+      .update({ actif: newValue })
+      .eq("code", actionCode);
+
+    await loadData();
   };
 
   const handleSaveAllPrices = async () => {
@@ -160,14 +189,21 @@ const ManagePricingConfig = () => {
     setSaving(true);
     try {
       for (const type of dirtyTypes) {
+        const newPrixBase = type._editedPrixBase ?? type.prix_base;
+        const newPrixPro = type._editedPrixPro ?? type.prix_pro;
+
         const { error } = await supabase
           .from("guest_demarche_types")
-          .update({
-            prix_base: type._editedPrixBase ?? type.prix_base,
-            prix_pro: type._editedPrixPro ?? type.prix_pro,
-          })
+          .update({ prix_base: newPrixBase, prix_pro: newPrixPro })
           .eq("id", type.id);
         if (error) throw error;
+
+        // Sync prix_base → actions_rapides.prix so pro dashboard shows updated price
+        const actionCode = DEMARCHE_TO_ACTION_CODE[type.code] || type.code;
+        await supabase
+          .from("actions_rapides")
+          .update({ prix: newPrixBase })
+          .eq("code", actionCode);
       }
       toast({ title: "Succes", description: `${dirtyTypes.length} prix mis a jour` });
       await loadData();

@@ -81,7 +81,7 @@ export default function Register() {
         title: "Bienvenue !",
         description: "Votre compte professionnel est prêt."
       });
-      navigate("/dashboard");
+      navigate("/mon-espace");
     }
 
     setLoading(false);

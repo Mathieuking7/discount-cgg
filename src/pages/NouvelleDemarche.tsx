@@ -101,7 +101,7 @@ export default function NouvelleDemarche() {
   // Ouverture/fermeture du bloc questionnaire (modifiable même après complétion)
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(true);
   // CG payment option states
-  const [paymentOption, setPaymentOption] = useState<'garage_dossier' | 'garage_tout' | 'client_tout'>('garage_dossier');
+  const [paymentOption, setPaymentOption] = useState<'garage_dossier' | 'garage_tout' | 'client_tout'>('garage_tout');
   const [prixCarteGrise, setPrixCarteGrise] = useState(0);
   const [fraisDossier, setFraisDossier] = useState(30);
   const [clientPaymentLinkId, setClientPaymentLinkId] = useState<string | null>(null);
@@ -1160,24 +1160,9 @@ export default function NouvelleDemarche() {
                                 
                                 return (
                                   <Label className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                                    {parts.map((part, index) => {
-                                      if (cerfaRegex.test(part)) {
-                                        return (
-                                          <a
-                                            key={index}
-                                            href={getCerfaUrl(cerfaNumber)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {part}
-                                            <Download className="h-3 w-3" />
-                                          </a>
-                                        );
-                                      }
-                                      return <span key={index}>{part}</span>;
-                                    })}
+                                    {parts.map((part, index) => (
+                                      <span key={index} className={cerfaRegex.test(part) ? "font-medium" : ""}>{part}</span>
+                                    ))}
                                     {isObligatoire ? (
                                       <span className="text-destructive text-base font-bold">*</span>
                                     ) : (

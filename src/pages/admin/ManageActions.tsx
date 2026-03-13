@@ -13,6 +13,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 
+// Reverse map: actions_rapides.code → guest_demarche_types.code
+const ACTION_TO_DEMARCHE_CODE: Record<string, string> = {
+  CG: "CG",
+  DA: "DA",
+  DC: "DC",
+  DUPLICATA_CG_PRO: "DUPLICATA",
+  CHANGEMENT_ADRESSE_PRO: "CHGT_ADRESSE",
+  CG_NEUF_PRO: "CG_NEUF",
+  COTITULAIRE_PRO: "COTITULAIRE",
+};
+
 type ActionRapide = {
   id: string;
   code: string;
@@ -166,6 +177,15 @@ export default function ManageActions() {
           .eq('id', editingAction.id);
 
         if (error) throw error;
+
+        // Sync actif and prix back to guest_demarche_types
+        const demarcheCode = ACTION_TO_DEMARCHE_CODE[editingAction.code];
+        if (demarcheCode) {
+          await supabase
+            .from("guest_demarche_types")
+            .update({ actif: editingAction.actif, actif_pro: editingAction.actif, prix_base: editingAction.prix })
+            .eq("code", demarcheCode);
+        }
 
         await supabase
           .from('action_documents')

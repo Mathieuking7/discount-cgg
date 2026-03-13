@@ -582,37 +582,11 @@ export function DocumentsNecessaires({
       <div className="flex-1">
         <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
           {hasCerfaInName ? (
-            // If cerfa is directly in the name (like "Cerfa 13752*02 – Demande W Garage")
-            <>
-              <a
-                href={getCerfaUrl(cerfaNumber)}
-                download
-                className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {doc.nom}
-                <Download className="h-3 w-3" />
-              </a>
-            </>
+            <span className="font-medium">{doc.nom}</span>
           ) : (
-            // Original behavior for "(Cerfa XXXXX)" format
-            parts.map((part, index) => {
-              if (cerfaRegex.test(part)) {
-                return (
-                  <a
-                    key={index}
-                    href={getCerfaUrl(cerfaNumber)}
-                    download
-                    className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {part}
-                    <Download className="h-3 w-3" />
-                  </a>
-                );
-              }
-              return <span key={index}>{part}</span>;
-            })
+            parts.map((part, index) => (
+              <span key={index} className={cerfaRegex.test(part) ? "font-medium" : ""}>{part}</span>
+            ))
           )}
           {renderBadges()}
         </div>

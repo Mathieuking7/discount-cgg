@@ -66,6 +66,9 @@ const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentia
 // Lazy-loaded landing pages
 const SIVFlowLanding = lazy(() => import("./pages/SIVFlowLanding"));
 
+// Lazy-loaded pro garage dashboard
+const GarageDashboard = lazy(() => import("./pages/Dashboard"));
+
 // Lazy-loaded admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AllDemarches = lazy(() => import("./pages/admin/AllDemarches"));
@@ -86,6 +89,7 @@ const AdminRevenus = lazy(() => import("./pages/admin/AdminRevenus"));
 const ManageGuestActions = lazy(() => import("./pages/admin/ManageGuestActions"));
 const PaymentLinkCreator = lazy(() => import("./pages/admin/PaymentLinkCreator"));
 const CreateDemarche = lazy(() => import("./pages/admin/CreateDemarche"));
+const AdminCreerDemarche = lazy(() => import("./pages/admin/AdminCreerDemarche"));
 const ManageSubscriptions = lazy(() => import("./pages/admin/ManageSubscriptions"));
 
 const queryClient = new QueryClient();
@@ -117,7 +121,7 @@ const App = () => (
               <Route path="/paiement-guest-succes/:orderId" element={<PaiementGuestSucces />} />
               <Route path="/recherche-suivi" element={<RechercheSuivi />} />
               <Route path="/suivi/:trackingNumber" element={<SuiviCommande />} />
-              <Route path="/mon-espace" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/mon-espace" element={<GarageDashboard />} />
               <Route path="/nouvelle-demarche" element={<NouvelleDemarche />} />
               <Route path="/nouvelle-demarche/:draftId" element={<NouvelleDemarche />} />
               <Route path="/mes-demarches" element={<MesDemarches />} />
@@ -148,6 +152,7 @@ const App = () => (
               <Route path="/dashboard/guest-actions" element={<ManageGuestActions />} />
               <Route path="/dashboard/payment-links" element={<PaymentLinkCreator />} />
               <Route path="/dashboard/create-demarche" element={<CreateDemarche />} />
+              <Route path="/dashboard/admin-creer-demarche" element={<AdminCreerDemarche />} />
               <Route path="/dashboard/subscriptions" element={<ManageSubscriptions />} />
               <Route path="/payer/:shortCode" element={<PayerLink />} />
               <Route path="/completer-demarche/:linkId" element={<CompleterDemarchePro />} />

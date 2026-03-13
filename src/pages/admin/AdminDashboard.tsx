@@ -16,6 +16,7 @@ import {
   Clock,
   ChevronRight,
   Home,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { siteConfig } from "@/config/site.config";
@@ -121,7 +122,7 @@ export default function AdminDashboard() {
     const hasAdminRole = roles?.some((r) => r.role === "admin");
 
     if (!hasAdminRole) {
-      navigate("/nouvelle-demarche");
+      navigate("/mon-espace");
       return;
     }
 
@@ -235,6 +236,12 @@ export default function AdminDashboard() {
       title: "Creer une demarche avec lien de paiement",
       description: "Generez un lien pour que votre client complete sa demarche",
       path: "/dashboard/create-demarche",
+    },
+    {
+      icon: Zap,
+      title: "Créer une démarche admin directement",
+      description: "Sans paiement · Directement en cours de traitement",
+      path: "/dashboard/admin-creer-demarche",
     },
     {
       icon: Link,

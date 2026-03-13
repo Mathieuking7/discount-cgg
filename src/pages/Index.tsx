@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
   Car,
@@ -81,23 +82,25 @@ const steps = [
   },
 ];
 
-const demarchesParticulier = [
-  { icon: FileCheck, title: "Carte grise", desc: "Changement de titulaire suite a un achat.", slug: "carte-grise", color: "#2563EB", bg: "#EFF6FF" },
-  { icon: FilePen, title: "Declaration de cession", desc: "Declarez la vente de votre vehicule.", slug: "declaration-cession", color: "#7C3AED", bg: "#F5F3FF" },
-  { icon: MapPin, title: "Changement d'adresse", desc: "Mettez a jour l'adresse sur votre CG.", slug: "changement-adresse", color: "#059669", bg: "#ECFDF5" },
-  { icon: Copy, title: "Duplicata", desc: "Perte ou vol de carte grise.", slug: "duplicata", color: "#D97706", bg: "#FFFBEB" },
-  { icon: PlusCircle, title: "Vehicule neuf", desc: "Premiere immatriculation.", slug: "vehicule-neuf", color: "#DC2626", bg: "#FEF2F2" },
-  { icon: Globe, title: "Carte grise import", desc: "Vehicule importe de l'etranger.", slug: "carte-grise-import", color: "#0891B2", bg: "#ECFEFF" },
-  { icon: Search, title: "FIV", desc: "Fiche d'identification vehicule.", slug: "fiv", color: "#4F46E5", bg: "#EEF2FF" },
-  { icon: PenTool, title: "Modification CG", desc: "Modifier les infos de votre CG.", slug: "modification-carte-grise", color: "#BE185D", bg: "#FDF2F8" },
-  { icon: ScrollText, title: "Succession", desc: "Transfert suite a un heritage.", slug: "succession", color: "#0D9488", bg: "#F0FDFA" },
-  { icon: Users, title: "Cotitulaire", desc: "Ajout ou retrait de cotitulaire.", slug: "cotitulaire", color: "#EA580C", bg: "#FFF7ED" },
-  { icon: Receipt, title: "Quitus fiscal", desc: "Attestation fiscale pour import.", slug: "quitus-fiscal", color: "#7C3AED", bg: "#FAF5FF" },
-  { icon: Home, title: "Adresse locataire", desc: "Changement d'adresse leasing.", slug: "changement-adresse-locataire", color: "#2563EB", bg: "#F0F9FF" },
-  { icon: Bike, title: "Cyclomoteur", desc: "Immatriculation cyclomoteur ancien.", slug: "immatriculation-cyclomoteur", color: "#65A30D", bg: "#F7FEE7" },
-  { icon: XCircle, title: "Annuler CPI/WW", desc: "Annulation certificat provisoire.", slug: "annuler-cpi-ww", color: "#E11D48", bg: "#FFF1F2" },
-  { icon: ClipboardList, title: "Demande immatriculation", desc: "Vehicule non enregistre au SIV.", slug: "demande-immatriculation", color: "#0284C7", bg: "#F0F9FF" },
-];
+// Visual config per demarche code (icon, color, slug for routing)
+const DEMARCHE_VISUAL: Record<string, { icon: any; color: string; bg: string; slug: string }> = {
+  CG:                   { icon: FileCheck,    color: "#2563EB", bg: "#EFF6FF", slug: "carte-grise" },
+  DC:                   { icon: FilePen,      color: "#7C3AED", bg: "#F5F3FF", slug: "declaration-cession" },
+  CHGT_ADRESSE:         { icon: MapPin,       color: "#059669", bg: "#ECFDF5", slug: "changement-adresse" },
+  DUPLICATA:            { icon: Copy,         color: "#D97706", bg: "#FFFBEB", slug: "duplicata" },
+  CG_NEUF:              { icon: PlusCircle,   color: "#DC2626", bg: "#FEF2F2", slug: "vehicule-neuf" },
+  CPI_WW:               { icon: Globe,        color: "#0891B2", bg: "#ECFEFF", slug: "carte-grise-import" },
+  FIV:                  { icon: Search,       color: "#4F46E5", bg: "#EEF2FF", slug: "fiv" },
+  MODIF_CG:             { icon: PenTool,      color: "#BE185D", bg: "#FDF2F8", slug: "modification-carte-grise" },
+  SUCCESSION:           { icon: ScrollText,   color: "#0D9488", bg: "#F0FDFA", slug: "succession" },
+  COTITULAIRE:          { icon: Users,        color: "#EA580C", bg: "#FFF7ED", slug: "cotitulaire" },
+  QUITUS_FISCAL:        { icon: Receipt,      color: "#7C3AED", bg: "#FAF5FF", slug: "quitus-fiscal" },
+  CHGT_ADRESSE_LOCATAIRE: { icon: Home,       color: "#2563EB", bg: "#F0F9FF", slug: "changement-adresse-locataire" },
+  IMMAT_CYCLO_ANCIEN:   { icon: Bike,         color: "#65A30D", bg: "#F7FEE7", slug: "immatriculation-cyclomoteur" },
+  ANNULER_CPI_WW:       { icon: XCircle,      color: "#E11D48", bg: "#FFF1F2", slug: "annuler-cpi-ww" },
+  DEMANDE_IMMAT:        { icon: ClipboardList, color: "#0284C7", bg: "#F0F9FF", slug: "demande-immatriculation" },
+  DA:                   { icon: FileCheck,    color: "#0891B2", bg: "#ECFEFF", slug: "declaration-achat" },
+};
 
 const demarchesPro = [
   { icon: FileCheck, title: "Declaration d'achat (DA)", desc: "Declarez l'achat d'un vehicule pour votre garage." },
@@ -152,6 +155,38 @@ const testimonials = [
 
 const Index = () => {
   const navigate = useNavigate();
+  const [demarchesParticulier, setDemarchesParticulier] = useState<Array<{
+    code: string; slug: string; title: string; desc: string;
+    icon: any; color: string; bg: string;
+  }>>([]);
+
+  useEffect(() => {
+    supabase
+      .from("guest_demarche_types")
+      .select("code, titre, description, ordre")
+      .eq("actif", true)
+      .order("ordre")
+      .then(({ data }) => {
+        if (!data) return;
+        setDemarchesParticulier(
+          data
+            .map((d) => {
+              const visual = DEMARCHE_VISUAL[d.code];
+              if (!visual) return null;
+              return {
+                code: d.code,
+                slug: visual.slug,
+                title: d.titre,
+                desc: d.description || "",
+                icon: visual.icon,
+                color: visual.color,
+                bg: visual.bg,
+              };
+            })
+            .filter(Boolean) as any[]
+        );
+      });
+  }, []);
 
   return (
     <div className="min-h-screen font-sans bg-white">
