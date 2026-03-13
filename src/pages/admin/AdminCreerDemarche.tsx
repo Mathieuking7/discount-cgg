@@ -25,6 +25,32 @@ interface DocumentEntry {
   filename: string;
 }
 
+interface RequiredDoc {
+  id: string;
+  nom_document: string;
+  obligatoire: boolean;
+}
+
+// Map guest_demarche_types.code → actions_rapides.code
+const DEMARCHE_TO_ACTION_CODE: Record<string, string> = {
+  CG: "CG",
+  DA: "DA",
+  DC: "DC",
+  DUPLICATA: "DUPLICATA_CG_PRO",
+  CHGT_ADRESSE: "CHANGEMENT_ADRESSE_PRO",
+  CG_NEUF: "CG_NEUF_PRO",
+  COTITULAIRE: "COTITULAIRE_PRO",
+  QUITUS_FISCAL: "CG",
+  MODIF_CG: "CG",
+  SUCCESSION: "CG",
+  FIV: "CG",
+  CPI_WW: "CG",
+  ANNULER_CPI_WW: "CG",
+  DEMANDE_IMMAT: "CG",
+  CHGT_ADRESSE_LOCATAIRE: "CHANGEMENT_ADRESSE_PRO",
+  IMMAT_CYCLO_ANCIEN: "CG",
+};
+
 function generateTrackingNumber(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "ADM-";
@@ -66,6 +92,11 @@ export default function AdminCreerDemarche() {
   const [nomDocument, setNomDocument] = useState("");
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Required docs
+  const [requiredDocs, setRequiredDocs] = useState<RequiredDoc[]>([]);
+  const [loadingRequiredDocs, setLoadingRequiredDocs] = useState(false);
+  const [uploadingReqDoc, setUploadingReqDoc] = useState<string | null>(null);
 
   // Admin check
   useEffect(() => {
@@ -109,6 +140,36 @@ export default function AdminCreerDemarche() {
     };
     load();
   }, [isAdmin, toast]);
+
+  // Load required docs when entering step 3
+  useEffect(() => {
+    if (step !== 3 || !selectedType) return;
+    const loadDocs = async () => {
+      setLoadingRequiredDocs(true);
+      try {
+        const actionCode = DEMARCHE_TO_ACTION_CODE[selectedType.code] || selectedType.code;
+        const { data: actions } = await supabase
+          .from("actions_rapides")
+          .select("id")
+          .eq("code", actionCode)
+          .limit(1);
+        if (actions && actions.length > 0) {
+          const { data: docs } = await supabase
+            .from("action_documents")
+            .select("id, nom_document, obligatoire")
+            .eq("action_id", actions[0].id)
+            .order("ordre");
+          setRequiredDocs((docs || []).map((d) => ({ id: d.id, nom_document: d.nom_document, obligatoire: d.obligatoire ?? false })));
+        } else {
+          setRequiredDocs([]);
+        }
+      } catch {
+        setRequiredDocs([]);
+      }
+      setLoadingRequiredDocs(false);
+    };
+    loadDocs();
+  }, [step, selectedType]);
 
   const handleCreateOrder = async () => {
     if (!selectedType) return;
@@ -203,6 +264,43 @@ export default function AdminCreerDemarche() {
       toast({ title: "Document ajouté", description: nomDocument.trim() });
     } finally {
       setUploadingDoc(false);
+    }
+  };
+
+  const handleUploadRequiredDoc = async (reqDocId: string, reqDocName: string, file: File) => {
+    if (!orderId) return;
+    setUploadingReqDoc(reqDocId);
+    try {
+      const path = `admin/${orderId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("guest-documents")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("guest-documents").getPublicUrl(path);
+      const fichierUrl = urlData.publicUrl;
+
+      // Remove existing upload for same required doc if any
+      const existing = documents.find((d) => d.id === reqDocId);
+      if (existing) {
+        await supabase.from("guest_order_documents").delete().eq("id", existing.id);
+      }
+
+      const { data: docData, error: docError } = await supabase
+        .from("guest_order_documents")
+        .insert({ guest_order_id: orderId, nom_document: reqDocName, fichier_url: fichierUrl, valide: true })
+        .select("id")
+        .single();
+      if (docError || !docData) throw docError || new Error("Erreur sauvegarde");
+
+      setDocuments((prev) => {
+        const filtered = prev.filter((d) => d.id !== reqDocId);
+        return [...filtered, { id: reqDocId, nom_document: reqDocName, fichier_url: fichierUrl, filename: file.name }];
+      });
+      toast({ title: "Document uploadé", description: reqDocName });
+    } catch (err: any) {
+      toast({ title: "Erreur upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingReqDoc(null);
     }
   };
 
@@ -398,34 +496,56 @@ export default function AdminCreerDemarche() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Existing documents */}
-              {documents.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Documents ajoutés ({documents.length})</p>
-                  <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 overflow-hidden">
-                    {documents.map((doc) => (
-                      <li key={doc.id} className="flex items-center justify-between px-4 py-3 bg-white">
-                        <div className="flex items-center gap-2 text-sm">
-                          <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                          <span className="text-gray-800 font-medium">{doc.nom_document}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteDocument(doc)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </li>
-                    ))}
+              {/* Required documents list */}
+              {loadingRequiredDocs ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                </div>
+              ) : requiredDocs.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-gray-700">Documents requis</p>
+                  <ul className="space-y-2">
+                    {requiredDocs.map((req) => {
+                      const uploaded = documents.find((d) => d.id === req.id);
+                      return (
+                        <li key={req.id} className={`rounded-lg border p-3 flex items-center gap-3 ${uploaded ? "border-green-300 bg-green-50" : "border-gray-200 bg-white"}`}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {req.nom_document}
+                              {req.obligatoire && <span className="ml-1 text-red-500">*</span>}
+                            </p>
+                            {uploaded && (
+                              <p className="text-xs text-green-600 mt-0.5 truncate">✓ {uploaded.filename}</p>
+                            )}
+                          </div>
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUploadRequiredDoc(req.id, req.nom_document, file);
+                              }}
+                            />
+                            <span className={`inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-md border font-medium transition-colors ${uploaded ? "border-green-400 text-green-700 hover:bg-green-100" : "border-blue-400 text-blue-700 hover:bg-blue-50"}`}>
+                              {uploadingReqDoc === req.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Upload className="h-3 w-3" />
+                              )}
+                              {uploaded ? "Remplacer" : "Uploader"}
+                            </span>
+                          </label>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
-              )}
+              ) : null}
 
-              {/* Add document form */}
+              {/* Add extra document form */}
               <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 space-y-3">
-                <p className="text-sm font-medium text-gray-700">Ajouter un document</p>
+                <p className="text-sm font-medium text-gray-700">Ajouter un document supplémentaire</p>
                 <div className="space-y-1">
                   <Label htmlFor="nom_document">Nom du document</Label>
                   <Input
