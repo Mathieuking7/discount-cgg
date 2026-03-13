@@ -181,12 +181,12 @@ export default function AdminCreerDemarche() {
         .insert({
           nom,
           prenom,
-          email,
+          email: email || "admin@sivflow.fr",
           telephone,
-          immatriculation,
-          adresse,
-          code_postal: codePostal,
-          ville,
+          immatriculation: immatriculation || "A_RENSEIGNER",
+          adresse: adresse || "",
+          code_postal: codePostal || "",
+          ville: ville || "",
           commentaire: commentaire || null,
           demarche_type: selectedType.code,
           paye: true,
@@ -414,6 +414,11 @@ export default function AdminCreerDemarche() {
           <Card>
             <CardHeader>
               <CardTitle>Informations client</CardTitle>
+              {selectedType && (
+                <p className="text-sm text-blue-700 font-medium mt-1">
+                  {selectedType.titre}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -427,40 +432,8 @@ export default function AdminCreerDemarche() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="space-y-1">
                 <Label htmlFor="telephone">Téléphone *</Label>
                 <Input id="telephone" value={telephone} onChange={(e) => setTelephone(e.target.value)} required />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="immatriculation">Immatriculation *</Label>
-                <Input id="immatriculation" value={immatriculation} onChange={(e) => setImmatriculation(e.target.value)} required />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="adresse">Adresse *</Label>
-                <Input id="adresse" value={adresse} onChange={(e) => setAdresse(e.target.value)} required />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="code_postal">Code postal *</Label>
-                  <Input id="code_postal" value={codePostal} onChange={(e) => setCodePostal(e.target.value)} required />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="ville">Ville *</Label>
-                  <Input id="ville" value={ville} onChange={(e) => setVille(e.target.value)} required />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="commentaire">Commentaire (optionnel)</Label>
-                <Textarea
-                  id="commentaire"
-                  value={commentaire}
-                  onChange={(e) => setCommentaire(e.target.value)}
-                  rows={3}
-                  placeholder="Notes internes ou informations complémentaires..."
-                />
               </div>
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" onClick={() => setStep(1)} disabled={submitting}>
@@ -468,11 +441,7 @@ export default function AdminCreerDemarche() {
                 </Button>
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={
-                    submitting ||
-                    !nom || !prenom || !email || !telephone ||
-                    !immatriculation || !adresse || !codePostal || !ville
-                  }
+                  disabled={submitting || !nom || !prenom || !telephone}
                   onClick={handleCreateOrder}
                 >
                   {submitting ? (
@@ -494,6 +463,9 @@ export default function AdminCreerDemarche() {
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                 Démarche créée — Ajout de documents
               </CardTitle>
+              {selectedType && (
+                <p className="text-sm text-blue-700 font-medium mt-1">{selectedType.titre}</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Required documents list */}
