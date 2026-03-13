@@ -181,7 +181,7 @@ export default function Dashboard() {
           </div>
           <div className="hidden md:flex items-center gap-1">
             {[
-              { label: 'Dashboard', path: '/dashboard' },
+              { label: 'Dashboard', path: '/mon-espace' },
               { label: 'Mes demarches', path: '/mes-demarches' },
               { label: 'Factures', path: '/mes-factures' },
               { label: 'Support', path: '/support' },

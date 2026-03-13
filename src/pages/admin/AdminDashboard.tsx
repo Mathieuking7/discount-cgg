@@ -122,7 +122,7 @@ export default function AdminDashboard() {
     const hasAdminRole = roles?.some((r) => r.role === "admin");
 
     if (!hasAdminRole) {
-      navigate("/nouvelle-demarche");
+      navigate("/mon-espace");
       return;
     }
 
