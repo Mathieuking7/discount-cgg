@@ -581,14 +581,7 @@ export default function GarageSettings() {
                                     <p className="text-sm text-muted-foreground italic">
                                       (Remplir uniquement : raison sociale, SIRET, adresse. Tamponner et signer en bas)
                                     </p>
-                                    <a 
-                                      href="/cerfas/cerfa_13757_03.pdf" 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-sm text-primary hover:underline"
-                                    >
-                                      Télécharger le CERFA 13757
-                                    </a>
+                                    <span className="text-sm text-muted-foreground">CERFA 13757</span>
                                   </div>
                                 )}
                               </div>

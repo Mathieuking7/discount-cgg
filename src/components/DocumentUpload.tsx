@@ -285,18 +285,7 @@ export function DocumentUpload({ demarcheId, documentType, label, customName, on
       <Label className="flex items-center gap-2 flex-wrap">
         {parts.map((part, index) => {
           if (cerfaRegex.test(part)) {
-            return (
-              <a
-                key={index}
-                href={getCerfaUrl(cerfaNumber)}
-                download
-                className="text-primary hover:text-primary/80 underline inline-flex items-center gap-1 font-medium"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {part}
-                <Download className="h-3 w-3" />
-              </a>
-            );
+            return <span key={index} className="font-medium">{part}</span>;
           }
           return <span key={index}>{part}</span>;
         })}
