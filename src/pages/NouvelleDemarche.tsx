@@ -101,7 +101,7 @@ export default function NouvelleDemarche() {
   // Ouverture/fermeture du bloc questionnaire (modifiable même après complétion)
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(true);
   // CG payment option states
-  const [paymentOption, setPaymentOption] = useState<'garage_dossier' | 'garage_tout' | 'client_tout'>('garage_dossier');
+  const [paymentOption, setPaymentOption] = useState<'garage_dossier' | 'garage_tout' | 'client_tout'>('garage_tout');
   const [prixCarteGrise, setPrixCarteGrise] = useState(0);
   const [fraisDossier, setFraisDossier] = useState(30);
   const [clientPaymentLinkId, setClientPaymentLinkId] = useState<string | null>(null);
